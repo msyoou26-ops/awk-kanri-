@@ -2123,14 +2123,19 @@ initFirebase();
 
 // ===== デモデータ =====
 function loadDemoData() {
-  if(Object.keys(members).length > 0) return; // 既にデータあれば不要
+  // Firebase接続後でもlocalstorageにデータがあれば不要
+  try {
+    const existingMembers = JSON.parse(localStorage.getItem('awk_members') || '{}');
+    if(Object.keys(existingMembers).length > 0) return;
+  } catch(e) {}
+  if(Object.keys(members).length > 0) return;
 
   // メンバー登録
   const m1id = 'demo_m1', m2id = 'demo_m2', m3id = 'demo_m3';
   members[m1id] = {id:m1id, name:'森下　翔', role:'架装担当'};
   members[m2id] = {id:m2id, name:'東　康広', role:'救急車担当'};
   members[m3id] = {id:m3id, name:'田中　健', role:'電装担当'};
-  saveM();
+  try{localStorage.setItem('awk_members', JSON.stringify(members));}catch(e){}
 
   // 案件登録
   const j1id='demo_j1',j2id='demo_j2',j3id='demo_j3',j4id='demo_j4',j5id='demo_j5';
@@ -2172,7 +2177,7 @@ function loadDemoData() {
   jobs[j5id]={id:j5id,orderNo:'B2026-06-002',carType:'シビリアン',name:'キャンピングカー架装',
     start:fmt2(addDays(today2,2)),end:fmt2(addDays(today2,6)),planH:80,
     memberId:m2id,status:'planned',memo:'初回製作',actH:0,tasks:[]};
-  saveJ();
+  try{localStorage.setItem('awk_jobs', JSON.stringify(jobs));}catch(e){}
 
   // 日次ログ（森下翔のログ）
   const logs = {};
