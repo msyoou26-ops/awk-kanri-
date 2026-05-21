@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05060a">
+<title>AWK 架装管理</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+</style>
+
+<style>
+:root{
+  --bg:#05060a;--surface:#0d0f18;--surface2:#141720;--surface3:#1a1e2e;
+  --border:#1e2235;--border2:#252a3d;
+  --accent:#f0a500;--accent2:#3b7ff5;--green:#1ec97a;--red:#f04040;
+  --text:#dde2f0;--dim:#6b7399;--muted:#3d4460;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none}
+body{min-height:100vh;overflow-x:hidden}
+input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
+
+/* SETUP BANNER */
+.setup-banner{background:#1a0a00;border-bottom:1px solid var(--accent);padding:10px 16px;font-size:13px;color:var(--text);text-align:center}
+
+/* SCREEN */
+.screen{display:none;min-height:100vh;flex-direction:column;padding-bottom:calc(60px + var(--safe-bottom))}
+.screen.active{display:flex}
+
+/* HEADER */
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:0 14px;height:52px;display:flex;align-items:center;gap:8px;flex-shrink:0;position:sticky;top:0;z-index:50}
+.hdr-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);user-select:none;flex-shrink:0}
+.hdr-title{font-size:14px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-right{display:flex;gap:6px;margin-left:auto;align-items:center;flex-shrink:0}
+.icon-btn{background:transparent;border:1px solid var(--border2);color:var(--dim);width:34px;height:34px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+.back-btn{background:transparent;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:4px 2px;white-space:nowrap;flex-shrink:0}
+.user-chip{display:flex;align-items:center;gap:4px}
+.role-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700}
+.rb-boss{background:rgba(240,165,0,.2);color:var(--accent)}
+.rb-worker{background:rgba(59,127,245,.2);color:#60a5fa}
+
+/* TAB BAR */
+.tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;position:sticky;top:52px;z-index:40}
+.tab{flex:1;background:transparent;border:none;color:var(--dim);padding:12px 8px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-family:'Noto Sans JP',sans-serif}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(60px + var(--safe-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:50;padding-bottom:var(--safe-bottom)}
+.bnav{flex:1;background:transparent;border:none;color:var(--dim);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;cursor:pointer;transition:color .15s;font-family:'Noto Sans JP',sans-serif;padding-bottom:2px}
+.bnav span{font-size:10px}
+.bnav:first-child{font-size:20px}
+.bnav.on{color:var(--accent)}
+
+/* LOGIN */
+.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:radial-gradient(ellipse at 40% 35%,#0c1020,var(--bg) 70%)}
+.login-box{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:36px 28px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+.login-logo{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:8px;color:var(--accent);line-height:1;margin-bottom:2px}
+.login-sub{font-size:11px;color:var(--dim);letter-spacing:2px;margin-bottom:28px}
+.login-tabs{display:flex;border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:22px}
+.ltab{flex:1;padding:10px;text-align:center;font-size:14px;cursor:pointer;color:var(--dim);background:transparent;border:none;transition:all .15s}
+.ltab.on{background:var(--accent);color:#000;font-weight:700}
+.lfield label{display:block;font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.lfield input,.lfield select{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:13px 14px;border-radius:10px;font-size:15px;outline:none;transition:border-color .2s;margin-bottom:16px}
+.lfield input:focus,.lfield select:focus{border-color:var(--accent)}
+.login-btn{width:100%;background:var(--accent);border:none;color:#000;padding:14px;border-radius:10px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;cursor:pointer}
+.login-err{font-size:12px;color:var(--red);margin-top:10px;text-align:center;min-height:18px}
+.login-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:16px}
+
+/* HOME */
+.home-body{flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:20px;overflow-y:auto}
+.home-hero{text-align:center;padding:16px 0 8px}
+.home-logo{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:8px;color:var(--accent);line-height:1}
+.home-sub{font-size:11px;color:var(--dim);letter-spacing:2px;margin-top:4px}
+.home-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.home-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:20px 16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.home-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);opacity:0;transition:opacity .2s}
+.home-card:hover::before,.home-card:active::before{opacity:1}
+.home-card.accent2::before{background:var(--accent2)}
+.hc-icon{font-size:28px;margin-bottom:8px}
+.hc-title{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px}
+.hc-desc{font-size:10px;color:var(--dim);margin-top:3px}
+.hc-badge{position:absolute;top:12px;right:12px;background:var(--accent2);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700}
+.section-lbl{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:3px;color:var(--dim);display:flex;align-items:center;gap:8px}
+.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.member-card{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .2s;text-align:center;position:relative}
+.member-card:active{border-color:var(--accent);transform:scale(.98)}
+.mc-av{width:44px;height:44px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--accent);margin:0 auto 9px}
+.mc-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.mc-role{font-size:10px;color:var(--dim)}
+.mc-stats{font-size:10px;color:var(--muted);margin-top:5px}
+.mc-stats span{color:var(--accent2)}
+.add-card{background:transparent;border:1px dashed var(--border2);border-radius:14px;padding:18px 14px;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:110px}
+
+/* WORKER HOME */
+.worker-home{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:24px}
+.wh-profile{text-align:center}
+.wh-av{width:72px;height:72px;border-radius:50%;background:var(--surface2);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);margin:0 auto 12px}
+.wh-name{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#1a1a1a}
+.wh-role{font-size:12px;color:#555;margin-top:3px}
+.wh-stats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.whs{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center;min-width:72px}
+.whs-n{font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1}
+.whs-l{font-size:10px;color:var(--dim);margin-top:2px}
+.wh-cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;width:100%}
+.wh-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:24px 28px;cursor:pointer;transition:all .2s;text-align:center;flex:1;min-width:130px;max-width:180px;font-size:32px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.wh-card:active{border-color:var(--c,var(--accent))}
+.wh-card-title{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px}
+
+/* APP BODY */
+.app-body{flex:1;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* BUTTONS */
+.btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;white-space:nowrap}
+.btn:active{background:var(--accent);border-color:var(--accent);color:#000}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700}
+.btn.small{padding:5px 10px;font-size:12px}
+.btn.ghost{background:transparent}
+
+/* STATS */
+.stats-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;overflow-x:auto;padding-bottom:4px}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 14px;text-align:center;flex-shrink:0}
+.sv{font-family:'Bebas Neue',sans-serif;font-size:22px}.sl{font-size:10px;color:var(--dim);margin-top:1px}
+.sv-total{color:var(--accent)}.sv-on{color:var(--accent2)}.sv-done{color:var(--green)}.sv-h{color:#f472b6}.sv-qc{color:var(--red)}
+
+/* OVERVIEW LIST */
+.ov-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.ov-card:active{border-color:var(--border2)}
+.ov-card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.ov-card-name{font-size:14px;font-weight:500;flex:1}
+.ov-card-order{font-size:10px;color:var(--accent);font-family:'Bebas Neue',sans-serif;letter-spacing:1px}
+.ov-card-car{font-size:11px;color:var(--dim)}
+.ov-card-meta{display:flex;gap:10px;font-size:11px;color:var(--dim);margin-bottom:8px;flex-wrap:wrap}
+.ov-card-meta span{color:var(--text)}
+.ov-card-bottom{display:flex;align-items:center;gap:8px}
+.ov-pw{background:var(--surface2);border-radius:3px;height:6px;overflow:hidden;flex:1}
+.ov-pb{height:100%;border-radius:3px;transition:width .4s}
+.ov-pct{font-size:11px;color:var(--dim);min-width:32px;text-align:right}
+.sb{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.sb-planned{background:rgba(99,102,241,.2);color:#818cf8}
+.sb-ongoing{background:rgba(59,127,245,.2);color:#60a5fa}
+.sb-done{background:rgba(30,201,122,.15);color:#4ade80}
+.sb-overdue{background:rgba(240,64,64,.2);color:#f87171}
+.ov-actions{display:flex;gap:6px;margin-top:8px}
+.act-btn{background:none;border:1px solid var(--border2);color:var(--dim);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer}
+.act-btn:active{border-color:var(--accent);color:var(--accent)}
+.act-btn.del{color:var(--muted)}
+.act-btn.del:active{border-color:var(--red);color:var(--red)}
+
+/* GANTT */
+.month-nav-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;justify-content:center}
+.month-lbl{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;min-width:140px;text-align:center;color:#1a1a1a}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin-bottom:12px}
+.leg-i{display:flex;align-items:center;gap:4px}
+.leg-b{width:16px;height:6px;border-radius:2px;display:inline-block}
+.bar-ongoing{background:linear-gradient(90deg,#3b7ff5,#60a5fa)}
+.bar-done{background:linear-gradient(90deg,#1ec97a,#4ade80)}
+.bar-overdue{background:linear-gradient(90deg,#f04040,#f87171)}
+.bar-planned{background:linear-gradient(90deg,#6366f1,#818cf8)}
+.gantt-scroll-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.gantt-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.gantt-table{border-collapse:collapse;min-width:600px}
+.gantt-table thead th{background:var(--surface2);border-bottom:2px solid var(--border2);font-size:10px;color:var(--dim);text-align:center;white-space:nowrap;padding:0}
+.th-info{width:140px;padding:7px 10px;text-align:left;color:var(--text);font-size:11px}
+.th-d{width:22px;min-width:22px;padding:6px 0}
+.th-d.th-today{color:var(--accent);font-weight:700}.th-d.th-wk{color:#3d4460}
+.gantt-table tbody tr{border-bottom:1px solid var(--border)}
+.gantt-table tbody tr:last-child{border-bottom:none}
+.td-info{padding:6px 10px;width:140px;min-width:140px;vertical-align:middle}
+.jn{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.jm{font-size:9px;color:var(--dim);margin-top:1px}
+.sdot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:3px;flex-shrink:0}
+.td-d{width:22px;min-width:22px;padding:2px 0;vertical-align:middle;text-align:center;position:relative}
+.td-d.td-today{background:rgba(240,165,0,.06)}.td-d.td-wk{background:rgba(255,255,255,.008)}
+.bar{height:18px;border-radius:3px}
+.bar-s{border-radius:3px 0 0 3px}.bar-m{border-radius:0}.bar-e{border-radius:0 3px 3px 0}.bar-x{border-radius:3px}
+.today-ln{position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--accent);transform:translateX(-50%);pointer-events:none;z-index:2}
+.empty-msg{text-align:center;padding:32px 16px;color:var(--dim);font-size:13px}
+
+/* NENKAN */
+.nk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+.nk-ttl{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:3px;color:var(--accent);margin-bottom:12px}
+.nk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.nkc{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.nkn{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1}
+.nkl{font-size:10px;color:var(--dim);margin-top:2px}
+.nkc.c-done .nkn{color:var(--green)}.nkc.c-act .nkn{color:var(--accent2)}.nkc.c-sur .nkn{color:#f472b6}
+.nk-months{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+.nm{background:var(--surface2);border-radius:4px;padding:5px 2px;text-align:center}
+.nm.has{border:1px solid rgba(30,201,122,.25)}
+.nm-l{font-size:9px;color:var(--dim)}.nm-n{font-size:13px;font-weight:700;font-family:'Bebas Neue',sans-serif;color:var(--green)}
+.nm-n.z{color:var(--border2);font-size:9px}
+
+/* PROGRESS CARDS */
+.pb-filters{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:14px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.flt{background:var(--surface2);border:1px solid var(--border2);color:var(--dim);padding:5px 13px;border-radius:20px;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.flt.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700}
+.pb-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;position:relative;overflow:hidden}
+.pb-bar{position:absolute;top:0;left:0;right:0;height:3px}
+.pb-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.pb-nm{font-size:14px;font-weight:500;flex:1}
+.pb-order{font-size:10px;color:var(--accent);font-family:'Bebas Neue',sans-serif;letter-spacing:1px}
+.pb-car{font-size:11px;color:var(--dim);margin-top:1px}
+.pb-dates{font-size:11px;color:var(--dim);margin-bottom:8px}
+.pb-dates span{color:var(--text)}
+.pb-hr{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:4px}
+.pb-hr span{color:var(--text)}
+.pb-pw{background:var(--surface2);border-radius:3px;height:6px;overflow:hidden;margin-bottom:10px}
+.pb-pb{height:100%;border-radius:3px;transition:width .4s}
+.dp{color:var(--green)}.dn{color:var(--red)}.dz{color:var(--dim)}
+.shared-breakdown{background:rgba(59,127,245,.06);border:1px solid rgba(59,127,245,.18);border-radius:8px;padding:10px 12px;margin:8px 0}
+.sbd-member{margin-bottom:8px}
+.sbd-header{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.sbd-av{width:20px;height:20px;border-radius:50%;background:var(--surface2);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:9px;color:var(--accent);flex-shrink:0}
+.sbd-name{font-size:12px;font-weight:600;flex:1}
+.sbd-act{font-size:11px;color:var(--accent2);font-weight:700}
+.sbd-tasks{padding-left:26px}
+.sbd-task{display:flex;align-items:center;gap:4px;font-size:11px;padding:1px 0}
+.sbd-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.sbd-tn{flex:1;color:var(--dim)}
+.sbd-th{color:var(--text);min-width:28px;text-align:right}
+.sbd-tl{font-size:10px;min-width:32px;text-align:right}
+/* TASK INPUT */
+.pt-section{border-top:1px solid var(--border);margin-top:10px;padding-top:10px}
+.pt-section-label{font-size:11px;color:var(--accent);font-weight:600;margin-bottom:8px}
+.pt-row{display:grid;grid-template-columns:1fr 58px 75px 24px;gap:4px;align-items:center;min-height:34px;border-bottom:1px solid rgba(37,42,61,.35);padding:3px 0}
+.pt-row:last-child{border-bottom:none}
+.pt-name{display:flex;align-items:center;gap:4px;min-width:0}
+.pt-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.pt-input-name{background:transparent;border:none;color:var(--text);font-size:13px;width:100%;outline:none;padding:3px;border-radius:4px}
+.pt-input-num{background:transparent;border:none;color:var(--text);font-size:13px;width:38px;outline:none;padding:3px;border-radius:4px;text-align:right}
+.pt-input-name:focus,.pt-input-num:focus{background:var(--surface2);border:1px solid var(--accent)}
+.pt-act{display:flex;align-items:center;gap:2px}
+.pt-unit{font-size:10px;color:var(--dim)}
+.pt-select{background:transparent;border:none;color:var(--text);font-size:12px;width:100%;outline:none;cursor:pointer;padding:3px}
+.pt-select:focus{background:var(--surface2)}
+.pt-del{background:none;border:none;color:#3d4460;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;padding:4px}
+.pt-del:active{color:var(--red)}
+.pt-header{display:grid;grid-template-columns:1fr 58px 75px 24px;gap:4px;padding:0 4px 6px;font-size:10px;color:var(--dim)}
+.pt-footer{display:flex;gap:8px;padding-top:8px;margin-top:4px}
+.pb-acts{display:flex;gap:6px;margin-top:10px}
+
+/* QC */
+.qc-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden}
+.qc-bar{position:absolute;top:0;left:0;right:0;height:3px}
+.qc-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.qc-type-badge{padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;flex-shrink:0}
+.sev-high{background:rgba(240,64,64,.2);color:#f87171}
+.sev-mid{background:rgba(240,165,0,.2);color:var(--accent)}
+.sev-low{background:rgba(30,201,122,.15);color:#4ade80}
+.qc-title{font-size:13px;font-weight:500;flex:1}
+.qc-meta{font-size:11px;color:var(--dim);margin-bottom:6px}
+.qc-meta span{color:var(--text)}
+.qc-content{font-size:12px;color:var(--text);margin-bottom:6px;line-height:1.6}
+.qc-detail{font-size:11px;color:var(--dim);line-height:1.6}
+.qc-detail strong{color:var(--text)}
+.qc-actions{display:flex;gap:6px;margin-top:8px}
+.qc-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+.qc-stat-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--accent);margin-bottom:12px;border-left:3px solid var(--accent);padding-left:8px}
+.qc-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.qc-bar-label{font-size:11px;color:var(--dim);width:56px;flex-shrink:0}
+.qc-bar-wrap{flex:1;background:var(--surface2);border-radius:3px;height:8px;overflow:hidden}
+.qc-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.qc-bar-count{font-size:11px;color:var(--text);min-width:24px;text-align:right}
+.trend-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+.trend-cell{background:var(--surface2);border-radius:4px;padding:4px 2px;text-align:center}
+.trend-cell.has{background:rgba(240,64,64,.15);border:1px solid rgba(240,64,64,.2)}
+.trend-l{font-size:9px;color:var(--dim)}.trend-n{font-size:12px;font-weight:700;font-family:'Bebas Neue',sans-serif;color:var(--red)}
+.trend-n.z{color:var(--border2);font-size:9px}
+.improve-card{background:rgba(30,201,122,.06);border:1px solid rgba(30,201,122,.2);border-radius:10px;padding:12px;margin-bottom:8px}
+.improve-title{font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px}
+.improve-body{font-size:12px;color:var(--text);line-height:1.6}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:20px 20px 0 0;padding:20px 20px 32px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:12px}
+.modal h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--accent)}
+.modal-close{background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:2px 6px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:12px 13px;border-radius:10px;font-size:14px;outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px 20px;font-size:13px;opacity:0;transition:all .3s;z-index:200;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--dim);font-size:13px;gap:8px}
+
+::-webkit-scrollbar{height:4px;width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+</head>
+<body>
+
+<!-- ===== SETUP BANNER ===== -->
+
+<div id="setupBanner" style="display:none">
+  <div class="setup-banner">
+    ⚠️ Firebase未設定 — <a href="setup.html" style="color:var(--accent)">設定ガイドを開く</a>
+  </div>
+</div>
+
+<!-- ===== LOGIN ===== -->
+
+<div id="loginScreen" class="screen active">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">AWK</div>
+      <div class="login-sub">架装工事管理システム</div>
+      <div class="login-tabs">
+        <button class="ltab on" id="ltab-boss" onclick="switchLoginTab('boss')">上司</button>
+        <button class="ltab" id="ltab-worker" onclick="switchLoginTab('worker')">作業者</button>
+      </div>
+      <div id="boss-login">
+        <div class="lfield"><label>パスワード</label>
+          <input type="password" id="bossPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin('boss')">
+        </div>
+        <button class="login-btn" onclick="doLogin('boss')">上司としてログイン</button>
+      </div>
+      <div id="worker-login" style="display:none">
+        <div class="lfield"><label>作業者を選択</label>
+          <select id="workerSelect"></select>
+        </div>
+        <button class="login-btn" onclick="doLogin('worker')">ログイン</button>
+      </div>
+      <div class="login-err" id="loginErr"></div>
+      <div class="login-hint">AWK製造部専用 | 上司PW: AWK-boss</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HOME (上司) ===== -->
+
+<div id="homeScreen" class="screen">
+  <div class="hdr">
+    <div class="hdr-logo">AWK</div>
+    <div style="font-size:11px;color:var(--dim);letter-spacing:1px;flex:1">オートワークス京都</div>
+    <div class="hdr-right">
+      <span class="user-chip"><span class="role-badge rb-boss">上司</span></span>
+      <button class="icon-btn" onclick="doLogout()">⏻</button>
+    </div>
+  </div>
+  <div class="home-body">
+    <div class="home-hero">
+      <div class="home-logo">AWK</div>
+      <div class="home-sub">架装管理システム</div>
+    </div>
+    <div class="home-cards">
+      <div class="home-card" onclick="showScreen('overviewScreen')">
+        <div class="hc-icon">📋</div>
+        <div class="hc-title">全体ビュー</div>
+        <div class="hc-desc">案件一覧・担当割当</div>
+        <div class="hc-badge" id="ovBadge">0件</div>
+      </div>
+      <div class="home-card accent2" onclick="showScreen('qcScreen')">
+        <div class="hc-icon">📊</div>
+        <div class="hc-title">QCデータ</div>
+        <div class="hc-desc">品質・改善データ管理</div>
+      </div>
+    </div>
+    <div class="section-lbl">
+      👷 作業者
+      <button class="btn small" style="margin-left:auto" onclick="openMemberModal()">＋ 追加</button>
+    </div>
+    <div class="member-grid" id="memberGrid"></div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav on" onclick="showScreen('homeScreen')">🏠<span>ホーム</span></button>
+    <button class="bnav" onclick="showScreen('overviewScreen')">📋<span>案件</span></button>
+    <button class="bnav" onclick="showScreen('qcScreen')">📊<span>QC</span></button>
+  </div>
+</div>
+
+<!-- ===== HOME (作業者) ===== -->
+
+<div id="workerHomeScreen" class="screen">
+  <div class="hdr">
+    <div class="hdr-logo">AWK</div>
+    <div style="font-size:11px;color:var(--dim);letter-spacing:1px;flex:1">オートワークス京都</div>
+    <div class="hdr-right">
+      <span class="user-chip" id="workerChip"><span class="role-badge rb-worker">作業者</span></span>
+      <button class="icon-btn" onclick="doLogout()">⏻</button>
+    </div>
+  </div>
+  <div class="worker-home">
+    <div class="wh-profile">
+      <div class="wh-av" id="whAv"></div>
+      <div class="wh-name" id="whName"></div>
+      <div class="wh-role" id="whRole"></div>
+    </div>
+    <div class="wh-stats" id="whStats"></div>
+    <div class="wh-cards">
+      <div class="wh-card" style="--c:#f0a500" onclick="showMemberTab('gantt')">
+        <div>📅</div><div class="wh-card-title">架装日程</div>
+      </div>
+      <div class="wh-card" style="--c:#3b7ff5" onclick="showMemberTab('progress')">
+        <div>📊</div><div class="wh-card-title">進捗管理</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== OVERVIEW ===== -->
+
+<div id="overviewScreen" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goHome()">← 戻る</button>
+    <div class="hdr-title">全体ビュー</div>
+    <button class="icon-btn" onclick="openJobModal(null,null)">＋</button>
+  </div>
+  <div class="app-body">
+    <div class="stats-row" id="ovStats"></div>
+    <div id="ovList"></div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav" onclick="goHome()">🏠<span>ホーム</span></button>
+    <button class="bnav on">📋<span>案件</span></button>
+    <button class="bnav" onclick="showScreen('qcScreen')">📊<span>QC</span></button>
+  </div>
+</div>
+
+<!-- ===== MEMBER SCREEN ===== -->
+
+<div id="memberScreen" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goBackFromMember()">← 戻る</button>
+    <div class="hdr-title" id="mHdrTitle"></div>
+    <button class="icon-btn" id="btnAddJob" onclick="openJobModal(curMember,null)">＋</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab on" id="mNavG" onclick="showMemberTab('gantt')">📅 架装日程</button>
+    <button class="tab" id="mNavP" onclick="showMemberTab('progress')">📊 進捗管理</button>
+  </div>
+  <div class="app-body">
+    <!-- GANTT -->
+    <div id="mGanttTab">
+      <div class="month-nav-row">
+        <button class="btn" onclick="changeMonth(-1)">‹</button>
+        <div class="month-lbl" id="monthLbl"></div>
+        <button class="btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="stats-row" id="mStats"></div>
+      <div class="legend">
+        <span class="leg-i"><span class="leg-b bar-ongoing"></span>施工中</span>
+        <span class="leg-i"><span class="leg-b bar-done"></span>完成</span>
+        <span class="leg-i"><span class="leg-b bar-overdue"></span>遅延</span>
+        <span class="leg-i"><span class="leg-b bar-planned"></span>予定</span>
+      </div>
+      <div class="gantt-scroll-wrap">
+        <div class="gantt-scroll">
+          <table class="gantt-table"><thead id="gHead"></thead><tbody id="gBody"></tbody></table>
+        </div>
+      </div>
+      <div id="nkWrap"></div>
+    </div>
+    <!-- PROGRESS -->
+    <div id="mProgressTab" style="display:none">
+      <div class="pb-filters" id="pbFilters">
+        <button class="flt on" onclick="setFilter(this,'all')">すべて</button>
+        <button class="flt" onclick="setFilter(this,'ongoing')">施工中</button>
+        <button class="flt" onclick="setFilter(this,'planned')">予定</button>
+        <button class="flt" onclick="setFilter(this,'done')">完成</button>
+        <button class="flt" onclick="setFilter(this,'overdue')">遅延</button>
+      </div>
+      <div id="pbCards"></div>
+    </div>
+  </div>
+  <div class="bottom-nav" id="memberBottomNav"></div>
+</div>
+
+<!-- ===== QC SCREEN ===== -->
+
+<div id="qcScreen" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goHome()">← 戻る</button>
+    <div class="hdr-title">QCデータ管理</div>
+    <button class="icon-btn" onclick="openQcModal(null)">＋</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab on" id="qNavList" onclick="switchQcTab('list')">📋 案件一覧</button>
+    <button class="tab" id="qNavStat" onclick="switchQcTab('stat')">📈 統計・改善</button>
+  </div>
+  <div class="app-body">
+    <div id="qcListTab">
+      <div class="stats-row" id="qcStats"></div>
+      <div id="qcList"></div>
+    </div>
+    <div id="qcStatTab" style="display:none">
+      <div id="qcStatContent"></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav" onclick="goHome()">🏠<span>ホーム</span></button>
+    <button class="bnav" onclick="showScreen('overviewScreen')">📋<span>案件</span></button>
+    <button class="bnav on">📊<span>QC</span></button>
+  </div>
+</div>
+
+<!-- ===== JOB MODAL ===== -->
+
+<div class="modal-bg" id="jobModal">
+  <div class="modal">
+    <div class="modal-hdr"><h2 id="jmTitle">案件追加</h2><button class="modal-close" onclick="closeJobModal()">✕</button></div>
+    <div class="f-row">
+      <div class="field"><label>オーダーNo.</label><input type="text" id="fOrd" placeholder=""></div>
+      <div class="field"><label>車種</label><input type="text" id="fCar" placeholder=""></div>
+    </div>
+    <div class="field"><label>架装名 *</label><input type="text" id="fName" placeholder=""></div>
+    <div class="field"><label>着工日 *</label><input type="date" id="fStart"></div>
+    <div class="field"><label>完成日 *</label><input type="date" id="fEnd"></div>
+    <div class="f-row">
+      <div class="field"><label>見積工数(h)</label><input type="number" id="fPlan" min="0" step="0.5" placeholder=""></div>
+      <div class="field"><label>ステータス</label>
+        <select id="fStatus">
+          <option value="planned">予定</option>
+          <option value="ongoing">施工中</option>
+          <option value="done">完成</option>
+          <option value="overdue">遅延</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>担当者</label><select id="fAssign"></select></div>
+    <div class="field"><label>メモ</label><textarea id="fMemo" rows="2" placeholder=""></textarea></div>
+    <div class="modal-acts">
+      <button class="btn" onclick="closeJobModal()">キャンセル</button>
+      <button class="btn primary" onclick="saveJob()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MEMBER MODAL ===== -->
+
+<div class="modal-bg" id="memberModal">
+  <div class="modal">
+    <div class="modal-hdr"><h2 id="mmTitle">作業者追加</h2><button class="modal-close" onclick="closeMemberModal()">✕</button></div>
+    <div class="field"><label>氏名 *</label><input type="text" id="mmName" placeholder="山田 太郎"></div>
+    <div class="field"><label>役職・担当</label><input type="text" id="mmRole" placeholder="架装担当 / 電装など"></div>
+    <div class="modal-acts">
+      <button class="btn" onclick="closeMemberModal()">キャンセル</button>
+      <button class="btn primary" onclick="saveMember()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== QC MODAL ===== -->
+
+<div class="modal-bg" id="qcModal">
+  <div class="modal">
+    <div class="modal-hdr"><h2 id="qmTitle">QC記録追加</h2><button class="modal-close" onclick="closeQcModal()">✕</button></div>
+    <div class="f-row">
+      <div class="field"><label>日付 *</label><input type="date" id="qDate"></div>
+      <div class="field"><label>オーダーNo.</label><input type="text" id="qOrder" placeholder=""></div>
+    </div>
+    <div class="field"><label>車種・架装名</label><input type="text" id="qCar" placeholder=""></div>
+    <div class="f-row">
+      <div class="field"><label>不具合種別</label>
+        <select id="qType">
+          <option value="外装">外装不具合</option>
+          <option value="電装">電装不具合</option>
+          <option value="艤装">艤装不具合</option>
+          <option value="塗装">塗装不具合</option>
+          <option value="溶接">溶接不具合</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="field"><label>重要度</label>
+        <select id="qSeverity">
+          <option value="low">低</option>
+          <option value="mid">中</option>
+          <option value="high">高</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>不具合内容 *</label><textarea id="qContent" rows="3" placeholder="発生した不具合の詳細を記入"></textarea></div>
+    <div class="field"><label>原因（なぜなぜ）</label><textarea id="qCause" rows="2" placeholder="なぜ発生したか"></textarea></div>
+    <div class="field"><label>対策・処置</label><textarea id="qAction" rows="2" placeholder="取った対策・処置内容"></textarea></div>
+    <div class="field"><label>記録者</label><select id="qRecorder"></select></div>
+    <div class="field"><label>ステータス</label>
+      <select id="qStatus">
+        <option value="open">対応中</option>
+        <option value="closed">解決済</option>
+      </select>
+    </div>
+    <div class="modal-acts">
+      <button class="btn" onclick="closeQcModal()">キャンセル</button>
+      <button class="btn primary" onclick="saveQcRecord()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========================================================
+// ★ ここにFirebaseの設定を貼り付けてください ★
+// setup.htmlの手順通りに設定後、以下を書き換えてください
+// ========================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyALzcHgWi33tip-QiMYfjeJCJgxEt8KI-4",
+  authDomain: "awk-kanri.firebaseapp.com",
+  databaseURL: "https://awk-kanri-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "awk-kanri",
+  storageBucket: "awk-kanri.firebasestorage.app",
+  messagingSenderId: "995372648364",
+  appId: "1:995372648364:web:51084b71722ec46e331c09"
+};
+// ========================================================
+
+
+// ===== CONSTANTS =====
+const BOSS_PASS = 'AWK-boss';
+const SC = {ongoing:'#3b7ff5',done:'#1ec97a',overdue:'#f04040',planned:'#6366f1'};
+const SL = {ongoing:'施工中',done:'完成',overdue:'遅延',planned:'予定'};
+const DT = ['電装配線','外装・板金','艤装・取付','塗装','溶接','内装仕上げ','検査・確認'];
+const MN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const WD = ['日','月','火','水','木','金','土'];
+const today = new Date();
+
+// ===== STATE =====
+let db, jobs = {}, members = {}, qcRecords = {};
+let curMember = null, editJobId = null, editMemberId = null, editQcId = null;
+let curYear = today.getFullYear(), curMonth = today.getMonth();
+let pbFilter = 'all', loginTab = 'boss';
+let session = { role: null, memberId: null };
+let fbReady = false;
+
+// ===== FIREBASE INIT =====
+function initFirebase() {
+  if (FIREBASE_CONFIG.apiKey === "YOUR_API_KEY") {
+    document.getElementById('setupBanner').style.display = 'block';
+    useFallbackStorage();
+    return;
+  }
+  try {
+    const app = firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    fbReady = true;
+    listenAll();
+  } catch(e) {
+    console.error('Firebase error:', e);
+    useFallbackStorage();
+  }
+}
+
+function listenAll() {
+  db.ref('jobs').on('value', snap => { jobs = snap.val() || {}; refreshCurrentScreen(); });
+  db.ref('members').on('value', snap => { members = snap.val() || {}; refreshCurrentScreen(); });
+  db.ref('qcRecords').on('value', snap => { qcRecords = snap.val() || {}; refreshCurrentScreen(); });
+}
+
+// Fallback: localStorageで動作（Firebase未設定時）
+function useFallbackStorage() {
+  try { jobs = JSON.parse(localStorage.getItem('awk_jobs') || '{}'); } catch(e) { jobs = {}; }
+  try { members = JSON.parse(localStorage.getItem('awk_members') || '{}'); } catch(e) { members = {}; }
+  try { qcRecords = JSON.parse(localStorage.getItem('awk_qc') || '{}'); } catch(e) { qcRecords = {}; }
+}
+function saveLocal() {
+  if (fbReady) return;
+  localStorage.setItem('awk_jobs', JSON.stringify(jobs));
+  localStorage.setItem('awk_members', JSON.stringify(members));
+  localStorage.setItem('awk_qc', JSON.stringify(qcRecords));
+}
+
+// ===== DB HELPERS =====
+async function dbSet(path, val) {
+  if (fbReady) await db.ref(path).set(val);
+  else { setNested(path, val); saveLocal(); }
+}
+async function dbPush(path, val) {
+  if (fbReady) { const r = db.ref(path).push(); await r.set(val); return r.key; }
+  else { const k = uid(); setNested(path+'/'+k, val); saveLocal(); return k; }
+}
+async function dbRemove(path) {
+  if (fbReady) await db.ref(path).remove();
+  else { removeNested(path); saveLocal(); refreshCurrentScreen(); }
+}
+function setNested(path, val) {
+  const keys = path.split('/');
+  const top = keys[0];
+  if (top === 'jobs') { if (keys.length===3) jobs[keys[1]]=jobs[keys[1]]||{}; if(keys.length===2) jobs[keys[1]]=val; else if(keys.length===3){jobs[keys[1]][keys[2]]=val;} }
+  else if (top === 'members') { if(keys.length===2) members[keys[1]]=val; }
+  else if (top === 'qcRecords') { if(keys.length===2) qcRecords[keys[1]]=val; }
+}
+function removeNested(path) {
+  const keys = path.split('/');
+  if (keys[0]==='jobs'&&keys[1]) delete jobs[keys[1]];
+  else if (keys[0]==='members'&&keys[1]) delete members[keys[1]];
+  else if (keys[0]==='qcRecords'&&keys[1]) delete qcRecords[keys[1]];
+}
+
+// ===== UTILS =====
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function dim(y,m) { return new Date(y,m+1,0).getDate(); }
+function fmt(s) { if(!s)return '—'; const p=s.split('-'); return `${+p[1]}/${+p[2]}`; }
+function initials(n) { if(!n) return '?'; const parts=n.trim().split(/\s+/); return parts[0].slice(0,2); }
+function isBoss() { return session.role==='boss'; }
+function jobsArr() { return Object.entries(jobs).map(([id,j])=>({...j,id})); }
+function membersArr() { return Object.entries(members).map(([id,m])=>({...m,id})); }
+function qcArr() { return Object.entries(qcRecords).map(([id,q])=>({...q,id})); }
+function getJobsForMember(mid) { return jobsArr().filter(j=>j.memberId===mid); }
+function totalH(j) { return (j.planH||0)+((j.tasks||[]).reduce((a,t)=>a+(parseFloat(t.plan)||0),0)); }
+function actualH(j) { return (j.actH||0)+((j.tasks||[]).reduce((a,t)=>a+(parseFloat(t.actual)||0),0)); }
+function jobPct(j) {
+  const sh=getSharedActual(j.orderNo);
+  if(sh) return sh.totalPlan>0?Math.min(100,Math.round(sh.totalAct/sh.totalPlan*100)):0;
+  const tp=totalH(j),ta=actualH(j);
+  return tp>0?Math.min(100,Math.round(ta/tp*100)):(ta>0?100:0);
+}
+function getSharedActual(orderNo) {
+  if(!orderNo) return null;
+  const same=jobsArr().filter(j=>j.orderNo&&j.orderNo===orderNo);
+  if(same.length<=1) return null;
+  const totalAct=same.reduce((a,j)=>a+actualH(j),0);
+  const totalPlan=same.reduce((a,j)=>a+totalH(j),0);
+  return { totalAct, totalPlan, count: same.length };
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+function refreshCurrentScreen() {
+  const active=document.querySelector('.screen.active')?.id;
+  if(active==='homeScreen') renderHome();
+  else if(active==='workerHomeScreen') renderWorkerHome();
+  else if(active==='overviewScreen') renderOverview();
+  else if(active==='memberScreen') { renderGantt(); renderNenkan(); renderProgress(); }
+  else if(active==='qcScreen') renderQc();
+}
+
+// ===== LOGIN =====
+function switchLoginTab(tab) {
+  loginTab=tab;
+  document.getElementById('ltab-boss').classList.toggle('on',tab==='boss');
+  document.getElementById('ltab-worker').classList.toggle('on',tab==='worker');
+  document.getElementById('boss-login').style.display=tab==='boss'?'block':'none';
+  document.getElementById('worker-login').style.display=tab==='worker'?'block':'none';
+  if(tab==='worker') populateWorkerSelect();
+  document.getElementById('loginErr').textContent='';
+}
+function populateWorkerSelect() {
+  const sel=document.getElementById('workerSelect');
+  const arr=membersArr();
+  sel.innerHTML=arr.length
+    ? arr.map(m=>`<option value="${m.id}">${m.name}${m.role?' ('+m.role+')':''}</option>`).join('')
+    : '<option value="">（作業者が登録されていません）</option>';
+}
+function doLogin(role) {
+  document.getElementById('loginErr').textContent='';
+  if(role==='boss'){
+    if(document.getElementById('bossPass').value===BOSS_PASS){
+      session={role:'boss',memberId:null};
+      document.getElementById('bossPass').value='';
+      showScreen('homeScreen');
+    } else {
+      document.getElementById('loginErr').textContent='パスワードが違います';
+      document.getElementById('bossPass').value='';
+    }
+  } else {
+    const mid=document.getElementById('workerSelect').value;
+    if(!members[mid]){document.getElementById('loginErr').textContent='作業者を選択してください';return;}
+    session={role:'worker',memberId:mid};
+    showScreen('workerHomeScreen');
+  }
+}
+function doLogout() {
+  session={role:null,memberId:null}; curMember=null;
+  document.getElementById('loginErr').textContent='';
+  document.getElementById('bossPass').value='';
+  switchLoginTab('boss'); showScreen('loginScreen');
+}
+
+// ===== SCREENS =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='homeScreen') renderHome();
+  if(id==='workerHomeScreen') renderWorkerHome();
+  if(id==='overviewScreen') renderOverview();
+  if(id==='qcScreen') renderQc();
+}
+function goHome() { isBoss()?showScreen('homeScreen'):showScreen('workerHomeScreen'); }
+function goBackFromMember() { goHome(); }
+
+// ===== HOME (上司) =====
+function renderHome() {
+  const arr=jobsArr();
+  document.getElementById('ovBadge').textContent=`${arr.length}件`;
+  const mem=membersArr();
+  let h='';
+  for(const m of mem){
+    const mj=getJobsForMember(m.id);
+    const on=mj.filter(j=>j.status==='ongoing').length;
+    const dn=mj.filter(j=>j.status==='done').length;
+    h+=`<div class="member-card" onclick="bossViewMember('${m.id}')">
+      <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
+        <button onclick="event.stopPropagation();openMemberModal('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px">✎</button>
+        <button onclick="event.stopPropagation();deleteMember('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px">×</button>
+      </div>
+      <div class="mc-av">${initials(m.name)}</div>
+      <div class="mc-name">${m.name}</div>
+      <div class="mc-role">${m.role||'作業者'}</div>
+      <div class="mc-stats"><span>${mj.length}</span>件 <span>${on}</span>施工中 <span>${dn}</span>完成</div>
+    </div>`;
+  }
+  h+=`<div class="add-card" onclick="openMemberModal()">
+    <div style="font-size:22px;color:var(--muted)">＋</div>
+    <div style="font-size:11px;color:var(--muted)">作業者を追加</div>
+  </div>`;
+  document.getElementById('memberGrid').innerHTML=h;
+}
+function bossViewMember(mid) { curMember=mid; openMemberScreen('gantt'); }
+
+// ===== HOME (作業者) =====
+function renderWorkerHome() {
+  const m=members[session.memberId];
+  if(!m) return;
+  document.getElementById('workerChip').innerHTML=`${m.name} <span class="role-badge rb-worker">作業者</span>`;
+  document.getElementById('whAv').textContent=initials(m.name);
+  document.getElementById('whName').textContent=m.name;
+  document.getElementById('whRole').textContent=m.role||'作業者';
+  const mj=getJobsForMember(session.memberId);
+  const on=mj.filter(j=>j.status==='ongoing').length;
+  const dn=mj.filter(j=>j.status==='done').length;
+  const tp=mj.reduce((a,j)=>a+totalH(j),0);
+  document.getElementById('whStats').innerHTML=`
+    <div class="whs"><div class="whs-n" style="color:var(--accent)">${mj.length}</div><div class="whs-l">案件</div></div>
+    <div class="whs"><div class="whs-n" style="color:var(--accent2)">${on}</div><div class="whs-l">施工中</div></div>
+    <div class="whs"><div class="whs-n" style="color:var(--green)">${dn}</div><div class="whs-l">完成</div></div>
+    <div class="whs"><div class="whs-n" style="color:#f472b6">${tp}h</div><div class="whs-l">工数</div></div>`;
+}
+
+// ===== MEMBER SCREEN =====
+function openMemberScreen(tab) {
+  const m=members[curMember];
+  if(!m) return;
+  document.getElementById('mHdrTitle').textContent=m.name;
+  document.getElementById('btnAddJob').style.display=isBoss()?'flex':'none';
+  showScreen('memberScreen');
+  // bottom nav
+  const bn=document.getElementById('memberBottomNav');
+  if(isBoss()){
+    bn.innerHTML=`<button class="bnav" onclick="goHome()">🏠<span>ホーム</span></button>
+      <button class="bnav" onclick="showScreen('overviewScreen')">📋<span>案件</span></button>
+      <button class="bnav" onclick="showScreen('qcScreen')">📊<span>QC</span></button>`;
+  } else {
+    bn.innerHTML=`<button class="bnav" onclick="goHome()">🏠<span>ホーム</span></button>
+      <button class="bnav" id="bnGantt" onclick="showMemberTab('gantt')">📅<span>日程</span></button>
+      <button class="bnav" id="bnProg" onclick="showMemberTab('progress')">📊<span>進捗</span></button>`;
+  }
+  showMemberTab(tab||'gantt');
+}
+function showMemberTab(tab) {
+  const active=document.querySelector('.screen.active')?.id;
+  if(session.role==='worker'&&active!=='memberScreen'){
+    curMember=session.memberId;
+    openMemberScreen(tab); return;
+  }
+  document.getElementById('mGanttTab').style.display=tab==='gantt'?'block':'none';
+  document.getElementById('mProgressTab').style.display=tab==='progress'?'block':'none';
+  document.getElementById('mNavG').classList.toggle('on',tab==='gantt');
+  document.getElementById('mNavP').classList.toggle('on',tab==='progress');
+  if(tab==='gantt'){renderGantt();renderNenkan();}
+  if(tab==='progress') renderProgress();
+}
+
+// ===== OVERVIEW =====
+function renderOverview() {
+  const arr=jobsArr();
+  document.getElementById('ovStats').innerHTML=`
+    <div class="stat-box"><div class="sv sv-total">${arr.length}</div><div class="sl">総案件</div></div>
+    <div class="stat-box"><div class="sv sv-on">${arr.filter(j=>j.status==='ongoing').length}</div><div class="sl">施工中</div></div>
+    <div class="stat-box"><div class="sv sv-done">${arr.filter(j=>j.status==='done').length}</div><div class="sl">完成</div></div>
+    <div class="stat-box"><div class="sv sv-h">${arr.reduce((a,j)=>a+totalH(j),0)}</div><div class="sl">総工数h</div></div>`;
+  let h='';
+  for(const j of arr){
+    const m=members[j.memberId];
+    const pct=jobPct(j);
+    const bc=pct>=100?'#f04040':pct>=80?'#f59e0b':'#1ec97a';
+    h+=`<div class="ov-card">
+      <div class="ov-card-top">
+        <div style="flex:1">
+          <div class="ov-card-name">${j.name}</div>
+          ${j.orderNo?`<div class="ov-card-order">${j.orderNo}</div>`:''}
+          ${j.carType?`<div class="ov-card-car">${j.carType}</div>`:''}
+        </div>
+        <span class="sb sb-${j.status}">${SL[j.status]||j.status}</span>
+      </div>
+      <div class="ov-card-meta">
+        <span>担当: <span>${m?m.name:'未割当'}</span></span>
+        <span>着工: <span>${fmt(j.start)}</span></span>
+        <span>納期: <span>${fmt(j.end)}</span></span>
+      </div>
+      <div class="ov-card-bottom">
+        <div class="ov-pw"><div class="ov-pb" style="width:${pct}%;background:${bc}"></div></div>
+        <div class="ov-pct">${pct}%</div>
+      </div>
+      ${isBoss()?`<div class="ov-actions">
+        <button class="act-btn" onclick="openJobModal(null,'${j.id}')">✎ 編集</button>
+        <button class="act-btn" onclick="openJobModal(null,'${j.id}')">👤 担当割当</button>
+        <button class="act-btn del" onclick="deleteJob('${j.id}')">✕ 削除</button>
+      </div>`:''}
+    </div>`;
+  }
+  document.getElementById('ovList').innerHTML=h||`<div class="empty-msg">案件がありません。右上の＋から追加してください。</div>`;
+}
+
+// ===== GANTT =====
+function changeMonth(d) {
+  curMonth+=d;
+  if(curMonth<0){curMonth=11;curYear--;}
+  if(curMonth>11){curMonth=0;curYear++;}
+  renderGantt();
+  // 月切り替え後は左端（1日）にスクロール
+  setTimeout(()=>{
+    const gs=document.querySelector('.gantt-scroll');
+    if(gs) gs.scrollLeft=0;
+  },50);
+}
+function renderGantt() {
+  const D=dim(curYear,curMonth);
+  document.getElementById('monthLbl').textContent=`${curYear}年${curMonth+1}月`;
+  const mj=getJobsForMember(curMember).filter(j=>{
+    if(!j.start||!j.end) return false;
+    const s=new Date(j.start),e=new Date(j.end);
+    return s<=new Date(curYear,curMonth,D)&&e>=new Date(curYear,curMonth,1);
+  });
+  let hh=`<tr><th class="th-info">案件</th>`;
+  for(let d=1;d<=D;d++){
+    const dow=new Date(curYear,curMonth,d).getDay();
+    const isT=today.getFullYear()===curYear&&today.getMonth()===curMonth&&today.getDate()===d;
+    hh+=`<th class="th-d${dow===0||dow===6?' th-wk':''}${isT?' th-today':''}">${d}<br><span style="font-size:8px">${WD[dow]}</span></th>`;
+  }
+  hh+='</tr>';
+  document.getElementById('gHead').innerHTML=hh;
+  const allMj=getJobsForMember(curMember);
+  document.getElementById('mStats').innerHTML=`
+    <div class="stat-box"><div class="sv sv-total">${allMj.length}</div><div class="sl">担当案件</div></div>
+    <div class="stat-box"><div class="sv sv-on">${allMj.filter(j=>j.status==='ongoing').length}</div><div class="sl">施工中</div></div>
+    <div class="stat-box"><div class="sv sv-done">${allMj.filter(j=>j.status==='done').length}</div><div class="sl">完成</div></div>`;
+  if(!mj.length){
+    document.getElementById('gBody').innerHTML=`<tr><td colspan="${D+1}" class="empty-msg">この月の案件はありません。</td></tr>`;
+    return;
+  }
+  let bh='';
+  for(const j of mj){
+    const s=new Date(j.start),e=new Date(j.end);
+    const bc=`bar-${j.status||'planned'}`,dc=SC[j.status]||'#6366f1';
+    bh+=`<tr><td class="td-info">
+      <div style="display:flex;align-items:center;gap:4px">
+        <span class="sdot" style="background:${dc}"></span>
+        <span class="jn">${j.name}</span>
+        ${isBoss()?`<button onclick="openJobModal(null,'${j.id}')" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px">✎</button>`:''}
+      </div>
+      <div class="jm">${fmt(j.start)}〜${fmt(j.end)}${j.orderNo?` <span style="color:var(--accent)">${j.orderNo}</span>`:''}</div>
+    </td>`;
+    for(let d=1;d<=D;d++){
+      const cur2=new Date(curYear,curMonth,d);
+      const isT=today.getFullYear()===curYear&&today.getMonth()===curMonth&&today.getDate()===d;
+      const dow=cur2.getDay(),wc=dow===0||dow===6?' td-wk':'',tc=isT?' td-today':'';
+      if(cur2>=s&&cur2<=e){
+        const iS=cur2.toDateString()===s.toDateString(),iE=cur2.toDateString()===e.toDateString();
+        const rc=iS&&iE?'bar-x':iS?'bar-s':iE?'bar-e':'bar-m';
+        bh+=`<td class="td-d${wc}${tc}">${isT?'<div class="today-ln"></div>':''}<div class="bar ${bc} ${rc}"></div></td>`;
+      } else {
+        bh+=`<td class="td-d${wc}${tc}">${isT?'<div class="today-ln"></div>':''}</td>`;
+      }
+    }
+    bh+='</tr>';
+  }
+  document.getElementById('gBody').innerHTML=bh;
+}
+
+// ===== NENKAN =====
+function renderNenkan() {
+  const dj=getJobsForMember(curMember).filter(j=>j.status==='done');
+  const tp=dj.reduce((a,j)=>a+totalH(j),0),ta=dj.reduce((a,j)=>a+actualH(j),0);
+  const sur=tp-ta,sc=sur>=0?'dp':'dn',ss=sur>=0?`+${sur}h`:`${sur}h`;
+  const byM=Array(12).fill(0);
+  dj.forEach(j=>{if(j.end){const m=parseInt(j.end.split('-')[1],10)-1;byM[m]++;}});
+  document.getElementById('nkWrap').innerHTML=`
+    <div class="nk-wrap">
+      <div class="nk-ttl">年間実績 ${curYear}</div>
+      <div class="nk-grid">
+        <div class="nkc c-done"><div class="nkn">${dj.length}</div><div class="nkl">完成台数</div></div>
+        <div class="nkc c-act"><div class="nkn">${ta}h</div><div class="nkl">実績工数</div></div>
+        <div class="nkc c-sur"><div class="nkn ${sc}">${ss}</div><div class="nkl">${sur>=0?'余り':'超過'}</div></div>
+      </div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:6px">月別完成台数</div>
+      <div class="nk-months">${byM.map((c,i)=>`<div class="nm${c>0?' has':''}"><div class="nm-l">${MN[i]}</div><div class="nm-n${c>0?'':' z'}">${c>0?c:'—'}</div></div>`).join('')}</div>
+    </div>`;
+}
+
+// ===== PROGRESS =====
+function setFilter(el, f) {
+  pbFilter=f;
+  document.querySelectorAll('.flt').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  renderProgress();
+}
+function renderProgress() {
+  const mj=getJobsForMember(curMember);
+  const filtered=pbFilter==='all'?mj:mj.filter(j=>j.status===pbFilter);
+  const c=document.getElementById('pbCards');
+  if(!filtered.length){c.innerHTML='<div class="empty-msg">案件がありません。</div>';return;}
+  let h='';
+  for(const j of filtered){
+    const tasks=j.tasks||[];
+    const pct=jobPct(j);
+    const bc=pct>=100?'#f04040':pct>=80?'#f59e0b':'#1ec97a';
+    const sh=getSharedActual(j.orderNo);
+    const da=sh?sh.totalAct:actualH(j),dp=sh?sh.totalPlan:totalH(j);
+    const diff=dp-da,dc=diff>0?'dp':diff<0?'dn':'dz',ds=diff>0?`残${diff}h`:diff<0?`超${Math.abs(diff)}h`:'±0';
+    let taskRows='';
+    for(const t of tasks){
+      const a2=parseFloat(t.actual)||0;
+      const tc=t.status==='done'?'#1ec97a':t.status==='ongoing'?'#f59e0b':'#3d4460';
+      taskRows+=`<div class="pt-row">
+        <div class="pt-name"><span class="pt-dot" style="background:${tc}"></span>
+          <input type="text" value="${(t.name||'').replace(/"/g,'&quot;')}" placeholder="作業内容" class="pt-input-name" onchange="updateTask('${j.id}','${t.id}','name',this.value)">
+        </div>
+        <div class="pt-act">
+          <input type="number" value="${a2||''}" placeholder="0" min="0" step="0.5" class="pt-input-num" onchange="updateTask('${j.id}','${t.id}','actual',this.value)">
+          <span class="pt-unit">h</span>
+        </div>
+        <div>
+          <select class="pt-select" onchange="updateTask('${j.id}','${t.id}','status',this.value)">
+            <option value="planned" ${t.status==='planned'?'selected':''}>未着手</option>
+            <option value="ongoing" ${t.status==='ongoing'?'selected':''}>進行中</option>
+            <option value="done" ${t.status==='done'?'selected':''}>完了</option>
+          </select>
+        </div>
+        <div class="pt-del" onclick="deleteTask('${j.id}','${t.id}')">✕</div>
+      </div>`;
+    }
+    h+=`<div class="pb-card">
+      <div class="pb-bar" style="background:${SC[j.status]||'#6366f1'}"></div>
+      <div class="pb-top">
+        <div style="flex:1">
+          <div class="pb-nm">${j.name}</div>
+          ${j.orderNo?`<div class="pb-order">${j.orderNo}</div>`:''}
+          ${j.carType?`<div class="pb-car">${j.carType}</div>`:''}
+        </div>
+        <span class="sb sb-${j.status}">${SL[j.status]||j.status}</span>
+      </div>
+      <div class="pb-dates">着工 <span>${fmt(j.start)}</span> → 納期 <span>${fmt(j.end)}</span></div>
+      ${dp>0?`<div class="pb-hr"><span>進捗${sh?' (合算)':''}</span><span><span>${da}h</span>/${dp}h <span class="${dc}">${ds}</span></span></div>
+      <div class="pb-pw"><div class="pb-pb" style="width:${pct}%;background:${bc}"></div></div>`:''}
+      <div class="pt-section">
+        <div class="pt-section-label">✏️ 作業入力</div>
+        <div class="pt-header"><span>作業内容</span><span>実績</span><span>状態</span><span></span></div>
+        ${taskRows}
+        <div class="pt-footer">
+          <button class="btn small" onclick="addTask('${j.id}')">＋ 追加</button>
+          <button class="btn small" onclick="addDefaultTasks('${j.id}')">テンプレ</button>
+        </div>
+      </div>
+      ${isBoss()?`<div class="pb-acts">
+        <button class="btn small" onclick="openJobModal(null,'${j.id}')">✎ 案件編集</button>
+        <button class="btn small ghost" onclick="deleteJob('${j.id}')" style="color:var(--muted)">× 削除</button>
+      </div>`:''}
+    </div>`;
+  }
+  c.innerHTML=h;
+}
+
+// ===== TASK OPS =====
+async function addTask(jid) {
+  const j=jobs[jid];if(!j) return;
+  const tasks=j.tasks||[];
+  tasks.push({id:uid(),name:'',actual:0,status:'planned'});
+  await dbSet(`jobs/${jid}/tasks`, tasks);
+  if(!fbReady) renderProgress();
+}
+async function updateTask(jid, tid, field, val) {
+  const j=jobs[jid];if(!j) return;
+  const tasks=(j.tasks||[]).map(t=>t.id===tid?{...t,[field]:field==='actual'?(parseFloat(val)||0):val}:t);
+  await dbSet(`jobs/${jid}/tasks`, tasks);
+  if(!fbReady) renderProgress();
+}
+async function deleteTask(jid, tid) {
+  const j=jobs[jid];if(!j) return;
+  const tasks=(j.tasks||[]).filter(t=>t.id!==tid);
+  await dbSet(`jobs/${jid}/tasks`, tasks);
+  if(!fbReady) renderProgress();
+}
+async function addDefaultTasks(jid) {
+  const j=jobs[jid];if(!j) return;
+  const tasks=j.tasks||[];
+  const ex=new Set(tasks.map(t=>t.name));
+  for(const n of DT) if(!ex.has(n)) tasks.push({id:uid(),name:n,actual:0,status:'planned'});
+  await dbSet(`jobs/${jid}/tasks`, tasks);
+  if(!fbReady) renderProgress();
+  showToast('テンプレート追加しました');
+}
+
+// ===== JOB MODAL =====
+function openJobModal(memberId, jobId) {
+  if(!isBoss()){showToast('案件の追加・編集は上司のみ可能です');return;}
+  editJobId=jobId||null;
+  document.getElementById('jmTitle').textContent=jobId?'案件編集':'案件追加';
+  const sel=document.getElementById('fAssign');
+  sel.innerHTML='<option value="">未割当</option>'+membersArr().map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  if(jobId){
+    const j=jobs[jobId];
+    document.getElementById('fOrd').value=j.orderNo||'';
+    document.getElementById('fCar').value=j.carType||'';
+    document.getElementById('fName').value=j.name||'';
+    document.getElementById('fStart').value=j.start||'';
+    document.getElementById('fEnd').value=j.end||'';
+    document.getElementById('fPlan').value=j.planH||'';
+    sel.value=j.memberId||'';
+    document.getElementById('fStatus').value=j.status||'planned';
+    document.getElementById('fMemo').value=j.memo||'';
+  } else {
+    ['fOrd','fCar','fName','fStart','fEnd','fPlan','fMemo'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fStatus').value='planned';
+    sel.value=memberId||curMember||'';
+  }
+  document.getElementById('jobModal').classList.add('open');
+}
+function closeJobModal(){document.getElementById('jobModal').classList.remove('open');editJobId=null;}
+document.getElementById('jobModal').onclick=e=>{if(e.target===e.currentTarget)closeJobModal();};
+
+async function saveJob() {
+  if(!isBoss()) return;
+  const name=document.getElementById('fName').value.trim();
+  const start=document.getElementById('fStart').value;
+  const end=document.getElementById('fEnd').value;
+  if(!name){showToast('架装名は必須です');return;}
+  if(!start){showToast('着工日は必須です');return;}
+  if(end&&start>end){showToast('納期は着工日より後にしてください');return;}
+  const data={
+    orderNo:document.getElementById('fOrd').value.trim(),
+    carType:document.getElementById('fCar').value.trim(),
+    name, start, end,
+    planH:parseFloat(document.getElementById('fPlan').value)||0,
+    memberId:document.getElementById('fAssign').value||null,
+    status:document.getElementById('fStatus').value,
+    memo:document.getElementById('fMemo').value.trim()
+  };
+  if(editJobId){
+    const existing=jobs[editJobId];
+    await dbSet(`jobs/${editJobId}`, {...existing,...data});
+    showToast('案件を更新しました');
+  } else {
+    data.tasks=[];
+    await dbPush('jobs', data);
+    showToast('案件を追加しました');
+  }
+  closeJobModal();
+}
+async function deleteJob(id) {
+  const j=jobs[id];if(!j) return;
+  if(!confirm(`「${j.name}」を削除しますか？`)) return;
+  await dbRemove(`jobs/${id}`);
+  showToast('削除しました');
+  refreshCurrentScreen();
+}
+
+// ===== MEMBER MODAL =====
+function openMemberModal(id) {
+  if(!isBoss()) return;
+  editMemberId=id||null;
+  document.getElementById('mmTitle').textContent=id?'作業者編集':'作業者追加';
+  if(id){const m=members[id];document.getElementById('mmName').value=m.name;document.getElementById('mmRole').value=m.role||'';}
+  else{['mmName','mmRole'].forEach(i=>document.getElementById(i).value='');}
+  document.getElementById('memberModal').classList.add('open');
+}
+function closeMemberModal(){document.getElementById('memberModal').classList.remove('open');editMemberId=null;}
+document.getElementById('memberModal').onclick=e=>{if(e.target===e.currentTarget)closeMemberModal();};
+
+async function saveMember() {
+  if(!isBoss()) return;
+  const name=document.getElementById('mmName').value.trim();
+  if(!name){showToast('氏名は必須です');return;}
+  const data={name,role:document.getElementById('mmRole').value.trim()};
+  if(editMemberId){await dbSet(`members/${editMemberId}`,{...members[editMemberId],...data});}
+  else{await dbPush('members',data);}
+  closeMemberModal();
+  showToast(editMemberId?'更新しました':'作業者を追加しました');
+}
+async function deleteMember(id) {
+  const m=members[id];if(!m) return;
+  if(!confirm(`「${m.name}」を削除しますか？`)) return;
+  await dbRemove(`members/${id}`);
+  showToast('削除しました');
+}
+
+// ===== QC =====
+function renderQc() {
+  const active=document.querySelector('#qNavList.on');
+  if(active) renderQcList();
+  else renderQcStat();
+}
+function switchQcTab(tab) {
+  document.getElementById('qNavList').classList.toggle('on',tab==='list');
+  document.getElementById('qNavStat').classList.toggle('on',tab==='stat');
+  document.getElementById('qcListTab').style.display=tab==='list'?'block':'none';
+  document.getElementById('qcStatTab').style.display=tab==='stat'?'block':'none';
+  if(tab==='list') renderQcList();
+  if(tab==='stat') renderQcStat();
+}
+function renderQcList() {
+  const arr=qcArr().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const sevColors={'high':'#f87171','mid':'var(--accent)','low':'#4ade80'};
+  const total=arr.length,open=arr.filter(q=>q.status==='open').length,closed=arr.filter(q=>q.status==='closed').length;
+  const high=arr.filter(q=>q.severity==='high').length;
+  document.getElementById('qcStats').innerHTML=`
+    <div class="stat-box"><div class="sv sv-qc">${total}</div><div class="sl">総件数</div></div>
+    <div class="stat-box"><div class="sv" style="color:#f59e0b">${open}</div><div class="sl">対応中</div></div>
+    <div class="stat-box"><div class="sv sv-done">${closed}</div><div class="sl">解決済</div></div>
+    <div class="stat-box"><div class="sv sv-qc">${high}</div><div class="sl">重要度高</div></div>`;
+  if(!arr.length){
+    document.getElementById('qcList').innerHTML='<div class="empty-msg">QC記録がありません。右上の＋から追加してください。</div>';
+    return;
+  }
+  const sevLabel={high:'高',mid:'中',low:'低'};
+  const sevClass={high:'sev-high',mid:'sev-mid',low:'sev-low'};
+  let h='';
+  for(const q of arr){
+    h+=`<div class="qc-card">
+      <div class="qc-bar" style="background:${q.severity==='high'?'var(--red)':q.severity==='mid'?'var(--accent)':'var(--green)'}"></div>
+      <div class="qc-top">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span class="qc-type-badge ${sevClass[q.severity]||'sev-low'}">${q.type||'その他'} / 重要度${sevLabel[q.severity]||'低'}</span>
+            <span class="sb ${q.status==='open'?'sb-ongoing':'sb-done'}">${q.status==='open'?'対応中':'解決済'}</span>
+          </div>
+        </div>
+      </div>
+      <div class="qc-meta">
+        ${q.date?`<span>日付: <span>${q.date}</span></span> `:''}
+        ${q.orderNo?`<span>No: <span>${q.orderNo}</span></span> `:''}
+        ${q.car?`<span>車種: <span>${q.car}</span></span>`:''}
+      </div>
+      <div class="qc-content">${q.content||''}</div>
+      ${q.cause?`<div class="qc-detail"><strong>原因:</strong> ${q.cause}</div>`:''}
+      ${q.action?`<div class="qc-detail"><strong>対策:</strong> ${q.action}</div>`:''}
+      ${q.recorder&&members[q.recorder]?`<div class="qc-detail" style="margin-top:4px;color:var(--muted)">記録: ${members[q.recorder].name}</div>`:''}
+      ${isBoss()?`<div class="qc-actions">
+        <button class="act-btn" onclick="openQcModal('${q.id}')">✎ 編集</button>
+        <button class="act-btn del" onclick="deleteQcRecord('${q.id}')">✕ 削除</button>
+      </div>`:''}
+    </div>`;
+  }
+  document.getElementById('qcList').innerHTML=h;
+}
+
+function renderQcStat() {
+  const arr=qcArr();
+  if(!arr.length){
+    document.getElementById('qcStatContent').innerHTML='<div class="empty-msg">データがありません。</div>';
+    return;
+  }
+  // 種別集計
+  const byType={};
+  arr.forEach(q=>{byType[q.type||'その他']=(byType[q.type||'その他']||0)+1;});
+  const maxT=Math.max(...Object.values(byType));
+  const typeColors={'外装':'#3b7ff5','電装':'#f0a500','艤装':'#8b5cf6','塗装':'#f04040','溶接':'#1ec97a','その他':'#6b7399'};
+  let typeRows=Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([type,cnt])=>
+    `<div class="qc-bar-row">
+      <div class="qc-bar-label">${type}</div>
+      <div class="qc-bar-wrap"><div class="qc-bar-fill" style="width:${Math.round(cnt/maxT*100)}%;background:${typeColors[type]||'#6b7399'}"></div></div>
+      <div class="qc-bar-count">${cnt}</div>
+    </div>`).join('');
+  // 月別トレンド
+  const byM=Array(12).fill(0);
+  arr.forEach(q=>{if(q.date){const m=parseInt(q.date.split('-')[1],10)-1;if(m>=0&&m<12)byM[m]++;}});
+  const trendCells=byM.map((c,i)=>
+    `<div class="trend-cell${c>0?' has':''}">
+      <div class="trend-l">${MN[i]}</div>
+      <div class="trend-n${c>0?'':' z'}">${c>0?c:'—'}</div>
+    </div>`).join('');
+  // 改善提案（QCデータから自動生成）
+  const topType=Object.entries(byType).sort((a,b)=>b[1]-a[1])[0];
+  const highItems=arr.filter(q=>q.severity==='high');
+  const openItems=arr.filter(q=>q.status==='open');
+  let suggests='';
+  if(topType&&topType[1]>=2){
+    suggests+=`<div class="improve-card">
+      <div class="improve-title">📌 改善提案: ${topType[0]}工程の品質強化</div>
+      <div class="improve-body">「${topType[0]}」での不具合が${topType[1]}件と最多です。この工程の作業手順書見直しや、チェックリストの追加を検討することをQCサークルの改善テーマとして提案できます。</div>
+    </div>`;
+  }
+  if(highItems.length>=1){
+    suggests+=`<div class="improve-card">
+      <div class="improve-title">⚠️ 重要度「高」案件の再発防止</div>
+      <div class="improve-body">重要度「高」の不具合が${highItems.length}件記録されています。なぜなぜ分析の結果を横展開し、全工程での歯止めルール設定をQCサークルのテーマにできます。</div>
+    </div>`;
+  }
+  if(openItems.length>=3){
+    suggests+=`<div class="improve-card">
+      <div class="improve-title">🔄 対応中案件の迅速処理</div>
+      <div class="improve-body">対応中の不具合が${openItems.length}件残っています。解決サイクルの短縮化（例：不具合発生から24時間以内対策）を標準化するテーマとして使えます。</div>
+    </div>`;
+  }
+  if(!suggests){
+    suggests='<div class="improve-card"><div class="improve-title">✅ 現状良好</div><div class="improve-body">現時点では大きな傾向は見られません。データが蓄積されると改善提案が自動生成されます。</div></div>';
+  }
+  document.getElementById('qcStatContent').innerHTML=`
+    <div class="qc-stat-card">
+      <div class="qc-stat-title">不具合種別 分布</div>
+      ${typeRows}
+    </div>
+    <div class="qc-stat-card">
+      <div class="qc-stat-title">月別 発生トレンド（${curYear}年）</div>
+      <div class="trend-grid">${trendCells}</div>
+    </div>
+    <div class="qc-stat-card">
+      <div class="qc-stat-title">QCサークル 改善提案ヒント</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:10px">記録されたデータから自動生成</div>
+      ${suggests}
+    </div>`;
+}
+
+function openQcModal(id) {
+  editQcId=id||null;
+  document.getElementById('qmTitle').textContent=id?'QC記録編集':'QC記録追加';
+  const recSel=document.getElementById('qRecorder');
+  recSel.innerHTML='<option value="">選択</option>'+membersArr().map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  if(id){
+    const q=qcRecords[id];
+    document.getElementById('qDate').value=q.date||'';
+    document.getElementById('qOrder').value=q.orderNo||'';
+    document.getElementById('qCar').value=q.car||'';
+    document.getElementById('qType').value=q.type||'外装';
+    document.getElementById('qSeverity').value=q.severity||'low';
+    document.getElementById('qContent').value=q.content||'';
+    document.getElementById('qCause').value=q.cause||'';
+    document.getElementById('qAction').value=q.action||'';
+    recSel.value=q.recorder||'';
+    document.getElementById('qStatus').value=q.status||'open';
+  } else {
+    ['qDate','qOrder','qCar','qContent','qCause','qAction'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('qDate').value=today.toISOString().split('T')[0];
+    document.getElementById('qType').value='外装';
+    document.getElementById('qSeverity').value='low';
+    document.getElementById('qStatus').value='open';
+    recSel.value=session.memberId||'';
+  }
+  document.getElementById('qcModal').classList.add('open');
+}
+function closeQcModal(){document.getElementById('qcModal').classList.remove('open');editQcId=null;}
+document.getElementById('qcModal').onclick=e=>{if(e.target===e.currentTarget)closeQcModal();};
+
+async function saveQcRecord() {
+  const content=document.getElementById('qContent').value.trim();
+  if(!content){showToast('不具合内容は必須です');return;}
+  const data={
+    date:document.getElementById('qDate').value,
+    orderNo:document.getElementById('qOrder').value.trim(),
+    car:document.getElementById('qCar').value.trim(),
+    type:document.getElementById('qType').value,
+    severity:document.getElementById('qSeverity').value,
+    content,
+    cause:document.getElementById('qCause').value.trim(),
+    action:document.getElementById('qAction').value.trim(),
+    recorder:document.getElementById('qRecorder').value,
+    status:document.getElementById('qStatus').value,
+    createdAt:Date.now()
+  };
+  if(editQcId){await dbSet(`qcRecords/${editQcId}`,{...qcRecords[editQcId],...data});}
+  else{await dbPush('qcRecords',data);}
+  closeQcModal();
+  showToast(editQcId?'QC記録を更新しました':'QC記録を追加しました');
+  if(!fbReady) renderQc();
+}
+async function deleteQcRecord(id) {
+  if(!confirm('このQC記録を削除しますか？')) return;
+  await dbRemove(`qcRecords/${id}`);
+  showToast('削除しました');
+  if(!fbReady) renderQc();
+}
+
+// ===== GLOBAL EVENT DELEGATION =====
+window.switchLoginTab=switchLoginTab;
+window.doLogin=doLogin;
+window.doLogout=doLogout;
+window.showScreen=showScreen;
+window.goHome=goHome;
+window.goBackFromMember=goBackFromMember;
+window.bossViewMember=bossViewMember;
+window.showMemberTab=showMemberTab;
+window.changeMonth=changeMonth;
+window.setFilter=setFilter;
+window.openJobModal=openJobModal;
+window.closeJobModal=closeJobModal;
+window.saveJob=saveJob;
+window.deleteJob=deleteJob;
+window.openMemberModal=openMemberModal;
+window.closeMemberModal=closeMemberModal;
+window.saveMember=saveMember;
+window.deleteMember=deleteMember;
+window.addTask=addTask;
+window.updateTask=updateTask;
+window.deleteTask=deleteTask;
+window.addDefaultTasks=addDefaultTasks;
+window.openQcModal=openQcModal;
+window.closeQcModal=closeQcModal;
+window.saveQcRecord=saveQcRecord;
+window.deleteQcRecord=deleteQcRecord;
+window.switchQcTab=switchQcTab;
+
+// ===== INIT =====
+initFirebase();
+
+</script>
+
+</body>
+</html>
