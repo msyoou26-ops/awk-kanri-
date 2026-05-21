@@ -759,9 +759,57 @@ function initFirebase() {
 }
 
 function listenAll() {
-  db.ref('jobs').on('value', snap => { jobs = snap.val() || {}; refreshCurrentScreen(); });
-  db.ref('members').on('value', snap => { members = snap.val() || {}; refreshCurrentScreen(); });
+  db.ref('jobs').on('value', snap => { 
+    jobs = snap.val() || {}; 
+    refreshCurrentScreen(); 
+  });
+  db.ref('members').on('value', snap => { 
+    members = snap.val() || {};
+    // Firebaseが空の場合デモデータを挿入
+    if(Object.keys(members).length === 0) {
+      injectDemoToFirebase();
+    }
+    refreshCurrentScreen(); 
+  });
   db.ref('qcRecords').on('value', snap => { qcRecords = snap.val() || {}; refreshCurrentScreen(); });
+}
+
+async function injectDemoToFirebase() {
+  const t=new Date(), fmt2=(d)=>d.toISOString().split('T')[0];
+  const add=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+  
+  // メンバー
+  await db.ref('members/demo_m1').set({id:'demo_m1',name:'森下　翔',role:'架装担当'});
+  await db.ref('members/demo_m2').set({id:'demo_m2',name:'東　康広',role:'救急車担当'});
+  await db.ref('members/demo_m3').set({id:'demo_m3',name:'田中　健',role:'電装担当'});
+
+  // 案件
+  await db.ref('jobs/demo_j1').set({id:'demo_j1',orderNo:'B2026-05-001',carType:'E26 シビリアン',
+    name:'救急車架装（標準幅ハイルーフ）',start:fmt2(add(t,-10)),end:fmt2(add(t,3)),
+    planH:95,memberId:'demo_m1',status:'ongoing',memo:'',actH:88,
+    tasks:[{id:'dt1',name:'電装配線',actual:20,status:'done'},{id:'dt2',name:'外装・板金',actual:18,status:'done'},
+           {id:'dt3',name:'艤装・取付',actual:30,status:'ongoing'},{id:'dt4',name:'検査・確認',actual:0,status:'planned'}]});
+
+  await db.ref('jobs/demo_j2').set({id:'demo_j2',orderNo:'B2026-05-002',carType:'アトラス',
+    name:'冷凍車架装',start:fmt2(add(t,-5)),end:fmt2(add(t,1)),
+    planH:60,memberId:'demo_m2',status:'overdue',memo:'部品入荷遅延あり',actH:65,
+    tasks:[{id:'dt5',name:'電装配線',actual:15,status:'done'},{id:'dt6',name:'冷凍ユニット取付',actual:30,status:'done'},
+           {id:'dt7',name:'検査・確認',actual:20,status:'ongoing'}]});
+
+  await db.ref('jobs/demo_j3').set({id:'demo_j3',orderNo:'B2026-06-001',carType:'E26 シビリアン',
+    name:'消防指揮車架装',start:fmt2(add(t,5)),end:fmt2(add(t,30)),
+    planH:120,memberId:'demo_m1',status:'planned',memo:'',actH:0,tasks:[]});
+
+  await db.ref('jobs/demo_j4').set({id:'demo_j4',orderNo:'B2026-05-003',carType:'キャラバン',
+    name:'パトロール車架装',start:fmt2(add(t,-20)),end:fmt2(add(t,-2)),
+    planH:45,memberId:'demo_m3',status:'done',memo:'',actH:42,
+    tasks:[{id:'dt8',name:'電装配線',actual:20,status:'done'},{id:'dt9',name:'艤装・取付',actual:22,status:'done'}]});
+
+  await db.ref('jobs/demo_j5').set({id:'demo_j5',orderNo:'B2026-06-002',carType:'シビリアン',
+    name:'キャンピングカー架装',start:fmt2(add(t,2)),end:fmt2(add(t,6)),
+    planH:80,memberId:'demo_m2',status:'planned',memo:'初回製作',actH:0,tasks:[]});
+
+  showToast('デモデータを読み込みました！');
 }
 
 // Fallback: localStorageで動作（Firebase未設定時）
@@ -769,6 +817,31 @@ function useFallbackStorage() {
   try { jobs = JSON.parse(localStorage.getItem('awk_jobs') || '{}'); } catch(e) { jobs = {}; }
   try { members = JSON.parse(localStorage.getItem('awk_members') || '{}'); } catch(e) { members = {}; }
   try { qcRecords = JSON.parse(localStorage.getItem('awk_qc') || '{}'); } catch(e) { qcRecords = {}; }
+  if(Object.keys(members).length === 0) injectDemoLocal();
+}
+
+function injectDemoLocal() {
+  const t=new Date(), fmt2=(d)=>d.toISOString().split('T')[0];
+  const add=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+  members['demo_m1']={id:'demo_m1',name:'森下　翔',role:'架装担当'};
+  members['demo_m2']={id:'demo_m2',name:'東　康広',role:'救急車担当'};
+  members['demo_m3']={id:'demo_m3',name:'田中　健',role:'電装担当'};
+  jobs['demo_j1']={id:'demo_j1',orderNo:'B2026-05-001',carType:'E26 シビリアン',name:'救急車架装（標準幅ハイルーフ）',
+    start:fmt2(add(t,-10)),end:fmt2(add(t,3)),planH:95,memberId:'demo_m1',status:'ongoing',memo:'',actH:88,
+    tasks:[{id:'dt1',name:'電装配線',actual:20,status:'done'},{id:'dt2',name:'外装・板金',actual:18,status:'done'},
+           {id:'dt3',name:'艤装・取付',actual:30,status:'ongoing'},{id:'dt4',name:'検査・確認',actual:0,status:'planned'}]};
+  jobs['demo_j2']={id:'demo_j2',orderNo:'B2026-05-002',carType:'アトラス',name:'冷凍車架装',
+    start:fmt2(add(t,-5)),end:fmt2(add(t,1)),planH:60,memberId:'demo_m2',status:'overdue',memo:'部品入荷遅延あり',actH:65,
+    tasks:[{id:'dt5',name:'電装配線',actual:15,status:'done'},{id:'dt6',name:'冷凍ユニット取付',actual:30,status:'done'},
+           {id:'dt7',name:'検査・確認',actual:20,status:'ongoing'}]};
+  jobs['demo_j3']={id:'demo_j3',orderNo:'B2026-06-001',carType:'E26 シビリアン',name:'消防指揮車架装',
+    start:fmt2(add(t,5)),end:fmt2(add(t,30)),planH:120,memberId:'demo_m1',status:'planned',memo:'',actH:0,tasks:[]};
+  jobs['demo_j4']={id:'demo_j4',orderNo:'B2026-05-003',carType:'キャラバン',name:'パトロール車架装',
+    start:fmt2(add(t,-20)),end:fmt2(add(t,-2)),planH:45,memberId:'demo_m3',status:'done',memo:'',actH:42,
+    tasks:[{id:'dt8',name:'電装配線',actual:20,status:'done'},{id:'dt9',name:'艤装・取付',actual:22,status:'done'}]};
+  jobs['demo_j5']={id:'demo_j5',orderNo:'B2026-06-002',carType:'シビリアン',name:'キャンピングカー架装',
+    start:fmt2(add(t,2)),end:fmt2(add(t,6)),planH:80,memberId:'demo_m2',status:'planned',memo:'初回製作',actH:0,tasks:[]};
+  try{localStorage.setItem('awk_members',JSON.stringify(members));localStorage.setItem('awk_jobs',JSON.stringify(jobs));}catch(e){}
 }
 function saveLocal() {
   if (fbReady) return;
