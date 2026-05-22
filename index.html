@@ -419,7 +419,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
       <div class="login-logo">AWK</div>
       <div class="login-sub">架装工事管理システム</div>
       <div class="login-tabs">
-        <button class="ltab on" id="ltab-boss" onclick="switchLoginTab('boss')">上司</button>
+        <button class="ltab on" id="ltab-boss" onclick="switchLoginTab('boss')">管理者</button>
         <button class="ltab" id="ltab-worker" onclick="switchLoginTab('worker')">作業者</button>
       </div>
       <div id="boss-login">
@@ -435,19 +435,19 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
         <button class="login-btn" onclick="doLogin('worker')">ログイン</button>
       </div>
       <div class="login-err" id="loginErr"></div>
-      <div class="login-hint">AWK製造部専用 | 上司PW: </div>
+      <div class="login-hint">AWK製造部専用 | 管理者PW: </div>
     </div>
   </div>
 </div>
 
-<!-- ===== HOME (上司) ===== -->
+<!-- ===== HOME (管理者) ===== -->
 
 <div id="homeScreen" class="screen">
   <div class="hdr">
     <div class="hdr-logo">AWK</div>
     <div style="font-size:11px;color:var(--dim);letter-spacing:1px;flex:1">オートワークス京都</div>
     <div class="hdr-right">
-      <span class="user-chip"><span class="role-badge rb-boss">上司</span></span>
+      <span class="user-chip"><span class="role-badge rb-boss">管理者</span></span>
       <button class="icon-btn" onclick="doLogout()">⏻</button>
     </div>
   </div>
@@ -972,7 +972,7 @@ function showScreen(id) {
 function goHome() { isBoss()?showScreen('homeScreen'):showScreen('workerHomeScreen'); }
 function goBackFromMember() { goHome(); }
 
-// ===== HOME (上司) =====
+// ===== HOME (管理者) =====
 function renderHome() {
   const arr=jobsArr();
   document.getElementById('ovBadge').textContent=`${arr.length}件`;
@@ -1482,7 +1482,7 @@ async function addDefaultTasks(jid) {
 
 // ===== JOB MODAL =====
 function openJobModal(memberId, jobId) {
-  if(!isBoss()){showToast('案件の追加・編集は上司のみ可能です');return;}
+  if(!isBoss()){showToast('案件の追加・編集は管理者のみ可能です');return;}
   editJobId=jobId||null;
   document.getElementById('jmTitle').textContent=jobId?'案件編集':'案件追加';
   const sel=document.getElementById('fAssign');
