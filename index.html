@@ -383,9 +383,9 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
       </div>
       <div class="login-err" id="loginErr"></div>
 
-```
+
 </div>
-```
+
 
   </div>
 </div>
@@ -419,7 +419,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
         <div class="hc-desc">テンプレ・マスタ管理</div>
       </div>
 
-```
+
 </div>
 <div id="alertSection"></div>
 <div class="section-lbl">
@@ -427,7 +427,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   <button class="btn small" style="margin-left:auto" onclick="openMemberModal()">＋ 追加</button>
 </div>
 <div class="member-grid" id="memberGrid"></div>
-```
+
 
   </div>
   <div class="bottom-nav">
@@ -463,9 +463,9 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
         <div>📊</div><div class="wh-card-title">進捗管理</div>
       </div>
 
-```
+
 </div>
-```
+
 
   </div>
 </div>
@@ -690,7 +690,7 @@ function listenAll() {
   });
   db.ref('members').on('value', snap => { 
     members = snap.val() || {};
-    refreshCurrentScreen(); 
+    refreshCurrentScreすen(); 
   });
   db.ref('qcRecords').on('value', snap => { qcRecords = snap.val() || {}; refreshCurrentScreen(); });
 }
