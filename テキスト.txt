@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWK 架装管理</title>
+<style>
+body{margin:0;background:#05060a;color:#dde2f0;font-family:sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.box{background:#0d0f18;border:1px solid #252a3d;border-radius:20px;padding:36px 28px;width:90%;max-width:400px}
+.logo{font-size:48px;font-weight:900;color:#f0a500;letter-spacing:8px;margin-bottom:4px}
+.sub{font-size:11px;color:#6b7399;letter-spacing:2px;margin-bottom:28px}
+.tabs{display:flex;border:1px solid #252a3d;border-radius:10px;overflow:hidden;margin-bottom:22px}
+.tab{flex:1;padding:10px;text-align:center;font-size:14px;cursor:pointer;color:#6b7399;background:transparent;border:none}
+.tab.on{background:#f0a500;color:#000;font-weight:700}
+label{display:block;font-size:11px;color:#6b7399;margin-bottom:5px}
+input,select{width:100%;background:#141720;border:1px solid #252a3d;color:#dde2f0;padding:13px 14px;border-radius:10px;font-size:15px;outline:none;margin-bottom:16px;box-sizing:border-box}
+.btn{width:100%;background:#f0a500;border:none;color:#000;padding:14px;border-radius:10px;font-size:18px;font-weight:700;cursor:pointer}
+.err{font-size:12px;color:#f04040;margin-top:10px;text-align:center;min-height:18px}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">AWK</div>
+  <div class="sub">架装工事管理システム</div>
+  <div class="tabs">
+    <button class="tab on" id="tab-boss" onclick="switchTab('boss')">管理者</button>
+    <button class="tab" id="tab-worker" onclick="switchTab('worker')">作業者</button>
+  </div>
+  <div id="boss-area">
+    <label>パスワード</label>
+    <input type="password" id="pass" placeholder="••••••••">
+    <button class="btn" onclick="login()">管理者としてログイン</button>
+  </div>
+  <div id="worker-area" style="display:none">
+    <label>作業者を選択</label>
+    <select id="worker-sel">
+      <option value="">選択してください</option>
+    </select>
+    <button class="btn" onclick="loginWorker()">ログイン</button>
+  </div>
+  <div class="err" id="err"></div>
+</div>
+<script>
+function switchTab(tab) {
+  document.getElementById('tab-boss').className = 'tab' + (tab==='boss'?' on':'');
+  document.getElementById('tab-worker').className = 'tab' + (tab==='worker'?' on':'');
+  document.getElementById('boss-area').style.display = tab==='boss'?'block':'none';
+  document.getElementById('worker-area').style.display = tab==='worker'?'block':'none';
+}
+function login() {
+  var pass = document.getElementById('pass').value;
+  if (pass === 'AWK-boss') {
+    alert('ログイン成功！\n\n※このテスト版はログインのみ確認用です。\n正式版は別途アップロードします。');
+    document.getElementById('err').textContent = '';
+  } else {
+    document.getElementById('err').textContent = 'パスワードが違います';
+    document.getElementById('pass').value = '';
+  }
+}
+function loginWorker() {
+  alert('作業者ログイン成功！');
+}
+</script>
+</body>
+</html>
