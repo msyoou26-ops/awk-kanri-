@@ -1,0 +1,2247 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05060a">
+<title>AWK 架装管理</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+:root{
+  --bg:#05060a;--surface:#0d0f18;--surface2:#141720;--surface3:#1a1e2e;
+  --border:#1e2235;--border2:#252a3d;
+  --accent:#f0a500;--accent2:#3b7ff5;--green:#1ec97a;--red:#f04040;
+  --text:#dde2f0;--dim:#6b7399;--muted:#3d4460;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none}
+body{min-height:100vh;overflow-x:hidden}
+input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
+
+/* SCREEN */
+.screen{display:none;min-height:100vh;flex-direction:column;padding-bottom:calc(64px + var(–safe-bottom))}
+.screen.active{display:flex}
+
+/* HEADER */
+.hdr{background:var(–surface);border-bottom:1px solid var(–border);padding:0 14px;height:52px;display:flex;align-items:center;gap:8px;flex-shrink:0;position:sticky;top:0;z-index:50}
+.hdr-logo{font-family:‘Bebas Neue’,sans-serif;font-size:22px;letter-spacing:4px;color:var(–accent);user-select:none;flex-shrink:0}
+.hdr-title{font-size:14px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-right{display:flex;gap:6px;margin-left:auto;align-items:center;flex-shrink:0}
+.icon-btn{background:transparent;border:1px solid var(–border2);color:var(–dim);width:34px;height:34px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.icon-btn:hover{border-color:var(–accent);color:var(–accent)}
+.back-btn{background:transparent;border:none;color:var(–accent);font-size:14px;cursor:pointer;padding:4px 2px;white-space:nowrap;flex-shrink:0}
+.role-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700}
+.rb-boss{background:rgba(240,165,0,.2);color:var(–accent)}
+.rb-worker{background:rgba(59,127,245,.2);color:#60a5fa}
+
+/* TAB BAR */
+.tab-bar{display:flex;background:var(–surface);border-bottom:1px solid var(–border);flex-shrink:0;position:sticky;top:52px;z-index:40;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;background:transparent;border:none;color:var(–dim);padding:12px 16px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-family:‘Noto Sans JP’,sans-serif;white-space:nowrap}
+.tab.on{color:var(–accent);border-bottom-color:var(–accent);font-weight:700}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(64px + var(–safe-bottom));background:var(–surface);border-top:1px solid var(–border);display:flex;z-index:50;padding-bottom:var(–safe-bottom)}
+.bnav{flex:1;background:transparent;border:none;color:var(–dim);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;cursor:pointer;transition:color .15s;font-family:‘Noto Sans JP’,sans-serif}
+.bnav-icon{font-size:20px;line-height:1}
+.bnav.on{color:var(–accent)}
+
+/* LOGIN */
+.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:radial-gradient(ellipse at 40% 35%,#0c1020,var(–bg) 70%)}
+.login-box{background:var(–surface);border:1px solid var(–border2);border-radius:20px;padding:36px 28px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+.login-logo{font-family:‘Bebas Neue’,sans-serif;font-size:48px;letter-spacing:8px;color:var(–accent);line-height:1;margin-bottom:2px}
+.login-sub{font-size:11px;color:var(–dim);letter-spacing:2px;margin-bottom:28px}
+.login-tabs{display:flex;border:1px solid var(–border2);border-radius:10px;overflow:hidden;margin-bottom:22px}
+.ltab{flex:1;padding:10px;text-align:center;font-size:14px;cursor:pointer;color:var(–dim);background:transparent;border:none;transition:all .15s}
+.ltab.on{background:var(–accent);color:#000;font-weight:700}
+.lfield{margin-bottom:16px}
+.lfield label{display:block;font-size:11px;color:var(–dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.lfield input,.lfield select{width:100%;background:var(–surface2);border:1px solid var(–border2);color:var(–text);padding:13px 14px;border-radius:10px;font-size:15px;outline:none;transition:border-color .2s}
+.lfield input:focus,.lfield select:focus{border-color:var(–accent)}
+.login-btn{width:100%;background:var(–accent);border:none;color:#000;padding:14px;border-radius:10px;font-family:‘Bebas Neue’,sans-serif;font-size:20px;letter-spacing:3px;cursor:pointer}
+.login-err{font-size:12px;color:var(–red);margin-top:10px;text-align:center;min-height:18px}
+
+/* APP BODY */
+.app-body{flex:1;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* BUTTONS */
+.btn{background:var(–surface2);border:1px solid var(–border2);color:var(–text);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;white-space:nowrap;font-family:‘Noto Sans JP’,sans-serif}
+.btn:active{opacity:.8}
+.btn.primary{background:var(–accent);border-color:var(–accent);color:#000;font-weight:700}
+.btn.danger{background:var(–red);border-color:var(–red);color:#fff;font-weight:700}
+.btn.small{padding:5px 10px;font-size:12px}
+.btn.full{width:100%;padding:14px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.ghost{background:transparent}
+
+/* HOME */
+.home-body{flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.home-hero{text-align:center;padding:16px 0 8px}
+.home-logo{font-family:‘Bebas Neue’,sans-serif;font-size:52px;letter-spacing:8px;color:var(–accent);line-height:1}
+.home-sub{font-size:11px;color:var(–dim);letter-spacing:2px;margin-top:4px}
+.home-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.home-card{background:var(–surface);border:1px solid var(–border2);border-radius:16px;padding:20px 16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.home-card::before{content:’’;position:absolute;top:0;left:0;right:0;height:3px;background:var(–accent);opacity:0;transition:opacity .2s}
+.home-card:active::before{opacity:1}
+.hc-icon{font-size:28px;margin-bottom:8px}
+.hc-title{font-family:‘Bebas Neue’,sans-serif;font-size:17px;letter-spacing:2px}
+.hc-desc{font-size:10px;color:var(–dim);margin-top:3px}
+.hc-badge{position:absolute;top:12px;right:12px;background:var(–accent2);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700}
+.section-lbl{font-family:‘Bebas Neue’,sans-serif;font-size:13px;letter-spacing:3px;color:var(–dim);display:flex;align-items:center;gap:8px}
+.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.member-card{background:var(–surface);border:1px solid var(–border2);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .2s;text-align:center;position:relative}
+.member-card:active{border-color:var(–accent)}
+.mc-av{width:44px;height:44px;border-radius:50%;background:var(–surface2);border:2px solid var(–border2);display:flex;align-items:center;justify-content:center;font-family:‘Bebas Neue’,sans-serif;font-size:17px;color:var(–accent);margin:0 auto 9px}
+.mc-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.mc-role{font-size:10px;color:var(–dim)}
+.mc-stats{font-size:10px;color:var(–muted);margin-top:5px}
+.mc-stats span{color:var(–accent2)}
+.add-card{background:transparent;border:1px dashed var(–border2);border-radius:14px;padding:18px 14px;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:110px}
+
+/* WORKER HOME */
+.wh-profile{text-align:center;padding:24px 0 8px}
+.wh-av{width:72px;height:72px;border-radius:50%;background:var(–surface2);border:3px solid var(–accent);display:flex;align-items:center;justify-content:center;font-family:‘Bebas Neue’,sans-serif;font-size:26px;color:var(–accent);margin:0 auto 12px}
+.wh-name{font-family:‘Bebas Neue’,sans-serif;font-size:30px;letter-spacing:3px;color:#1a1a1a}
+.wh-role{font-size:12px;color:var(–dim);margin-top:3px}
+.wh-stats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:0 16px 16px}
+.whs{background:var(–surface);border:1px solid var(–border);border-radius:10px;padding:10px 16px;text-align:center;min-width:72px}
+.whs-n{font-family:‘Bebas Neue’,sans-serif;font-size:24px;line-height:1}
+.whs-l{font-size:10px;color:var(–dim);margin-top:2px}
+.wh-cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:0 16px 16px}
+.wh-card{background:var(–surface);border:1px solid var(–border2);border-radius:16px;padding:24px 20px;cursor:pointer;transition:all .2s;text-align:center;flex:1;min-width:130px;max-width:180px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.wh-card:active{border-color:var(–accent)}
+.wh-card-icon{font-size:30px}
+.wh-card-title{font-family:‘Bebas Neue’,sans-serif;font-size:16px;letter-spacing:2px}
+
+/* STATS */
+.stats-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.stat-box{background:var(–surface);border:1px solid var(–border);border-radius:9px;padding:9px 14px;text-align:center;flex:1;min-width:60px}
+.sv{font-family:‘Bebas Neue’,sans-serif;font-size:22px;line-height:1}
+.sl{font-size:10px;color:var(–dim);margin-top:1px}
+.sv-total{color:var(–accent)}.sv-on{color:var(–accent2)}.sv-done{color:var(–green)}.sv-h{color:#f472b6}.sv-red{color:var(–red)}
+
+/* ALERTS */
+.alert-card{border-radius:12px;padding:12px 14px;margin-bottom:10px;position:relative;overflow:hidden}
+.alert-card::before{content:’’;position:absolute;top:0;left:0;right:0;height:3px}
+.alert-red{background:rgba(240,64,64,.1);border:1px solid rgba(240,64,64,.3)}
+.alert-red::before{background:var(–red)}
+.alert-amber{background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.3)}
+.alert-amber::before{background:var(–accent)}
+.alert-title{font-size:12px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.alert-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:12px;color:#1a1a1a}
+.alert-item:last-child{border-bottom:none}
+.alert-days{font-family:‘Bebas Neue’,sans-serif;font-size:18px;min-width:36px;text-align:center}
+
+/* OVERVIEW */
+.ov-card{background:var(–surface);border:1px solid var(–border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.ov-card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.ov-card-name{font-size:14px;font-weight:500;flex:1}
+.ov-card-sub{font-size:11px;color:var(–dim);margin-top:2px}
+.ov-card-meta{display:flex;gap:10px;font-size:11px;color:var(–dim);margin-bottom:8px;flex-wrap:wrap}
+.ov-card-meta span{color:var(–text)}
+.ov-pw{background:var(–surface2);border-radius:3px;height:6px;overflow:hidden;flex:1}
+.ov-pb{height:100%;border-radius:3px;transition:width .4s}
+.ov-pct{font-size:11px;color:var(–dim);min-width:32px;text-align:right}
+.ov-actions{display:flex;gap:6px;margin-top:8px}
+.act-btn{background:none;border:1px solid var(–border2);color:var(–dim);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:‘Noto Sans JP’,sans-serif}
+.act-btn:active{border-color:var(–accent);color:var(–accent)}
+.act-btn.del:active{border-color:var(–red);color:var(–red)}
+
+/* STATUS BADGES */
+.sb{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.sb-planned{background:rgba(99,102,241,.2);color:#818cf8}
+.sb-ongoing{background:rgba(59,127,245,.2);color:#60a5fa}
+.sb-done{background:rgba(30,201,122,.15);color:#4ade80}
+.sb-overdue{background:rgba(240,64,64,.2);color:#f87171}
+
+/* GANTT */
+.month-nav-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;justify-content:center}
+.month-lbl{font-family:‘Bebas Neue’,sans-serif;font-size:26px;letter-spacing:3px;min-width:140px;text-align:center;color:#1a1a1a}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(–dim);margin-bottom:12px}
+.leg-i{display:flex;align-items:center;gap:4px}
+.leg-b{width:16px;height:6px;border-radius:2px;display:inline-block}
+.gantt-wrap{background:var(–surface);border:1px solid var(–border);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.gantt-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.gantt-table{border-collapse:collapse;min-width:600px}
+.gantt-table thead th{background:var(–surface2);border-bottom:2px solid var(–border2);font-size:10px;color:var(–dim);text-align:center;white-space:nowrap;padding:0}
+.th-info{width:140px;padding:7px 10px;text-align:left;color:var(–text);font-size:11px}
+.th-d{width:22px;min-width:22px;padding:6px 0}
+.th-d.th-today{color:var(–accent);font-weight:700}
+.th-d.th-wk{color:var(–muted)}
+.gantt-table tbody tr{border-bottom:1px solid var(–border)}
+.gantt-table tbody tr:last-child{border-bottom:none}
+.td-info{padding:6px 10px;width:140px;min-width:140px;vertical-align:middle}
+.jn{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.jm{font-size:9px;color:var(–dim);margin-top:1px}
+.sdot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:3px}
+.td-d{width:22px;min-width:22px;padding:2px 0;vertical-align:middle;text-align:center;position:relative}
+.td-d.td-today{background:rgba(240,165,0,.06)}
+.td-d.td-wk{background:rgba(255,255,255,.008)}
+.bar{height:18px;border-radius:3px}
+.bar-s{border-radius:3px 0 0 3px}.bar-m{border-radius:0}.bar-e{border-radius:0 3px 3px 0}.bar-x{border-radius:3px}
+.bar-ongoing{background:linear-gradient(90deg,#3b7ff5,#60a5fa)}
+.bar-done{background:linear-gradient(90deg,#1ec97a,#4ade80)}
+.bar-overdue{background:linear-gradient(90deg,#f04040,#f87171)}
+.bar-planned{background:linear-gradient(90deg,#6366f1,#818cf8)}
+.today-ln{position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(–accent);transform:translateX(-50%);pointer-events:none;z-index:2}
+
+/* PROGRESS */
+.pb-filters{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px;scrollbar-width:none}
+.pb-filters::-webkit-scrollbar{display:none}
+.flt{background:var(–surface2);border:1px solid var(–border2);color:var(–dim);padding:5px 13px;border-radius:20px;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;font-family:‘Noto Sans JP’,sans-serif}
+.flt.on{background:var(–accent);border-color:var(–accent);color:#000;font-weight:700}
+.pb-card{background:var(–surface);border:1px solid var(–border);border-radius:14px;padding:14px;margin-bottom:12px;position:relative;overflow:hidden}
+.pb-bar{position:absolute;top:0;left:0;right:0;height:3px}
+.pb-nm{font-size:14px;font-weight:500}
+.pb-sub{font-size:11px;color:var(–dim);margin-top:2px}
+.pb-dates{font-size:11px;color:var(–dim);margin-bottom:8px;margin-top:6px}
+.pb-dates span{color:var(–text)}
+.pb-hr{display:flex;justify-content:space-between;font-size:11px;color:var(–dim);margin-bottom:4px}
+.pb-hr span{color:var(–text)}
+.pb-pw{background:var(–surface2);border-radius:3px;height:6px;overflow:hidden;margin-bottom:10px}
+.pb-pb{height:100%;border-radius:3px;transition:width .4s}
+.dp{color:var(–green)}.dn{color:var(–red)}.dz{color:var(–dim)}
+
+/* TASK INPUT */
+.pt-section{border-top:1px solid var(–border);margin-top:10px;padding-top:10px}
+.pt-section-label{font-size:11px;color:var(–accent);font-weight:600;margin-bottom:8px}
+.pt-row{display:grid;grid-template-columns:1fr 58px 75px 24px;gap:4px;align-items:center;min-height:34px;border-bottom:1px solid rgba(37,42,61,.35);padding:3px 0}
+.pt-row:last-child{border-bottom:none}
+.pt-name{display:flex;align-items:center;gap:4px;min-width:0}
+.pt-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.pt-input-name{background:transparent;border:none;color:var(–text);font-size:13px;width:100%;outline:none;padding:3px;border-radius:4px;font-family:‘Noto Sans JP’,sans-serif}
+.pt-input-num{background:transparent;border:none;color:var(–text);font-size:13px;width:38px;outline:none;padding:3px;border-radius:4px;text-align:right;font-family:‘Noto Sans JP’,sans-serif}
+.pt-input-name:focus,.pt-input-num:focus{background:var(–surface2);border:1px solid var(–accent)}
+.pt-act{display:flex;align-items:center;gap:2px}
+.pt-unit{font-size:10px;color:var(–dim)}
+.pt-select{background:transparent;border:none;color:var(–text);font-size:12px;width:100%;outline:none;cursor:pointer;padding:3px;font-family:‘Noto Sans JP’,sans-serif}
+.pt-del{background:none;border:none;color:var(–muted);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;padding:4px}
+.pt-del:active{color:var(–red)}
+.pt-header{display:grid;grid-template-columns:1fr 58px 75px 24px;gap:4px;padding:0 4px 6px;font-size:10px;color:var(–dim)}
+.pt-footer{display:flex;gap:8px;padding-top:8px;margin-top:4px}
+.pb-acts{display:flex;gap:6px;margin-top:10px}
+
+/* LOG */
+.log-entry{background:var(–surface2);border:1px solid var(–border);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.log-title{font-size:13px;font-weight:700;color:var(–text)}
+.log-date{font-size:10px;color:var(–dim);font-family:‘Bebas Neue’,monospace}
+.log-body{font-size:12px;color:var(–text);line-height:1.7}
+.log-metrics{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+.log-metric{font-size:11px;color:var(–dim)}
+.log-metric span{color:var(–text);font-weight:700}
+
+/* TIMER */
+.timer-disp{font-family:‘Bebas Neue’,sans-serif;font-size:52px;letter-spacing:4px;color:var(–text);text-align:center;padding:12px 0}
+.timer-disp.running{color:var(–accent)}
+
+/* COUNTER */
+.counter-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(–border)}
+.counter-row:last-child{border-bottom:none}
+.counter-label{font-size:13px}
+.counter-controls{display:flex;align-items:center;gap:10px}
+.cbtn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(–accent);background:transparent;color:var(–accent);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cbtn:active{background:var(–accent);color:#000}
+.cval{font-family:‘Bebas Neue’,sans-serif;font-size:22px;color:var(–text);width:32px;text-align:center}
+
+/* AI */
+.ai-box{background:var(–surface2);border:1px solid var(–border2);border-radius:12px;padding:16px;font-size:12px;line-height:1.9;color:var(–text);display:none;margin-top:12px}
+.ai-box.show{display:block}
+.ai-box strong{color:var(–accent)}
+.loading-ring{display:inline-block;width:16px;height:16px;border:2px solid rgba(240,165,0,.3);border-top-color:var(–accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* SETTINGS */
+.settings-section{background:var(–surface);border:1px solid var(–border);border-radius:12px;padding:14px;margin-bottom:14px}
+.settings-title{font-family:‘Bebas Neue’,sans-serif;font-size:14px;letter-spacing:2px;color:var(–accent);margin-bottom:12px;border-left:3px solid var(–accent);padding-left:8px}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:24px}
+.tag-item{background:var(–surface2);border:1px solid var(–border2);border-radius:20px;padding:5px 12px;font-size:12px;display:flex;align-items:center;gap:6px}
+.tag-del{background:none;border:none;color:var(–muted);cursor:pointer;font-size:14px;padding:0;line-height:1;font-family:‘Noto Sans JP’,sans-serif}
+.tag-del:active{color:var(–red)}
+.tag-input-row{display:flex;gap:8px}
+.tag-input-row input{flex:1;background:var(–surface2);border:1px solid var(–border2);color:var(–text);padding:9px 12px;border-radius:8px;font-size:13px;outline:none}
+.tag-input-row input:focus{border-color:var(–accent)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(–surface);border:1px solid var(–border2);border-radius:20px 20px 0 0;padding:20px 20px 32px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;border-bottom:1px solid var(–border);padding-bottom:12px}
+.modal h2{font-family:‘Bebas Neue’,sans-serif;font-size:20px;letter-spacing:3px;color:var(–accent)}
+.modal-close{background:none;border:none;color:var(–dim);font-size:20px;cursor:pointer;padding:2px 6px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;color:var(–dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;background:var(–surface2);border:1px solid var(–border2);color:var(–text);padding:12px 13px;border-radius:10px;font-size:14px;outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(–accent)}
+.field select option{background:var(–surface2)}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(–surface);border:1px solid var(–border2);border-radius:10px;padding:10px 20px;font-size:13px;opacity:0;transition:all .3s;z-index:200;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* NENKAN */
+.nk-wrap{background:var(–surface);border:1px solid var(–border);border-radius:12px;padding:16px;margin-bottom:16px}
+.nk-ttl{font-family:‘Bebas Neue’,sans-serif;font-size:14px;letter-spacing:3px;color:var(–accent);margin-bottom:12px}
+.nk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.nkc{background:var(–surface2);border:1px solid var(–border);border-radius:8px;padding:8px 10px}
+.nkn{font-family:‘Bebas Neue’,sans-serif;font-size:22px;line-height:1}
+.nkl{font-size:10px;color:var(–dim);margin-top:2px}
+.nkc.c-done .nkn{color:var(–green)}.nkc.c-act .nkn{color:var(–accent2)}.nkc.c-sur .nkn{color:#f472b6}
+.nk-months{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+.nm{background:var(–surface2);border-radius:4px;padding:5px 2px;text-align:center}
+.nm.has{border:1px solid rgba(30,201,122,.25)}
+.nm-l{font-size:9px;color:var(–dim)}.nm-n{font-size:13px;font-weight:700;font-family:‘Bebas Neue’,sans-serif;color:var(–green)}
+.nm-n.z{color:var(–muted);font-size:9px}
+
+.empty-msg{text-align:center;padding:32px 16px;color:var(–dim);font-size:13px}
+::-webkit-scrollbar{height:4px;width:4px}
+::-webkit-scrollbar-track{background:var(–bg)}
+::-webkit-scrollbar-thumb{background:var(–border2);border-radius:3px}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
+</style>
+
+</head>
+<body>
+
+<!-- LOGIN -->
+
+<div id="loginScreen" class="screen active">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">AWK</div>
+      <div class="login-sub">架装工事管理システム</div>
+      <div class="login-tabs">
+        <button class="ltab on" id="ltab-boss" onclick="switchLoginTab('boss')">管理者</button>
+        <button class="ltab" id="ltab-worker" onclick="switchLoginTab('worker')">作業者</button>
+      </div>
+      <div id="boss-login">
+        <div class="lfield"><label>パスワード</label>
+          <input type="password" id="bossPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin('boss')">
+        </div>
+        <button class="login-btn" onclick="doLogin('boss')">管理者ログイン</button>
+      </div>
+      <div id="worker-login" style="display:none">
+        <div class="lfield"><label>作業者を選択</label>
+          <select id="workerSelect"></select>
+        </div>
+        <button class="login-btn" onclick="doLogin('worker')">ログイン</button>
+      </div>
+      <div class="login-err" id="loginErr"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HOME (管理者) -->
+
+<div id="homeScreen" class="screen">
+  <div class="hdr">
+    <div class="hdr-logo">AWK</div>
+    <div style="font-size:11px;color:var(--dim);flex:1">オートワークス京都</div>
+    <div class="hdr-right">
+      <span class="role-badge rb-boss">管理者</span>
+      <button class="icon-btn" onclick="doLogout()">⏻</button>
+    </div>
+  </div>
+  <div class="home-body">
+    <div class="home-hero">
+      <div class="home-logo">AWK</div>
+      <div class="home-sub">架装管理システム</div>
+    </div>
+    <div class="home-cards">
+      <div class="home-card" onclick="showScreen('overviewScreen')">
+        <div class="hc-icon">📋</div>
+        <div class="hc-title">全体ビュー</div>
+        <div class="hc-desc">案件一覧・担当割当</div>
+        <div class="hc-badge" id="ovBadge">0件</div>
+      </div>
+      <div class="home-card" onclick="showScreen('settingsScreen')">
+        <div class="hc-icon">⚙️</div>
+        <div class="hc-title">設定</div>
+        <div class="hc-desc">車種・架装名マスタ管理</div>
+      </div>
+    </div>
+    <div id="homeAlerts"></div>
+    <div class="section-lbl">👷 作業者
+      <button class="btn small" style="margin-left:auto" onclick="openMemberModal()">＋ 追加</button>
+    </div>
+    <div class="member-grid" id="memberGrid"></div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav on" onclick="showScreen('homeScreen')"><div class="bnav-icon">🏠</div>ホーム</button>
+    <button class="bnav" onclick="showScreen('overviewScreen')"><div class="bnav-icon">📋</div>案件</button>
+    <button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">📝</div>QCログ</button>
+    <button class="bnav" onclick="showScreen('aiScreen')"><div class="bnav-icon">🤖</div>AI分析</button>
+  </div>
+</div>
+
+<!-- HOME (作業者) -->
+
+<div id="workerHomeScreen" class="screen">
+  <div class="hdr">
+    <div class="hdr-logo">AWK</div>
+    <div style="font-size:11px;color:var(--dim);flex:1">オートワークス京都</div>
+    <div class="hdr-right">
+      <span class="role-badge rb-worker" id="workerRoleBadge">作業者</span>
+      <button class="icon-btn" onclick="doLogout()">⏻</button>
+    </div>
+  </div>
+  <div class="app-body" style="padding:0">
+    <div class="wh-profile">
+      <div class="wh-av" id="whAv"></div>
+      <div class="wh-name" id="whName"></div>
+      <div class="wh-role" id="whRole"></div>
+    </div>
+    <div class="wh-stats" id="whStats"></div>
+    <div id="workerAlerts" style="padding:0 16px"></div>
+    <div class="wh-cards">
+      <div class="wh-card" onclick="showMemberTab('gantt')">
+        <div class="wh-card-icon">📅</div>
+        <div class="wh-card-title">架装日程</div>
+      </div>
+      <div class="wh-card" onclick="showMemberTab('progress')">
+        <div class="wh-card-icon">📊</div>
+        <div class="wh-card-title">進捗管理</div>
+      </div>
+      <div class="wh-card" onclick="showScreen('qcScreen')">
+        <div class="wh-card-icon">📝</div>
+        <div class="wh-card-title">QCログ</div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav on" onclick="showScreen('workerHomeScreen')"><div class="bnav-icon">🏠</div>ホーム</button>
+    <button class="bnav" onclick="showMemberTab('gantt')"><div class="bnav-icon">📅</div>日程</button>
+    <button class="bnav" onclick="showMemberTab('progress')"><div class="bnav-icon">📊</div>進捗</button>
+    <button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">📝</div>QCログ</button>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+
+<div id="overviewScreen" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goHome()">← 戻る</button>
+    <div class="hdr-title">全体ビュー</div>
+    <button class="icon-btn" onclick="openJobModal(null,null)">＋</button>
+  </div>
+  <div class="app-body">
+    <div class="stats-row" id="ovStats"></div>
+    <div id="ovList"></div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button>
+    <button class="bnav on"><div class="bnav-icon">📋</div>案件</button>
+    <button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">📝</div>QCログ</button>
+    <button class="bnav" onclick="showScreen('aiScreen')"><div class="bnav-icon">🤖</div>AI分析</button>
+  </div>
+</div>
+
+<!-- MEMBER SCREEN (日程+進捗) -->
+
+<div id="memberScreen" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goBackFromMember()">← 戻る</button>
+    <div class="hdr-title" id="mHdrTitle"></div>
+    <button class="icon-btn" id="btnAddJob" onclick="openJobModal(curMember,null)">＋</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab on" id="mNavG" onclick="showMemberTab('gantt')">📅 架装日程</button>
+    <button class="tab" id="mNavP" onclick="showMemberTab('progress')">📊 進捗管理</button>
+    <button class="tab" id="mNavL" onclick="showMemberTab('log')">📝 作業ログ</button>
+  </div>
+  <div class="app-body">
+    <!-- GANTT TAB -->
+    <div id="mGanttTab">
+      <div class="month-nav-row">
+        <button class="btn" onclick="changeMonth(-1)">‹</button>
+        <div class="month-lbl" id="monthLbl"></div>
+        <button class="btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="stats-row" id="mStats"></div>
+      <div class="legend">
+        <span class="leg-i"><span class="leg-b bar-ongoing"></span>施工中</span>
+        <span class="leg-i"><span class="leg-b bar-done"></span>完成</span>
+        <span class="leg-i"><span class="leg-b bar-overdue"></span>遅延</span>
+        <span class="leg-i"><span class="leg-b bar-planned"></span>予定</span>
+      </div>
+      <div class="gantt-wrap">
+        <div class="gantt-scroll">
+          <table class="gantt-table"><thead id="gHead"></thead><tbody id="gBody"></tbody></table>
+        </div>
+      </div>
+      <div id="nkWrap"></div>
+    </div>
+    <!-- PROGRESS TAB -->
+    <div id="mProgressTab" style="display:none">
+      <div class="pb-filters" id="pbFilters">
+        <button class="flt on" onclick="setFilter(this,'all')">すべて</button>
+        <button class="flt" onclick="setFilter(this,'ongoing')">施工中</button>
+        <button class="flt" onclick="setFilter(this,'planned')">予定</button>
+        <button class="flt" onclick="setFilter(this,'done')">完成</button>
+        <button class="flt" onclick="setFilter(this,'overdue')">遅延</button>
+      </div>
+      <div id="pbCards"></div>
+    </div>
+    <!-- LOG TAB -->
+    <div id="mLogTab" style="display:none">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:1px">📝 今日の気づきを記録</div>
+
+```
+    <!-- 対象案件選択 -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--dim);margin-bottom:6px">対象案件 <span style="color:var(--red)">*</span></div>
+      <select id="logJobSelect" style="width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);padding:12px;border-radius:10px;font-size:14px;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
+        <option value="">— 案件を選択 —</option>
+      </select>
+    </div>
+
+    <!-- 気になったことメモ -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--dim);margin-bottom:6px">今日気になったこと・困ったこと</div>
+      <textarea id="logMemo" placeholder="例：電装の配線で手順がわからず止まった、ゲージが見つからなかった…など気軽に" style="width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);padding:12px;border-radius:10px;font-size:14px;outline:none;min-height:90px;resize:none;line-height:1.7;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
+    </div>
+
+    <!-- ロス原因タップ選択 -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--dim);margin-bottom:8px">気になった原因（複数タップOK）</div>
+      <div id="causePicker" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      <div id="causePicker2" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+      <div id="causePicker3" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+    </div>
+
+    <!-- QCテーマプレビュー -->
+    <div id="qcThemePreview" style="display:none;margin-bottom:14px;padding:10px 14px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.3);border-radius:10px;font-size:12px;color:var(--text);line-height:1.6"></div>
+
+    <button class="btn primary full" style="font-size:15px;padding:15px" onclick="saveWorkLog()">💾 記録する</button>
+  </div>
+
+  <div style="margin-bottom:8px;font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px">最近の記録</div>
+  <div id="memberLogList"></div>
+</div>
+```
+
+  </div>
+  <div class="bottom-nav" id="memberBottomNav"></div>
+</div>
+
+<!-- QC LOG SCREEN -->
+
+<div id="qcScreen" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goHome()">← 戻る</button>
+    <div class="hdr-title">QC 作業ログ</div>
+    <button class="icon-btn" onclick="exportCsv()">📥</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab on" id="qNavLog" onclick="switchQcTab('log')">📋 ログ一覧</button>
+    <button class="tab" id="qNavStat" onclick="switchQcTab('stat')">📊 集計・分析</button>
+  </div>
+  <div class="app-body">
+    <div id="qcLogTab">
+      <div class="stats-row" id="qcStats"></div>
+      <div id="qcLogList"></div>
+    </div>
+    <div id="qcStatTab" style="display:none">
+      <div id="qcStatContent"></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button>
+    <button class="bnav" onclick="showScreen('overviewScreen')"><div class="bnav-icon">📋</div>案件</button>
+    <button class="bnav on"><div class="bnav-icon">📝</div>QCログ</button>
+    <button class="bnav" onclick="showScreen('aiScreen')"><div class="bnav-icon">🤖</div>AI分析</button>
+  </div>
+</div>
+
+<!-- AI SCREEN -->
+
+<div id="aiScreen" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goHome()">← 戻る</button>
+    <div class="hdr-title">AI 分析</div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab on" id="aiNavAll" onclick="switchAiTab('all')">📊 全体分析</button>
+    <button class="tab" id="aiNavType" onclick="switchAiTab('type')">🚗 種別比較</button>
+    <button class="tab" id="aiNavHistory" onclick="switchAiTab('history')">📋 完成履歴</button>
+  </div>
+  <div class="app-body">
+    <!-- 全体分析 -->
+    <div id="aiTabAll">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:10px">🤖 蓄積データをAI分析</div>
+        <p style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.8">蓄積された作業ログ・ロス時間・手戻り件数をAIが自動分析。QC報告書に使える考察・改善提案を生成します。</p>
+        <button class="btn primary full" id="btnAi" onclick="runAi()">✨ AIで分析レポートを生成</button>
+        <div class="ai-box" id="aiBox"></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:10px">📋 外部データ貼り付け分析</div>
+        <textarea id="pasteData" placeholder="ExcelやGoogle Formsのデータをここに貼り付け" style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:12px;border-radius:10px;font-size:13px;outline:none;min-height:100px;resize:vertical;margin-bottom:10px"></textarea>
+        <button class="btn primary full" id="btnPaste" onclick="runPaste()">📊 貼り付けデータを分析</button>
+        <div class="ai-box" id="pasteBox"></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:10px">📊 現在のデータサマリー</div>
+        <div id="aiSummaryBox" style="font-size:12px;color:var(--text);line-height:2.2"></div>
+      </div>
+    </div>
+    <!-- 種別比較 -->
+    <div id="aiTabType" style="display:none">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:4px">🚗 架装種別ごとの傾向分析</div>
+        <div style="font-size:10px;color:var(--dim);margin-bottom:14px">完成案件のデータを種別に分類して自動比較</div>
+        <div id="typeStatCards"></div>
+        <button class="btn primary full" id="btnTypeAi" onclick="runTypeAi()" style="margin-top:10px">✨ 種別ごとにAI考察を生成</button>
+        <div class="ai-box" id="typeAiBox"></div>
+      </div>
+    </div>
+    <!-- 完成履歴 -->
+    <div id="aiTabHistory" style="display:none">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:4px">📋 完成案件 AI分析履歴</div>
+        <div style="font-size:10px;color:var(--dim);margin-bottom:12px">完成時に自動生成されたAI分析レポート</div>
+        <div id="completionHistoryList"></div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button>
+    <button class="bnav" onclick="showScreen('overviewScreen')"><div class="bnav-icon">📋</div>案件</button>
+    <button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">📝</div>QCログ</button>
+    <button class="bnav on"><div class="bnav-icon">🤖</div>AI分析</button>
+  </div>
+</div>
+
+<!-- SETTINGS SCREEN -->
+
+<div id="settingsScreen" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goHome()">← 戻る</button>
+    <div class="hdr-title">設定</div>
+  </div>
+  <div class="app-body">
+    <div class="settings-section">
+      <div class="settings-title">🚗 車種テンプレ</div>
+      <div class="tag-list" id="carTypeList"></div>
+      <div class="tag-input-row">
+        <input type="text" id="carTypeInput" placeholder="例: キャラバン、ハイエース">
+        <button class="btn primary" onclick="addTemplate('carType')">追加</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">🔧 架装名テンプレ</div>
+      <div class="tag-list" id="jobNameList"></div>
+      <div class="tag-input-row">
+        <input type="text" id="jobNameInput" placeholder="例: 救急車、消防指揮車">
+        <button class="btn primary" onclick="addTemplate('jobName')">追加</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">📋 工程テンプレ</div>
+      <div class="tag-list" id="taskTplList"></div>
+      <div class="tag-input-row">
+        <input type="text" id="taskTplInput" placeholder="例: 電装配線">
+        <button class="btn primary" onclick="addTemplate('taskTpl')">追加</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">🔐 管理者パスワード変更</div>
+      <div class="field"><label>新しいパスワード</label><input type="password" id="newPass" placeholder="新しいパスワード"></div>
+      <button class="btn primary" onclick="changePassword()">変更する</button>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button>
+    <button class="bnav on"><div class="bnav-icon">⚙️</div>設定</button>
+  </div>
+</div>
+
+<!-- COMPLETION ANALYSIS MODAL -->
+
+<div class="modal-bg" id="completionModal">
+  <div class="modal" style="border-radius:20px 20px 0 0;max-height:85vh">
+    <div class="modal-hdr">
+      <h2>🎉 案件完成 AI分析</h2>
+      <button class="modal-close" onclick="closeCompletionModal()">✕</button>
+    </div>
+    <div id="completionModalContent">
+      <div style="text-align:center;padding:32px;color:var(--dim)">
+        <div class="loading-ring" style="width:32px;height:32px;border-width:3px"></div>
+        <div style="margin-top:12px;font-size:13px">AI分析中...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOB MODAL -->
+
+<div class="modal-bg" id="jobModal">
+  <div class="modal">
+    <div class="modal-hdr"><h2 id="jmTitle">案件追加</h2><button class="modal-close" onclick="closeJobModal()">✕</button></div>
+    <div class="f-row">
+      <div class="field"><label>オーダーNo.</label><input type="text" id="fOrd" placeholder=""></div>
+      <div class="field"><label>車種</label>
+        <select id="fCar" onchange="toggleManual('fCar','fCarManual')">
+          <option value="">選択</option>
+        </select>
+        <input type="text" id="fCarManual" placeholder="車種を入力" style="display:none;margin-top:6px;width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:12px;border-radius:10px;font-size:14px;outline:none">
+      </div>
+    </div>
+    <div class="field"><label>架装名 *</label>
+      <select id="fName" onchange="toggleManual('fName','fNameManual')">
+        <option value="">選択</option>
+      </select>
+      <input type="text" id="fNameManual" placeholder="架装名を入力" style="display:none;margin-top:6px;width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:12px;border-radius:10px;font-size:14px;outline:none">
+    </div>
+    <div class="field"><label>着工日 *</label><input type="date" id="fStart"></div>
+    <div class="field"><label>完成日 *</label><input type="date" id="fEnd"></div>
+    <div class="f-row">
+      <div class="field"><label>見積工数(h)</label><input type="number" id="fPlan" min="0" step="0.5" placeholder=""></div>
+      <div class="field"><label>ステータス</label>
+        <select id="fStatus">
+          <option value="planned">予定</option>
+          <option value="ongoing">施工中</option>
+          <option value="done">完成</option>
+          <option value="overdue">遅延</option>
+        </select>
+      </div>
+    </div>
+    <div class="f-row">
+      <div class="field"><label>担当者（架装）</label><select id="fAssign"></select></div>
+      <div class="field"><label>担当者（電装）</label><select id="fAssignElec"></select></div>
+    </div>
+    <div class="field"><label>メモ</label><textarea id="fMemo" rows="2" placeholder=""></textarea></div>
+    <div class="modal-acts">
+      <button class="btn" onclick="closeJobModal()">キャンセル</button>
+      <button class="btn primary" onclick="saveJob()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEMBER MODAL -->
+
+<div class="modal-bg" id="memberModal">
+  <div class="modal">
+    <div class="modal-hdr"><h2 id="mmTitle">作業者追加</h2><button class="modal-close" onclick="closeMemberModal()">✕</button></div>
+    <div class="field"><label>氏名 *</label><input type="text" id="mmName" placeholder="山田 太郎"></div>
+    <div class="field"><label>役職・担当</label><input type="text" id="mmRole" placeholder="架装担当 / 電装など"></div>
+    <div class="modal-acts">
+      <button class="btn" onclick="closeMemberModal()">キャンセル</button>
+      <button class="btn primary" onclick="saveMember()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== FIREBASE CONFIG =====
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyALzcHgWi33tip-QiMYfjeJCJgxEt8KI-4",
+  authDomain: "awk-kanri.firebaseapp.com",
+  databaseURL: "https://awk-kanri-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "awk-kanri",
+  storageBucket: "awk-kanri.firebasestorage.app",
+  messagingSenderId: "995372648364",
+  appId: "1:995372648364:web:51084b71722ec46e331c09"
+};
+
+// ===== CONSTANTS =====
+const SC = {ongoing:'#3b7ff5',done:'#1ec97a',overdue:'#f04040',planned:'#6366f1'};
+const SL = {ongoing:'施工中',done:'完成',overdue:'遅延',planned:'予定'};
+const WD = ['日','月','火','水','木','金','土'];
+const MN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const DEFAULT_TASKS = ['電装配線','外装・板金','艤装・取付','塗装','溶接','内装仕上げ','検査・確認'];
+const today = new Date();
+
+// ===== STATE =====
+let db, jobs={}, members={}, workLogs={};
+let curMember=null, editJobId=null, editMemberId=null;
+let curYear=today.getFullYear(), curMonth=today.getMonth();
+let pbFilter='all', loginTab='boss';
+let session={role:null, memberId:null};
+let fbReady=false;
+let counters={q:0,r:0,g:0};
+let timerSec=0, timerRunning=false, timerInterval=null;
+let bossPassword = localStorage.getItem('awk_boss_pass') || 'AWK-boss';
+
+// ===== FIREBASE INIT =====
+function initFirebase() {
+  if(typeof firebase === 'undefined') {
+    console.warn('Firebase SDK not loaded, using localStorage fallback');
+    useFallback();
+    return;
+  }
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    fbReady = true;
+    db.ref('jobs').on('value', snap => { jobs = snap.val()||{}; refreshCurrentScreen(); });
+    db.ref('members').on('value', snap => { members = snap.val()||{}; refreshCurrentScreen(); });
+    db.ref('workLogs').on('value', snap => { workLogs = snap.val()||{}; refreshCurrentScreen(); });
+    db.ref('completionAnalyses').on('value', snap => { completionAnalyses = snap.val()||{}; });
+  } catch(e) {
+    console.error('Firebase error:', e);
+    useFallback();
+  }
+}
+function useFallback() {
+  try { jobs = JSON.parse(localStorage.getItem('awk_jobs')||'{}'); } catch(e){jobs={};}
+  try { members = JSON.parse(localStorage.getItem('awk_members')||'{}'); } catch(e){members={};}
+  try { workLogs = JSON.parse(localStorage.getItem('awk_logs')||'{}'); } catch(e){workLogs={};}
+  try { completionAnalyses = JSON.parse(localStorage.getItem('awk_analyses')||'{}'); } catch(e){completionAnalyses={};}
+}
+function saveLocal() {
+  if(fbReady) return;
+  localStorage.setItem('awk_jobs', JSON.stringify(jobs));
+  localStorage.setItem('awk_members', JSON.stringify(members));
+  localStorage.setItem('awk_logs', JSON.stringify(workLogs));
+  localStorage.setItem('awk_analyses', JSON.stringify(completionAnalyses));
+}
+
+// ===== DB HELPERS =====
+async function dbSet(path, val) {
+  if(fbReady) await db.ref(path).set(val);
+  else { _setNested(path,val); saveLocal(); }
+}
+async function dbPush(path, val) {
+  if(fbReady){ const r=db.ref(path).push(); await r.set(val); return r.key; }
+  else { const k=uid(); _setNested(path+'/'+k,val); saveLocal(); return k; }
+}
+async function dbRemove(path) {
+  if(fbReady) await db.ref(path).remove();
+  else { _removeNested(path); saveLocal(); refreshCurrentScreen(); }
+}
+function _setNested(path, val) {
+  const k=path.split('/');
+  if(k[0]==='jobs'){ if(k.length===2) jobs[k[1]]=val; else if(k.length===3){if(!jobs[k[1]])jobs[k[1]]={};jobs[k[1]][k[2]]=val;} }
+  else if(k[0]==='members'){ if(k.length===2) members[k[1]]=val; }
+  else if(k[0]==='workLogs'){ if(k.length===2) workLogs[k[1]]=val; }
+  else if(k[0]==='completionAnalyses'){ if(k.length===2) completionAnalyses[k[1]]=val; }
+}
+function _removeNested(path) {
+  const k=path.split('/');
+  if(k[0]==='jobs'&&k[1]) delete jobs[k[1]];
+  else if(k[0]==='members'&&k[1]) delete members[k[1]];
+  else if(k[0]==='workLogs'&&k[1]) delete workLogs[k[1]];
+}
+
+// ===== UTILS =====
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function dim(y,m){ return new Date(y,m+1,0).getDate(); }
+function fmt(s){ if(!s)return '—'; const p=s.split('-'); return `${+p[1]}/${+p[2]}`; }
+function initials(n){ if(!n)return '?'; return n.trim().slice(0,2); }
+function isBoss(){ return session.role==='boss'; }
+function jobsArr(){ return Object.entries(jobs).map(([id,j])=>({...j,id})); }
+function membersArr(){ return Object.entries(members).map(([id,m])=>({...m,id})); }
+function logsArr(){ return Object.entries(workLogs).map(([id,l])=>({...l,id})).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0)); }
+function getJobsForMember(mid){ return jobsArr().filter(j=>j.memberId===mid||j.elecMemberId===mid); }
+function totalH(j){ return (j.planH||0)+((j.tasks||[]).reduce((a,t)=>a+(parseFloat(t.plan)||0),0)); }
+function actualH(j){ return (j.actH||0)+((j.tasks||[]).reduce((a,t)=>a+(parseFloat(t.actual)||0),0)); }
+function jobPct(j){
+  if(j.status==='done') return 100;
+  const tp=totalH(j),ta=actualH(j);
+  return tp>0?Math.min(100,Math.round(ta/tp*100)):(ta>0?100:0);
+}
+function daysLeft(dueDate){
+  const t=new Date(); t.setHours(0,0,0,0);
+  return Math.ceil((new Date(dueDate)-t)/86400000);
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+function refreshCurrentScreen(){
+  const id=document.querySelector('.screen.active')?.id;
+  if(id==='homeScreen') renderHome();
+  else if(id==='workerHomeScreen') renderWorkerHome();
+  else if(id==='overviewScreen') renderOverview();
+  else if(id==='memberScreen'){ renderGantt(); renderNenkan(); renderProgress(); renderMemberLogs(); }
+  else if(id==='qcScreen') renderQcScreen();
+  else if(id==='aiScreen') renderAiSummary();
+}
+function getMember(mid){ return members[mid]||null; }
+
+// ===== LOGIN =====
+function switchLoginTab(tab){
+  loginTab=tab;
+  document.getElementById('ltab-boss').classList.toggle('on',tab==='boss');
+  document.getElementById('ltab-worker').classList.toggle('on',tab==='worker');
+  document.getElementById('boss-login').style.display=tab==='boss'?'block':'none';
+  document.getElementById('worker-login').style.display=tab==='worker'?'block':'none';
+  if(tab==='worker') populateWorkerSelect();
+  document.getElementById('loginErr').textContent='';
+}
+function populateWorkerSelect(){
+  const sel=document.getElementById('workerSelect');
+  const arr=membersArr();
+  sel.innerHTML=arr.length
+    ? arr.map(m=>`<option value="${m.id}">${m.name}${m.role?' ('+m.role+')':''}</option>`).join('')
+    : '<option value="">（作業者未登録）</option>';
+}
+function doLogin(role){
+  document.getElementById('loginErr').textContent='';
+  if(role==='boss'){
+    if(document.getElementById('bossPass').value===bossPassword){
+      session={role:'boss',memberId:null};
+      document.getElementById('bossPass').value='';
+      showScreen('homeScreen');
+    } else {
+      document.getElementById('loginErr').textContent='パスワードが違います';
+      document.getElementById('bossPass').value='';
+    }
+  } else {
+    const mid=document.getElementById('workerSelect').value;
+    if(!members[mid]){document.getElementById('loginErr').textContent='作業者を選択してください';return;}
+    session={role:'worker',memberId:mid};
+    showScreen('workerHomeScreen');
+  }
+}
+function doLogout(){
+  session={role:null,memberId:null}; curMember=null;
+  document.getElementById('bossPass').value='';
+  switchLoginTab('boss');
+  showScreen('loginScreen');
+}
+function changePassword(){
+  const np=document.getElementById('newPass').value.trim();
+  if(!np){showToast('パスワードを入力してください');return;}
+  bossPassword=np;
+  localStorage.setItem('awk_boss_pass',np);
+  document.getElementById('newPass').value='';
+  showToast('パスワードを変更しました');
+}
+
+// ===== SCREENS =====
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='homeScreen') renderHome();
+  if(id==='workerHomeScreen') renderWorkerHome();
+  if(id==='overviewScreen') renderOverview();
+  if(id==='settingsScreen') renderSettings();
+  if(id==='qcScreen') renderQcScreen();
+  if(id==='aiScreen') { renderAiSummary(); switchAiTab('all'); }
+}
+function goHome(){ isBoss()?showScreen('homeScreen'):showScreen('workerHomeScreen'); }
+function goBackFromMember(){ goHome(); }
+
+// ===== HOME (管理者) =====
+function renderHome(){
+  const arr=jobsArr();
+  document.getElementById('ovBadge').textContent=`${arr.length}件`;
+  renderHomeAlerts();
+  const mem=membersArr();
+  let h='';
+  for(const m of mem){
+    const mj=getJobsForMember(m.id);
+    const on=mj.filter(j=>j.status==='ongoing').length;
+    const dn=mj.filter(j=>j.status==='done').length;
+    h+=`<div class="member-card" onclick="bossViewMember('${m.id}')">
+      <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
+        <button onclick="event.stopPropagation();openMemberModal('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px">✎</button>
+        <button onclick="event.stopPropagation();deleteMember('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px">×</button>
+      </div>
+      <div class="mc-av">${initials(m.name)}</div>
+      <div class="mc-name">${m.name}</div>
+      <div class="mc-role">${m.role||'作業者'}</div>
+      <div class="mc-stats"><span>${mj.length}</span>件 <span>${on}</span>施工中 <span>${dn}</span>完成</div>
+    </div>`;
+  }
+  h+=`<div class="add-card" onclick="openMemberModal()">
+    <div style="font-size:22px;color:var(--muted)">＋</div>
+    <div style="font-size:11px;color:var(--muted)">作業者を追加</div>
+  </div>`;
+  document.getElementById('memberGrid').innerHTML=h;
+}
+
+function renderHomeAlerts(){
+  const sec=document.getElementById('homeAlerts'); if(!sec)return;
+  const arr=jobsArr().filter(j=>j.status!=='done');
+  const t=new Date(); t.setHours(0,0,0,0);
+  const deadlines=arr.filter(j=>j.end&&Math.ceil((new Date(j.end)-t)/86400000)<=7)
+    .map(j=>({...j,dl:Math.ceil((new Date(j.end)-t)/86400000),mn:(getMember(j.memberId)||{}).name||'未割当'}))
+    .sort((a,b)=>a.dl-b.dl);
+  let h='';
+  if(deadlines.length){
+    h+=`<div class="alert-card alert-red"><div class="alert-title" style="color:var(--red)">⚠️ 納期アラート（7日以内）</div>`;
+    deadlines.forEach(j=>{
+      const lbl=j.dl<=0?'期限超過':j.dl===1?'明日':`残${j.dl}日`;
+      h+=`<div class="alert-item">
+        <div class="alert-days" style="color:${j.dl<=0?'var(--red)':'var(--accent)'}">${lbl}</div>
+        <div style="flex:1"><div style="color:#1a1a1a;font-weight:600">${j.name}</div><div style="font-size:10px;color:#666">${j.mn} / ${fmt(j.end)}</div></div>
+        <span class="sb sb-${j.status}">${SL[j.status]}</span>
+      </div>`;
+    });
+    h+='</div>';
+  }
+  sec.innerHTML=h;
+}
+
+// ===== HOME (作業者) =====
+function renderWorkerHome(){
+  const m=members[session.memberId]; if(!m)return;
+  document.getElementById('workerRoleBadge').textContent=m.name;
+  document.getElementById('whAv').textContent=initials(m.name);
+  document.getElementById('whName').textContent=m.name;
+  document.getElementById('whRole').textContent=m.role||'作業者';
+  const mj=getJobsForMember(session.memberId);
+  const on=mj.filter(j=>j.status==='ongoing').length;
+  const dn=mj.filter(j=>j.status==='done').length;
+  const tp=mj.reduce((a,j)=>a+totalH(j),0);
+  document.getElementById('whStats').innerHTML=`
+    <div class="whs"><div class="whs-n" style="color:var(--accent)">${mj.length}</div><div class="whs-l">案件</div></div>
+    <div class="whs"><div class="whs-n" style="color:var(--accent2)">${on}</div><div class="whs-l">施工中</div></div>
+    <div class="whs"><div class="whs-n" style="color:var(--green)">${dn}</div><div class="whs-l">完成</div></div>
+    <div class="whs"><div class="whs-n" style="color:#f472b6">${tp}h</div><div class="whs-l">工数</div></div>`;
+  // アラート
+  const t=new Date(); t.setHours(0,0,0,0);
+  const dl=mj.filter(j=>j.status!=='done'&&j.end&&Math.ceil((new Date(j.end)-t)/86400000)<=7)
+    .map(j=>({...j,dl:Math.ceil((new Date(j.end)-t)/86400000)})).sort((a,b)=>a.dl-b.dl);
+  let ah='';
+  if(dl.length){
+    ah+=`<div class="alert-card alert-red"><div class="alert-title" style="color:var(--red)">⚠️ 納期アラート</div>`;
+    dl.forEach(j=>{
+      ah+=`<div class="alert-item"><div class="alert-days" style="color:var(--red)">${j.dl<=0?'超過':'残'+j.dl+'日'}</div>
+        <div style="flex:1"><div style="color:#1a1a1a;font-weight:600">${j.name}</div><div style="font-size:10px;color:#666">納期: ${fmt(j.end)}</div></div>
+        <span class="sb sb-${j.status}">${SL[j.status]}</span></div>`;
+    });
+    ah+='</div>';
+  }
+  document.getElementById('workerAlerts').innerHTML=ah;
+}
+
+// ===== MEMBER SCREEN =====
+function bossViewMember(mid){ curMember=mid; openMemberScreen('gantt'); }
+function openMemberScreen(tab){
+  const m=members[curMember]; if(!m)return;
+  document.getElementById('mHdrTitle').textContent=m.name;
+  document.getElementById('btnAddJob').style.display=isBoss()?'flex':'none';
+  showScreen('memberScreen');
+  const bn=document.getElementById('memberBottomNav');
+  if(isBoss()){
+    bn.innerHTML=`<button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button>
+      <button class="bnav" onclick="showScreen('overviewScreen')"><div class="bnav-icon">📋</div>案件</button>
+      <button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">📝</div>QCログ</button>
+      <button class="bnav" onclick="showScreen('aiScreen')"><div class="bnav-icon">🤖</div>AI分析</button>`;
+  } else {
+    bn.innerHTML=`<button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button>
+      <button class="bnav" id="bnG" onclick="showMemberTab('gantt')"><div class="bnav-icon">📅</div>日程</button>
+      <button class="bnav" id="bnP" onclick="showMemberTab('progress')"><div class="bnav-icon">📊</div>進捗</button>
+      <button class="bnav" id="bnL" onclick="showMemberTab('log')"><div class="bnav-icon">📝</div>ログ</button>`;
+  }
+  showMemberTab(tab||'gantt');
+}
+function showMemberTab(tab){
+  const active=document.querySelector('.screen.active')?.id;
+  if(session.role==='worker'&&active!=='memberScreen'){
+    curMember=session.memberId; openMemberScreen(tab); return;
+  }
+  ['gantt','progress','log'].forEach(t=>{
+    document.getElementById('m'+t.charAt(0).toUpperCase()+t.slice(1)+'Tab').style.display=t===tab?'block':'none';
+  });
+  document.getElementById('mNavG').classList.toggle('on',tab==='gantt');
+  document.getElementById('mNavP').classList.toggle('on',tab==='progress');
+  document.getElementById('mNavL').classList.toggle('on',tab==='log');
+  if(tab==='gantt'){renderGantt();renderNenkan();}
+  if(tab==='progress') renderProgress();
+  if(tab==='log'){ renderMemberLogs(); setTimeout(()=>{ initCausePicker(); setupVarianceCalc(); populateLogJobSelect(); },50); }
+}
+
+// ===== OVERVIEW =====
+function renderOverview(){
+  const arr=jobsArr();
+  document.getElementById('ovStats').innerHTML=`
+    <div class="stat-box"><div class="sv sv-total">${arr.length}</div><div class="sl">総案件</div></div>
+    <div class="stat-box"><div class="sv sv-on">${arr.filter(j=>j.status==='ongoing').length}</div><div class="sl">施工中</div></div>
+    <div class="stat-box"><div class="sv sv-done">${arr.filter(j=>j.status==='done').length}</div><div class="sl">完成</div></div>
+    <div class="stat-box"><div class="sv sv-h">${arr.reduce((a,j)=>a+totalH(j),0)}h</div><div class="sl">総工数</div></div>`;
+  const t=new Date(); t.setHours(0,0,0,0);
+  let h='';
+  for(const j of arr){
+    const m=getMember(j.memberId);
+    const tp=totalH(j), ta=actualH(j);
+    const isDone = j.status==='done';
+    // 全体ビューは工数使用率ベース（完成は100%緑固定）
+    const pct = isDone ? 100 : tp>0 ? Math.min(Math.round(ta/tp*100), 100) : 0;
+    const bc = isDone ? '#1ec97a' : pct>=100?'#f04040':pct>=80?'#f59e0b':'#1ec97a';
+    const dl=j.end?daysLeft(j.end):999;
+    const urg=j.status!=='done'&&dl<=3;
+    const warn=j.status!=='done'&&dl<=7&&dl>3;
+    const diffLabel = tp>0 ? (isDone ? '完成' : ta>tp ? `超過+${Math.round((ta-tp)*10)/10}h` : `残${Math.round((tp-ta)*10)/10}h`) : '';
+    h+=`<div class="ov-card" style="${urg?'border-color:var(--red)':warn?'border-color:var(--accent)':''}">
+      <div class="ov-card-top">
+        <div style="flex:1">
+          <div class="ov-card-name">${j.name}</div>
+          <div class="ov-card-sub">${j.orderNo?j.orderNo+' / ':''}${j.carType||''}</div>
+        </div>
+        <span class="sb sb-${j.status}">${SL[j.status]}</span>
+      </div>
+      <div class="ov-card-meta">
+        <span>架装: <span>${m?m.name:'未割当'}</span></span>
+        <span>電装: <span>${j.elecMemberId&&getMember(j.elecMemberId)?getMember(j.elecMemberId).name:'未割当'}</span></span>
+        <span>着工: <span>${fmt(j.start)}</span></span>
+        <span>完成: <span style="${urg?'color:var(--red);font-weight:700':''}">${fmt(j.end)}${j.status!=='done'&&dl<=7?'（'+(dl<=0?'超過':'残'+dl+'日')+'）':''}</span></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="ov-pw"><div class="ov-pb" style="width:${pct}%;background:${bc}"></div></div>
+        <div style="font-size:11px;color:${bc};font-weight:700;min-width:60px;text-align:right">${diffLabel||pct+'%'}</div>
+      </div>
+      ${isBoss()?`<div class="ov-actions">
+        <button class="act-btn" onclick="openJobModal(null,'${j.id}')">✎ 編集</button>
+        <button class="act-btn del" onclick="deleteJob('${j.id}')">✕ 削除</button>
+      </div>`:''}
+    </div>`;
+  }
+  document.getElementById('ovList').innerHTML=h||'<div class="empty-msg">案件がありません。右上の＋から追加してください。</div>';
+}
+
+// ===== GANTT =====
+function changeMonth(d){
+  curMonth+=d;
+  if(curMonth<0){curMonth=11;curYear--;}
+  if(curMonth>11){curMonth=0;curYear++;}
+  renderGantt();
+  setTimeout(()=>{const g=document.querySelector('.gantt-scroll');if(g)g.scrollLeft=0;},50);
+}
+function renderGantt(){
+  const D=dim(curYear,curMonth);
+  document.getElementById('monthLbl').textContent=`${curYear}年${curMonth+1}月`;
+  const mj=getJobsForMember(curMember).filter(j=>{
+    if(!j.start||!j.end)return false;
+    const s=new Date(j.start),e=new Date(j.end);
+    return s<=new Date(curYear,curMonth,D)&&e>=new Date(curYear,curMonth,1);
+  });
+  let hh=`<tr><th class="th-info">案件</th>`;
+  for(let d=1;d<=D;d++){
+    const dow=new Date(curYear,curMonth,d).getDay();
+    const isT=today.getFullYear()===curYear&&today.getMonth()===curMonth&&today.getDate()===d;
+    hh+=`<th class="th-d${dow===0||dow===6?' th-wk':''}${isT?' th-today':''}">${d}<br><span style="font-size:8px">${WD[dow]}</span></th>`;
+  }
+  hh+='</tr>';
+  document.getElementById('gHead').innerHTML=hh;
+  const allMj=getJobsForMember(curMember);
+  document.getElementById('mStats').innerHTML=`
+    <div class="stat-box"><div class="sv sv-total">${allMj.length}</div><div class="sl">担当案件</div></div>
+    <div class="stat-box"><div class="sv sv-on">${allMj.filter(j=>j.status==='ongoing').length}</div><div class="sl">施工中</div></div>
+    <div class="stat-box"><div class="sv sv-done">${allMj.filter(j=>j.status==='done').length}</div><div class="sl">完成</div></div>`;
+  if(!mj.length){
+    document.getElementById('gBody').innerHTML=`<tr><td colspan="${D+1}" class="empty-msg">この月の案件はありません。</td></tr>`;
+    return;
+  }
+  let bh='';
+  for(const j of mj){
+    const s=new Date(j.start),e=new Date(j.end);
+    const bc=`bar-${j.status||'planned'}`,dc=SC[j.status]||'#6366f1';
+    bh+=`<tr><td class="td-info">
+      <div style="display:flex;align-items:center;gap:4px">
+        <span class="sdot" style="background:${dc}"></span>
+        <span class="jn">${j.name}</span>
+        ${isBoss()?`<button onclick="openJobModal(null,'${j.id}')" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px">✎</button>`:''}
+      </div>
+      <div class="jm">${fmt(j.start)}〜${fmt(j.end)}${j.orderNo?` <span style="color:var(--accent)">${j.orderNo}</span>`:''}</div>
+    </td>`;
+    for(let d=1;d<=D;d++){
+      const cur2=new Date(curYear,curMonth,d);
+      const isT=today.getFullYear()===curYear&&today.getMonth()===curMonth&&today.getDate()===d;
+      const dow=cur2.getDay(),wc=dow===0||dow===6?' td-wk':'',tc=isT?' td-today':'';
+      if(cur2>=s&&cur2<=e){
+        const iS=cur2.toDateString()===s.toDateString(),iE=cur2.toDateString()===e.toDateString();
+        const rc=iS&&iE?'bar-x':iS?'bar-s':iE?'bar-e':'bar-m';
+        bh+=`<td class="td-d${wc}${tc}">${isT?'<div class="today-ln"></div>':''}<div class="bar ${bc} ${rc}"></div></td>`;
+      } else {
+        bh+=`<td class="td-d${wc}${tc}">${isT?'<div class="today-ln"></div>':''}</td>`;
+      }
+    }
+    bh+='</tr>';
+  }
+  document.getElementById('gBody').innerHTML=bh;
+}
+
+// ===== NENKAN =====
+function renderNenkan(){
+  const dj=getJobsForMember(curMember).filter(j=>j.status==='done');
+  const tp=dj.reduce((a,j)=>a+totalH(j),0),ta=dj.reduce((a,j)=>a+actualH(j),0);
+  const sur=tp-ta,sc=sur>=0?'dp':'dn',ss=sur>=0?`+${sur}h`:`${sur}h`;
+  const byM=Array(12).fill(0);
+  dj.forEach(j=>{if(j.end){const m=parseInt(j.end.split('-')[1],10)-1;byM[m]++;}});
+  document.getElementById('nkWrap').innerHTML=`
+    <div class="nk-wrap">
+      <div class="nk-ttl">年間実績 ${curYear}</div>
+      <div class="nk-grid">
+        <div class="nkc c-done"><div class="nkn">${dj.length}</div><div class="nkl">完成台数</div></div>
+        <div class="nkc c-act"><div class="nkn">${ta}h</div><div class="nkl">実績工数</div></div>
+        <div class="nkc c-sur"><div class="nkn ${sc}">${ss}</div><div class="nkl">${sur>=0?'余り':'超過'}</div></div>
+      </div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:6px">月別完成台数</div>
+      <div class="nk-months">${byM.map((c,i)=>`<div class="nm${c>0?' has':''}"><div class="nm-l">${MN[i]}</div><div class="nm-n${c>0?'':' z'}">${c>0?c:'—'}</div></div>`).join('')}</div>
+    </div>`;
+}
+
+// ===== PROGRESS =====
+function setFilter(el,f){
+  pbFilter=f;
+  document.querySelectorAll('.flt').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  renderProgress();
+}
+function renderProgress(){
+  const mj=getJobsForMember(curMember);
+  const filtered=pbFilter==='all'?mj:mj.filter(j=>j.status===pbFilter);
+  const c=document.getElementById('pbCards');
+  if(!filtered.length){c.innerHTML='<div class="empty-msg">案件がありません。</div>';return;}
+  let h='';
+  for(const j of filtered){
+    const tasks=j.tasks||[];
+    const tp=totalH(j),ta=actualH(j);
+    const diff=tp-ta;
+    const dc=diff>0?'dp':diff<0?'dn':'dz';
+    const ds=diff>0?`残${diff}h`:diff<0?`超過 +${Math.abs(diff)}h`:'±0';
+
+    // 工数バー：実績÷見積（オーバーしたら赤くはみ出す表現）
+    const kousuPct = tp>0 ? Math.round(ta/tp*100) : 0;
+    const barWidth = Math.min(kousuPct, 100); // バー自体は100%まで
+    const barColor = kousuPct>=100 ? '#f04040' : kousuPct>=80 ? '#f59e0b' : '#1ec97a';
+    const isOver = tp>0 && ta>tp;
+    let tr='';
+    for(const t of tasks){
+      const a2=parseFloat(t.actual)||0;
+      const tc=t.status==='done'?'#1ec97a':t.status==='ongoing'?'#f59e0b':'#3d4460';
+      tr+=`<div class="pt-row">
+        <div class="pt-name"><span class="pt-dot" style="background:${tc}"></span>
+          <input type="text" value="${(t.name||'').replace(/"/g,'&quot;')}" placeholder="作業内容" class="pt-input-name" onchange="updateTask('${j.id}','${t.id}','name',this.value)">
+        </div>
+        <div class="pt-act">
+          <input type="number" value="${a2||''}" placeholder="0" min="0" step="0.5" class="pt-input-num" onchange="updateTask('${j.id}','${t.id}','actual',this.value)">
+          <span class="pt-unit">h</span>
+        </div>
+        <select class="pt-select" onchange="updateTask('${j.id}','${t.id}','status',this.value)">
+          <option value="planned"${t.status==='planned'?' selected':''}>未着手</option>
+          <option value="ongoing"${t.status==='ongoing'?' selected':''}>進行中</option>
+          <option value="done"${t.status==='done'?' selected':''}>完了</option>
+        </select>
+        <div class="pt-del" onclick="deleteTask('${j.id}','${t.id}')">✕</div>
+      </div>`;
+    }
+    h+=`<div class="pb-card">
+      <div class="pb-bar" style="background:${SC[j.status]||'#6366f1'}"></div>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">
+        <div style="flex:1"><div class="pb-nm">${j.name}</div>
+          <div class="pb-sub">${j.orderNo?j.orderNo+' / ':''}${j.carType||''}</div>
+        </div>
+        <span class="sb sb-${j.status}">${SL[j.status]}</span>
+      </div>
+      <div class="pb-dates">着工 <span>${fmt(j.start)}</span> → 完成 <span>${fmt(j.end)}</span>
+        　架装: <span style="color:var(--text)">${getMember(j.memberId)?.name||'未割当'}</span>
+        　電装: <span style="color:var(--accent)">${j.elecMemberId&&getMember(j.elecMemberId)?getMember(j.elecMemberId).name:'未割当'}</span>
+      </div>
+      ${tp>0?`
+      <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--dim)">工数使用率</span>
+        <span style="font-size:12px;font-weight:700">
+          <span style="color:var(--text)">${ta}h</span>
+          <span style="color:var(--dim)"> / ${tp}h</span>
+          <span style="color:${diff>0?'var(--green)':diff<0?'var(--red)':'var(--dim)'}">　${ds}</span>
+        </span>
+      </div>
+      <div style="position:relative;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:${isOver?'4':'10'}px">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${barWidth}%;background:${barColor};border-radius:4px;transition:width .4s"></div>
+      </div>
+      ${isOver?`<div style="font-size:10px;color:var(--red);margin-bottom:10px">⚠️ 工数オーバー ${kousuPct}%使用（見積の${Math.round(ta/tp*10)/10}倍）</div>`:''}
+      `:''}
+      <div class="pt-section">
+        <div class="pt-section-label">✏️ 作業入力</div>
+        <div class="pt-header"><span>作業内容</span><span>実績</span><span>状態</span><span></span></div>
+        ${tr}
+        <div class="pt-footer">
+          <button class="btn small" onclick="addTask('${j.id}')">＋ 追加</button>
+          <button class="btn small" onclick="addDefaultTasks('${j.id}')">テンプレ</button>
+        </div>
+      </div>
+      ${isBoss()?`<div class="pb-acts">
+        <button class="btn small" onclick="openJobModal(null,'${j.id}')">✎ 案件編集</button>
+        <button class="btn small ghost" onclick="deleteJob('${j.id}')" style="color:var(--muted)">× 削除</button>
+      </div>`:`<div class="pb-acts">
+        ${j.status!=='done'
+          ?`<button class="btn primary" style="flex:1;padding:12px;font-size:14px" onclick="markJobDone('${j.id}')">🎉 完成にする</button>`
+          :`<div style="display:flex;gap:8px;width:100%">
+              <div style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--green);font-weight:700">✅ 完成済み</div>
+              <button class="btn small" style="color:var(--muted);font-size:11px" onclick="undoJobDone('${j.id}')">↩ 完成取り消し</button>
+            </div>`
+        }
+      </div>`}
+    </div>`;
+  }
+  c.innerHTML=h;
+}
+
+async function markJobDone(jid){
+  const j=jobs[jid]; if(!j)return;
+  await dbSet(`jobs/${jid}/status`,'done');
+  if(!fbReady){ jobs[jid].status='done'; renderProgress(); renderOverview(); renderDashboard(); }
+  showToast('🎉 完成にしました！');
+  setTimeout(()=>onJobCompleted(jid), 600);
+}
+
+async function undoJobDone(jid){
+  const j=jobs[jid]; if(!j)return;
+  await dbSet(`jobs/${jid}/status`,'ongoing');
+  if(!fbReady){ jobs[jid].status='ongoing'; renderProgress(); renderOverview(); renderDashboard(); }
+  showToast('↩ 完成を取り消しました');
+}
+
+async function addTask(jid){
+  const j=jobs[jid];if(!j)return;
+  const tasks=j.tasks||[];
+  tasks.push({id:uid(),name:'',actual:0,status:'planned'});
+  await dbSet(`jobs/${jid}/tasks`,tasks);
+  if(!fbReady)renderProgress();
+}
+async function updateTask(jid,tid,field,val){
+  const j=jobs[jid];if(!j)return;
+  const tasks=(j.tasks||[]).map(t=>t.id===tid?{...t,[field]:field==='actual'?(parseFloat(val)||0):val}:t);
+  await dbSet(`jobs/${jid}/tasks`,tasks);
+  if(!fbReady)renderProgress();
+}
+async function deleteTask(jid,tid){
+  const j=jobs[jid];if(!j)return;
+  const tasks=(j.tasks||[]).filter(t=>t.id!==tid);
+  await dbSet(`jobs/${jid}/tasks`,tasks);
+  if(!fbReady)renderProgress();
+}
+async function addDefaultTasks(jid){
+  const j=jobs[jid];if(!j)return;
+  const tasks=j.tasks||[];
+  const tpls=getTemplates('taskTpl');
+  const ex=new Set(tasks.map(t=>t.name));
+  for(const n of tpls)if(!ex.has(n))tasks.push({id:uid(),name:n,actual:0,status:'planned'});
+  await dbSet(`jobs/${jid}/tasks`,tasks);
+  if(!fbReady)renderProgress();
+  showToast('テンプレート追加しました');
+}
+
+function populateLogJobSelect(){
+  const mid = curMember||session.memberId;
+  const sel = document.getElementById('logJobSelect');
+  if(!sel) return;
+  const mj = getJobsForMember(mid).filter(j => j.status !== 'done');
+  sel.innerHTML = '<option value="">— 案件を選択 —</option>' +
+    mj.map(j => `<option value="${j.id}">${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）</option>`).join('');
+  // 施工中が1件だけなら自動選択
+  const ongoing = mj.filter(j => j.status === 'ongoing');
+  if(ongoing.length === 1) sel.value = ongoing[0].id;
+}
+const CAUSE_QC_MAP = {
+  // 作業効率・工数
+  '作業手順のバラツキ':     { qc:'標準化', icon:'📋', color:'#f59e0b' },
+  '経験による工数差':       { qc:'標準化', icon:'📋', color:'#f59e0b' },
+  '工程の抜け・やり直し':   { qc:'手戻り削減', icon:'🔄', color:'#f04040' },
+  '治具・ゲージ探し':       { qc:'5S・定位置化', icon:'🔍', color:'#f04040' },
+  '工具の共有待ち':         { qc:'設備改善', icon:'🔧', color:'#8b5cf6' },
+  '技術力不足':             { qc:'教育・訓練', icon:'📚', color:'#3b7ff5' },
+  '段取り・準備不足':       { qc:'段取り改善', icon:'⚙️', color:'#f59e0b' },
+  // 管理・情報
+  '図面が見つからない':     { qc:'図面管理', icon:'📐', color:'#f59e0b' },
+  '図面の指示が不明確':     { qc:'図面管理', icon:'📐', color:'#f59e0b' },
+  '手順書・マニュアル不足': { qc:'標準化', icon:'📋', color:'#f59e0b' },
+  '熟練者への質問・指示待ち':{ qc:'教育・訓練', icon:'📚', color:'#3b7ff5' },
+  '情報伝達ミス':           { qc:'情報共有', icon:'📢', color:'#3b7ff5' },
+  '部品・材料の手配遅れ':   { qc:'調達管理', icon:'📦', color:'#1ec97a' },
+  // 設備・環境
+  '設備・機器トラブル':     { qc:'設備保全', icon:'🔧', color:'#8b5cf6' },
+  '作業スペース不足':       { qc:'5S・レイアウト', icon:'🏭', color:'#8b5cf6' },
+  '部品・在庫切れ':         { qc:'調達管理', icon:'📦', color:'#1ec97a' },
+  '検査・確認の重複':       { qc:'工程改善', icon:'✅', color:'#1ec97a' },
+};
+
+const CAUSE_GROUPS = [
+  ['作業手順のバラツキ','経験による工数差','工程の抜け・やり直し','治具・ゲージ探し','工具の共有待ち','技術力不足','段取り・準備不足'],
+  ['図面が見つからない','図面の指示が不明確','手順書・マニュアル不足','熟練者への質問・指示待ち','情報伝達ミス','部品・材料の手配遅れ'],
+  ['設備・機器トラブル','作業スペース不足','部品・在庫切れ','検査・確認の重複']
+];
+
+let selectedCauses = [];
+
+function initCausePicker() {
+  ['causePicker','causePicker2','causePicker3'].forEach((id,gi) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.innerHTML = CAUSE_GROUPS[gi].map(c => {
+      const info = CAUSE_QC_MAP[c];
+      return `<div class="cause-chip" data-cause="${c}" onclick="toggleCause(this,'${c}')"
+        style="padding:6px 11px;border-radius:20px;border:1.5px solid var(--border2);font-size:11px;font-weight:700;
+        cursor:pointer;transition:all .15s;background:var(--surface2);color:var(--dim);display:flex;align-items:center;gap:4px">
+        <span>${info.icon}</span><span>${c}</span>
+      </div>`;
+    }).join('');
+  });
+}
+
+function toggleCause(el, cause) {
+  const idx = selectedCauses.indexOf(cause);
+  if(idx >= 0) {
+    selectedCauses.splice(idx,1);
+    el.style.background = 'var(--surface2)';
+    el.style.borderColor = 'var(--border2)';
+    el.style.color = 'var(--dim)';
+  } else {
+    selectedCauses.push(cause);
+    const info = CAUSE_QC_MAP[cause];
+    el.style.background = info.color+'22';
+    el.style.borderColor = info.color;
+    el.style.color = info.color;
+  }
+  updateQcPreview();
+}
+
+function updateQcPreview() {
+  const qcThemes = [...new Set(selectedCauses.map(c => CAUSE_QC_MAP[c]?.qc).filter(Boolean))];
+  const previewEl = document.getElementById('qcThemePreview');
+  if(previewEl) {
+    if(qcThemes.length) {
+      previewEl.style.display = 'block';
+      previewEl.innerHTML = '🎯 QCテーマ候補: ' + qcThemes.map(t=>`<strong style="color:var(--accent)">${t}</strong>`).join(' / ');
+    } else {
+      previewEl.style.display = 'none';
+    }
+  }
+}
+
+// 工数バラツキ計算（未使用）
+function setupVarianceCalc() {}
+function calcVariance() {}
+
+function resetCausePicker() {
+  selectedCauses = [];
+  document.querySelectorAll('.cause-chip').forEach(el => {
+    el.style.background = 'var(--surface2)';
+    el.style.borderColor = 'var(--border2)';
+    el.style.color = 'var(--dim)';
+  });
+  updateQcPreview();
+}
+
+// タイマー・カウンター（簡略化により未使用）
+function cc(){}
+function startTimer(){}
+function stopTimer(){}
+function resetTimer(){}
+async function saveWorkLog(){
+  const mid = curMember||session.memberId;
+  const m = getMember(mid);
+  const memo = document.getElementById('logMemo').value.trim();
+  const jobId = document.getElementById('logJobSelect')?.value || '';
+
+  if(!jobId) { showToast('案件を選択してください'); return; }
+  if(!memo && !selectedCauses.length) { showToast('メモかロス原因を入力してください'); return; }
+
+  const j = jobs[jobId];
+  const vehicleLabel = j ? `${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）` : '不明';
+
+  // QCテーマ自動判定
+  const qcThemes = [...new Set(selectedCauses.map(c=>CAUSE_QC_MAP[c]?.qc).filter(Boolean))];
+
+  const log = {
+    memberId:mid, memberName:m?m.name:'',
+    jobId, vehicleLabel,
+    date:new Date().toISOString().split('T')[0],
+    causes:selectedCauses,
+    lossCause:selectedCauses.join('・'),
+    qcThemes, memo, savedAt:Date.now()
+  };
+  await dbPush('workLogs', log);
+
+  document.getElementById('logMemo').value = '';
+  resetCausePicker();
+  if(!fbReady) renderMemberLogs();
+  showToast(`✅ 記録しました${qcThemes.length?' (QC: '+qcThemes[0]+')':''}`);
+}
+function renderMemberLogs(){
+  const mid = curMember||session.memberId;
+  const logs = logsArr().filter(l=>l.memberId===mid).slice(0,15);
+  const el = document.getElementById('memberLogList');
+  if(!logs.length){ el.innerHTML='<div class="empty-msg">まだ記録がありません</div>'; return; }
+  el.innerHTML = logs.map(l=>`
+    <div class="log-entry">
+      <div class="log-header">
+        <div>
+          <div class="log-title">${l.vehicleLabel||'—'}</div>
+          <div class="log-date">${l.date}</div>
+        </div>
+        <button onclick="deleteWorkLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;line-height:1;flex-shrink:0" title="削除">×</button>
+      </div>
+      ${l.causes&&l.causes.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+        ${l.causes.map(c=>{const info=CAUSE_QC_MAP[c];return info?`<span style="font-size:11px;padding:3px 8px;border-radius:10px;background:${info.color}22;color:${info.color};border:1px solid ${info.color}44">${info.icon} ${c}</span>`:''}).join('')}
+      </div>`:''}
+      ${l.qcThemes&&l.qcThemes.length?`<div style="font-size:10px;color:var(--accent);margin-bottom:4px">🎯 ${l.qcThemes.join(' / ')}</div>`:''}
+      ${l.memo?`<div style="font-size:12px;color:var(--dim);line-height:1.6">📝 ${l.memo}</div>`:''}
+    </div>`).join('');
+}
+
+async function deleteWorkLog(id) {
+  await dbRemove(`workLogs/${id}`);
+  if(!fbReady){ delete workLogs[id]; renderMemberLogs(); renderQcLogList(); }
+  showToast('🗑️ 削除しました');
+}
+
+// ===== QC LOG SCREEN =====
+function renderQcScreen(){
+  const active=document.getElementById('qNavLog').classList.contains('on');
+  if(active) renderQcLogList(); else renderQcStat();
+}
+function switchQcTab(tab){
+  document.getElementById('qNavLog').classList.toggle('on',tab==='log');
+  document.getElementById('qNavStat').classList.toggle('on',tab==='stat');
+  document.getElementById('qcLogTab').style.display=tab==='log'?'block':'none';
+  document.getElementById('qcStatTab').style.display=tab==='stat'?'block':'none';
+  if(tab==='log')renderQcLogList();
+  if(tab==='stat')renderQcStat();
+}
+function renderQcLogList(){
+  const logs=logsArr();
+  const total=logs.length;
+  const qcCount={};
+  logs.forEach(l=>(l.qcThemes||[]).forEach(t=>{qcCount[t]=(qcCount[t]||0)+1;}));
+  const topQc=Object.entries(qcCount).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('qcStats').innerHTML=`
+    <div class="stat-box"><div class="sv sv-total">${total}</div><div class="sl">記録件数</div></div>
+    <div class="stat-box"><div class="sv sv-on">${Object.keys(qcCount).length}</div><div class="sl">QCテーマ数</div></div>
+    <div class="stat-box" style="flex:2"><div class="sv" style="font-size:13px;color:var(--accent)">${topQc?topQc[0]:'—'}</div><div class="sl">最多QCテーマ</div></div>`;
+  if(!logs.length){document.getElementById('qcLogList').innerHTML='<div class="empty-msg">記録がありません</div>';return;}
+  document.getElementById('qcLogList').innerHTML=logs.slice(0,50).map(l=>`
+    <div class="log-entry">
+      <div class="log-header">
+        <div style="flex:1;min-width:0">
+          <div class="log-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.vehicleLabel||'—'}</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:2px">${l.memberName||''} / ${l.date}</div>
+        </div>
+        <button onclick="deleteWorkLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;line-height:1;flex-shrink:0">×</button>
+      </div>
+      ${l.causes&&l.causes.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0">
+        ${l.causes.map(c=>{const info=CAUSE_QC_MAP[c];return info?`<span style="font-size:11px;padding:3px 8px;border-radius:10px;background:${info.color}22;color:${info.color};border:1px solid ${info.color}44">${info.icon} ${c}</span>`:''}).join('')}
+      </div>`:''}
+      ${l.qcThemes&&l.qcThemes.length?`<div style="font-size:10px;color:var(--accent);margin-bottom:4px">🎯 ${l.qcThemes.join(' / ')}</div>`:''}
+      ${l.memo?`<div style="font-size:12px;color:var(--dim);line-height:1.6">📝 ${l.memo}</div>`:''}
+    </div>`).join('');
+}
+function renderQcStat(){
+  const logs=logsArr();
+  if(!logs.length){document.getElementById('qcStatContent').innerHTML='<div class="empty-msg">データがありません</div>';return;}
+
+  // QCテーマ集計
+  const qcCount={};
+  logs.forEach(l=>(l.qcThemes||[]).forEach(t=>{qcCount[t]=(qcCount[t]||0)+1;}));
+  const qcEntries=Object.entries(qcCount).sort((a,b)=>b[1]-a[1]);
+  const maxQc=qcEntries[0]?qcEntries[0][1]:1;
+
+  // 原因集計
+  const causeCount={};
+  logs.forEach(l=>(l.causes||[]).forEach(c=>{causeCount[c]=(causeCount[c]||0)+1;}));
+  const causeEntries=Object.entries(causeCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxC=causeEntries[0]?causeEntries[0][1]:1;
+
+  // 月別ログ
+  const byM=Array(12).fill(0);
+  logs.forEach(l=>{if(l.date){const m=parseInt(l.date.split('-')[1],10)-1;if(m>=0&&m<12)byM[m]++;}});
+
+  // 作業者別ロス
+  const memberLoss={};
+  logs.forEach(l=>{
+    if(!memberLoss[l.memberName])memberLoss[l.memberName]={loss:0,cnt:0,q:0,r:0};
+    memberLoss[l.memberName].loss+=l.loss||0;
+    memberLoss[l.memberName].q+=l.q||0;
+    memberLoss[l.memberName].r+=l.r||0;
+    memberLoss[l.memberName].cnt++;
+  });
+
+  const qcColors={'標準化':'#f59e0b','手戻り削減':'#f04040','5S・定位置化':'#f04040','設備改善':'#8b5cf6','教育・訓練':'#3b7ff5','段取り改善':'#f59e0b','図面管理':'#f59e0b','情報共有':'#3b7ff5','調達管理':'#1ec97a','設備保全':'#8b5cf6','5S・レイアウト':'#8b5cf6','工程改善':'#1ec97a'};
+
+  document.getElementById('qcStatContent').innerHTML=`
+
+    <!-- QCテーマ自動集計 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;border-left:3px solid var(--accent);padding-left:8px">🎯 QCテーマ 自動集計</div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:12px">ロス原因から自動判定されたQC改善テーマ（件数＝蓄積された根拠データ数）</div>
+      ${qcEntries.length?qcEntries.map(([k,v])=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;width:100px;flex-shrink:0;color:${qcColors[k]||'#6b7399'}">${k}</div>
+          <div style="flex:1;background:var(--surface2);border-radius:3px;height:10px;overflow:hidden">
+            <div style="height:100%;border-radius:3px;background:${qcColors[k]||'#6b7399'};width:${Math.round(v/maxQc*100)}%;transition:width .5s"></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);min-width:30px;text-align:right">${v}件</div>
+        </div>`).join('')
+      :'<div style="font-size:12px;color:var(--dim)">ログを記録するとQCテーマが自動集計されます</div>'}
+    </div>
+
+    <!-- ロス原因パレート -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;border-left:3px solid var(--accent);padding-left:8px">⚠️ ロス原因 パレート</div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:12px">多い順に並べた原因一覧（上から優先的に改善）</div>
+      ${causeEntries.length?causeEntries.map(([c,v],i)=>{
+        const info=CAUSE_QC_MAP[c]||{color:'#6b7399',icon:'•',qc:'その他'};
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="font-size:10px;color:var(--dim);width:14px;text-align:right">${i+1}</div>
+          <div style="font-size:11px;flex:1;color:var(--text)">${info.icon} ${c}</div>
+          <div style="width:80px;background:var(--surface2);border-radius:3px;height:8px;overflow:hidden">
+            <div style="height:100%;border-radius:3px;background:${info.color};width:${Math.round(v/maxC*100)}%"></div>
+          </div>
+          <div style="font-size:11px;color:${info.color};min-width:24px;text-align:right;font-weight:700">${v}</div>
+          <div style="font-size:9px;padding:2px 6px;border-radius:8px;background:${info.color}22;color:${info.color};white-space:nowrap">${info.qc}</div>
+        </div>`;
+      }).join(''):'<div style="font-size:12px;color:var(--dim)">原因記録なし</div>'}
+    </div>
+
+    <!-- 月別 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--accent);margin-bottom:12px;border-left:3px solid var(--accent);padding-left:8px">📅 月別ログ件数</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px">
+        ${byM.map((c,i)=>`<div style="background:${c>0?'rgba(240,165,0,.15)':'var(--surface2)'};border-radius:4px;padding:5px 2px;text-align:center;border:1px solid ${c>0?'rgba(240,165,0,.3)':'transparent'}">
+          <div style="font-size:9px;color:var(--dim)">${MN[i]}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:${c>0?'var(--accent)':'var(--muted)'}">${c>0?c:'—'}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- 作業者別 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--accent);margin-bottom:12px;border-left:3px solid var(--accent);padding-left:8px">👷 作業者別 サマリー</div>
+      ${Object.entries(memberLoss).map(([name,v])=>`
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:700">${name}</span>
+            <span style="font-size:11px;color:var(--dim)">${v.cnt}件</span>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px">
+            <span>ロス <strong style="color:var(--red)">${v.loss}分</strong></span>
+            <span></span>
+            <span>質問 <strong>${v.q}回</strong></span>
+            <span>手戻り <strong>${v.r}件</strong></span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+function exportCsv(){
+  const logs=logsArr();
+  if(!logs.length){showToast('データがありません');return;}
+  const h='日付,作業者,車両,工数(分),ロス(分),ロス原因,質問回数,手戻り,ゲージ探し,メモ';
+  const rows=logs.map(l=>`${l.date},"${l.memberName}","${l.vehicleLabel}",${l.mins},${l.loss},"${l.lossCause}",${l.q},${l.r},${l.g},"${l.memo}"`);
+  const blob=new Blob(['\uFEFF'+[h,...rows].join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`AWK_ログ_${new Date().toLocaleDateString('ja')}.csv`;
+  a.click();
+  showToast('📥 CSVをダウンロードしました');
+}
+
+// ===== AI SCREEN TABS =====
+function switchAiTab(tab) {
+  ['all','type','history'].forEach(t => {
+    document.getElementById('aiNav'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('on', t===tab);
+    document.getElementById('aiTab'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t===tab?'block':'none';
+  });
+  if(tab==='type') renderTypeStats();
+  if(tab==='history') renderCompletionHistory();
+}
+
+// ===== 完成時 自動AI分析 =====
+async function onJobCompleted(jobId) {
+  const j = jobs[jobId];
+  if(!j) return;
+  const tp = totalH(j), ta = actualH(j);
+  const isOver = tp > 0 && ta > tp;
+
+  // 同じ架装名の過去完成案件を取得
+  const sameType = jobsArr().filter(jj =>
+    jj.id !== jobId && jj.status === 'done' &&
+    jj.name === j.name
+  );
+
+  // この案件のログを取得
+  const jobLogs = logsArr().filter(l => l.vehicleLabel && l.vehicleLabel.includes(j.name));
+
+  // 工数オーバーしてない場合は簡易通知のみ
+  if(!isOver && sameType.length === 0) {
+    showToast(`✅ ${j.name} 完成！`);
+    return;
+  }
+
+  // モーダル表示してAI分析開始
+  document.getElementById('completionModal').classList.add('open');
+  document.getElementById('completionModalContent').innerHTML = `
+    <div style="text-align:center;padding:24px;color:var(--dim)">
+      <div class="loading-ring" style="width:28px;height:28px;border-width:3px;margin:0 auto 12px"></div>
+      <div style="font-size:13px">「${j.name}」の完成データを分析中...</div>
+    </div>`;
+
+  // 過去同種の平均工数
+  const avgPastH = sameType.length
+    ? Math.round(sameType.reduce((a,jj)=>a+actualH(jj),0)/sameType.length*10)/10
+    : null;
+
+  // ロス原因集計
+  const causeMap = {};
+  jobLogs.forEach(l => (l.causes||[]).forEach(c => { causeMap[c]=(causeMap[c]||0)+1; }));
+  const topCauses = Object.entries(causeMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k}(${v}件)`).join('、');
+
+  const prompt = `あなたは架装工場のQCサークル専門家です。以下の案件完成データを分析してください。
+
+【完成案件】
+・架装名: ${j.name}
+・車種: ${j.carType||'不明'}
+・着工〜完成: ${j.start}〜${j.end}
+・見積工数: ${tp}h
+・実績工数: ${ta}h
+・工数オーバー: ${isOver ? `+${Math.round((ta-tp)*10)/10}h（${Math.round((ta-tp)/tp*100)}%超過）` : 'なし'}
+${avgPastH ? `・同じ架装の過去平均実績: ${avgPastH}h（${sameType.length}件分）` : ''}
+${topCauses ? `・今回記録されたロス原因: ${topCauses}` : ''}
+${jobLogs.length ? `・作業ログ件数: ${jobLogs.length}件、質問合計: ${jobLogs.reduce((a,l)=>a+l.q,0)}回、手戻り合計: ${jobLogs.reduce((a,l)=>a+l.r,0)}件` : ''}
+
+【作業工程の実績】
+${(j.tasks||[]).map(t=>`・${t.name}: ${t.actual||0}h（${t.status==='done'?'完了':'未完了'}）`).join('\n')||'工程データなし'}
+
+以下の点を日本語で簡潔に分析してください：
+1. ${isOver ? '⚠️ 工数オーバーの主な要因（いつもと違った点）' : '✅ 工数の状況'}
+2. 🔍 今回特に時間がかかった工程とその理由の推定
+${sameType.length ? `3. 📊 過去${sameType.length}件と比較して今回の特徴` : '3. 📊 今回のデータの特徴'}
+4. 💡 次回同じ架装をする際の改善ポイント（具体的に）
+5. 🎯 QCテーマ候補（あれば）
+
+読みやすく、現場作業者にも伝わる言葉で。`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const text = extractAiText(data) || 'エラーが発生しました';
+    const formatted = text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--accent)">$1</strong>');
+
+    // Firebase/localStorageに保存
+    const record = {
+      jobId, jobName:j.name, carType:j.carType||'',
+      completedAt: new Date().toISOString().split('T')[0],
+      planH:tp, actH:ta, isOver,
+      analysis:text, savedAt:Date.now()
+    };
+    await dbPush('completionAnalyses', record);
+
+    document.getElementById('completionModalContent').innerHTML = `
+      <div style="margin-bottom:14px;padding:12px;background:${isOver?'rgba(240,64,64,.1)':'rgba(30,201,122,.1)'};border:1px solid ${isOver?'rgba(240,64,64,.3)':'rgba(30,201,122,.3)'};border-radius:10px">
+        <div style="font-size:13px;font-weight:700;color:${isOver?'var(--red)':'var(--green)'};margin-bottom:4px">
+          ${isOver?`⚠️ 工数オーバー +${Math.round((ta-tp)*10)/10}h（${Math.round((ta-tp)/tp*100)}%）`:'✅ 工数内で完成'}
+        </div>
+        <div style="font-size:11px;color:var(--dim)">${j.name} / ${j.carType||''} / 実績${ta}h（見積${tp}h）</div>
+      </div>
+      <div style="font-size:12px;line-height:1.9;color:var(--text)">${formatted}</div>
+      <div style="margin-top:16px;display:flex;gap:8px">
+        <button class="btn primary" style="flex:1" onclick="closeCompletionModal()">閉じる</button>
+        <button class="btn" style="flex:1" onclick="showScreen('aiScreen');switchAiTab('history');closeCompletionModal()">履歴を見る</button>
+      </div>`;
+  } catch(e) {
+    document.getElementById('completionModalContent').innerHTML = `
+      <div style="color:var(--red);padding:16px">エラーが発生しました: ${e.message}</div>
+      <button class="btn" onclick="closeCompletionModal()" style="margin-top:10px;width:100%">閉じる</button>`;
+  }
+}
+
+function closeCompletionModal() {
+  document.getElementById('completionModal').classList.remove('open');
+}
+document.getElementById('completionModal').onclick = e => {
+  if(e.target===document.getElementById('completionModal')) closeCompletionModal();
+};
+
+// ===== 種別比較 =====
+function renderTypeStats() {
+  const done = jobsArr().filter(j => j.status==='done' && j.name);
+  if(!done.length) {
+    document.getElementById('typeStatCards').innerHTML = '<div class="empty-msg">完成案件がまだありません</div>';
+    return;
+  }
+  // 架装名でグループ化
+  const groups = {};
+  done.forEach(j => {
+    const key = j.name;
+    if(!groups[key]) groups[key] = { name:key, carType:j.carType||'', jobs:[] };
+    groups[key].jobs.push(j);
+  });
+
+  let h = '';
+  for(const [name, g] of Object.entries(groups)) {
+    const actHs = g.jobs.map(j => actualH(j)).filter(v=>v>0);
+    const planHs = g.jobs.map(j => totalH(j)).filter(v=>v>0);
+    const avgAct = actHs.length ? Math.round(actHs.reduce((a,v)=>a+v,0)/actHs.length*10)/10 : 0;
+    const avgPlan = planHs.length ? Math.round(planHs.reduce((a,v)=>a+v,0)/planHs.length*10)/10 : 0;
+    const overCount = g.jobs.filter(j=>actualH(j)>totalH(j)&&totalH(j)>0).length;
+    const overRate = g.jobs.length ? Math.round(overCount/g.jobs.length*100) : 0;
+    const minH = actHs.length ? Math.min(...actHs) : 0;
+    const maxH = actHs.length ? Math.max(...actHs) : 0;
+    const spread = maxH - minH;
+
+    // 関連ロス原因集計
+    const relLogs = logsArr().filter(l => l.vehicleLabel && l.vehicleLabel.includes(name));
+    const causeMap = {};
+    relLogs.forEach(l => (l.causes||[]).forEach(c => { causeMap[c]=(causeMap[c]||0)+1; }));
+    const topCause = Object.entries(causeMap).sort((a,b)=>b[1]-a[1])[0];
+
+    const spreadColor = spread > 5 ? 'var(--red)' : spread > 2 ? 'var(--accent)' : 'var(--green)';
+
+    h += `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${name}</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:2px">${g.carType} / ${g.jobs.length}件完成</div>
+        </div>
+        <span style="font-size:10px;padding:3px 9px;border-radius:10px;background:${overRate>50?'rgba(240,64,64,.2)':'rgba(30,201,122,.15)'};color:${overRate>50?'var(--red)':'var(--green)'}">
+          超過率 ${overRate}%
+        </span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+        <div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent)">${avgAct}h</div>
+          <div style="font-size:9px;color:var(--dim)">平均実績</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--dim)">${avgPlan}h</div>
+          <div style="font-size:9px;color:var(--dim)">平均見積</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${spreadColor}">${spread}h</div>
+          <div style="font-size:9px;color:var(--dim)">工数バラツキ</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--dim)">
+        最短 <strong style="color:var(--green)">${minH}h</strong> 〜 最長 <strong style="color:var(--red)">${maxH}h</strong>
+        ${topCause?` ／ 主なロス原因: <strong style="color:var(--accent)">${topCause[0]}</strong>`:''}
+      </div>
+    </div>`;
+  }
+  document.getElementById('typeStatCards').innerHTML = h;
+}
+
+async function runTypeAi() {
+  const done = jobsArr().filter(j => j.status==='done');
+  if(!done.length) { showToast('完成案件がありません'); return; }
+
+  const btn = document.getElementById('btnTypeAi');
+  const box = document.getElementById('typeAiBox');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-ring"></div> 分析中...';
+  box.classList.remove('show');
+
+  // 種別ごとにデータ集計
+  const groups = {};
+  done.forEach(j => {
+    const key = j.name;
+    if(!groups[key]) groups[key] = { name:key, jobs:[] };
+    groups[key].jobs.push(j);
+  });
+
+  const summary = Object.entries(groups).map(([name, g]) => {
+    const actHs = g.jobs.map(j=>actualH(j)).filter(v=>v>0);
+    const planHs = g.jobs.map(j=>totalH(j)).filter(v=>v>0);
+    const avgAct = actHs.length?Math.round(actHs.reduce((a,v)=>a+v,0)/actHs.length*10)/10:0;
+    const avgPlan = planHs.length?Math.round(planHs.reduce((a,v)=>a+v,0)/planHs.length*10)/10:0;
+    const overCount = g.jobs.filter(j=>actualH(j)>totalH(j)&&totalH(j)>0).length;
+    const spread = actHs.length ? (Math.max(...actHs)-Math.min(...actHs)) : 0;
+    const relLogs = logsArr().filter(l=>l.vehicleLabel&&l.vehicleLabel.includes(name));
+    const cc2={};relLogs.forEach(l=>(l.causes||[]).forEach(c=>{cc2[c]=(cc2[c]||0)+1;}));
+    const topC=Object.entries(cc2).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k])=>k).join('・');
+    return `【${name}】${g.jobs.length}件 / 平均実績${avgAct}h（見積${avgPlan}h）/ 超過${overCount}件 / バラツキ${spread}h${topC?` / 主ロス: ${topC}`:''}`;
+  }).join('\n');
+
+  const prompt = `架装工場QCサークルの専門家として、以下の架装種別データを比較分析してください。
+
+【種別別データ】
+${summary}
+
+以下を日本語で分析してください：
+1. 📊 各架装種別の工数傾向と特徴
+2. ⚠️ 特に工数バラツキが大きく改善が必要な種別とその推定原因
+3. 🏆 効率的にできている種別の良い点（他への横展開ポイント）
+4. 💡 種別ごとの具体的な改善提案
+5. 🎯 QCサークルで取り組むべき優先テーマ（種別を明示して）
+
+現場で使えるよう具体的・簡潔に。`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const text = extractAiText(data) || 'エラー';
+    box.innerHTML = text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--accent)">$1</strong>');
+    box.classList.add('show');
+  } catch(e) { box.innerHTML='エラー: '+e.message; box.classList.add('show'); }
+  btn.disabled=false; btn.innerHTML='✨ 種別ごとにAI考察を生成';
+}
+
+// ===== 完成分析 履歴 =====
+let completionAnalyses = {};
+function renderCompletionHistory() {
+  // Firebase or localStorage から履歴取得
+  const analyses = Object.entries(completionAnalyses)
+    .map(([id,a])=>({...a,id}))
+    .sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+
+  const el = document.getElementById('completionHistoryList');
+  if(!analyses.length) {
+    el.innerHTML = '<div class="empty-msg">完成時のAI分析がまだありません<br>案件を完成にすると自動で記録されます</div>';
+    return;
+  }
+  el.innerHTML = analyses.map(a => `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${a.jobName}</div>
+          <div style="font-size:10px;color:var(--dim)">${a.carType} / 完成: ${a.completedAt}</div>
+        </div>
+        <span style="font-size:10px;padding:2px 8px;border-radius:8px;background:${a.isOver?'rgba(240,64,64,.2)':'rgba(30,201,122,.15)'};color:${a.isOver?'var(--red)':'var(--green)'}">
+          ${a.isOver?`超過 +${Math.round((a.actH-a.planH)*10)/10}h`:'工数内'}
+        </span>
+      </div>
+      <details>
+        <summary style="font-size:11px;color:var(--accent);cursor:pointer;list-style:none">▶ AI分析を見る</summary>
+        <div style="font-size:11px;line-height:1.9;color:var(--text);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          ${(a.analysis||'').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--accent)">$1</strong>')}
+        </div>
+      </details>
+    </div>`).join('');
+}
+
+
+function renderAiSummary(){
+  const logs=logsArr();
+  const el=document.getElementById('aiSummaryBox');
+  if(!logs.length){el.innerHTML='<span style="color:var(--dim)">ログがまだありません</span>';return;}
+  const avgLoss=Math.round(logs.filter(l=>l.loss>0).reduce((a,l)=>a+l.loss,0)/(logs.filter(l=>l.loss>0).length||1));
+  const avgMins=Math.round(logs.filter(l=>l.mins>0).reduce((a,l)=>a+l.mins,0)/(logs.filter(l=>l.mins>0).length||1));
+  const totalQ=logs.reduce((a,l)=>a+l.q,0);
+  const totalR=logs.reduce((a,l)=>a+l.r,0);
+  const totalG=logs.reduce((a,l)=>a+l.g,0);
+  const cc={};logs.forEach(l=>{if(l.lossCause)cc[l.lossCause]=(cc[l.lossCause]||0)+1;});
+  const topC=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k}(${v}件)`).join('、');
+  el.innerHTML=`
+    📋 ログ件数: <strong style="color:var(--accent)">${logs.length}件</strong><br>
+    ⏱️ 平均工数: <strong>${avgMins||'—'}分/台</strong><br>
+    🔴 平均ロス: <strong style="color:var(--red)">${avgLoss||'—'}分/台</strong><br>
+    ❓ 累計質問: <strong style="color:var(--accent)">${totalQ}回</strong><br>
+    🔄 累計手戻り: <strong style="color:var(--red)">${totalR}件</strong><br>
+    🔎 ゲージ探し: <strong>${totalG}回</strong><br>
+    ${topC?`⚠️ ロス原因TOP: <strong>${topC}</strong>`:''}`;
+}
+async function runAi(){
+  const logs=logsArr();
+  if(!logs.length){showToast('ログデータがありません');return;}
+  const btn=document.getElementById('btnAi');
+  const box=document.getElementById('aiBox');
+  btn.disabled=true;
+  btn.innerHTML='<div class="loading-ring"></div> 分析中...';
+  box.classList.remove('show');
+  const avgLoss=Math.round(logs.filter(l=>l.loss>0).reduce((a,l)=>a+l.loss,0)/(logs.filter(l=>l.loss>0).length||1));
+  const avgMins=Math.round(logs.filter(l=>l.mins>0).reduce((a,l)=>a+l.mins,0)/(logs.filter(l=>l.mins>0).length||1));
+  const totalQ=logs.reduce((a,l)=>a+l.q,0),totalR=logs.reduce((a,l)=>a+l.r,0),totalG=logs.reduce((a,l)=>a+l.g,0);
+  const cc={};logs.forEach(l=>{if(l.lossCause)cc[l.lossCause]=(cc[l.lossCause]||0)+1;});
+  const causes=Object.entries(cc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}:${v}件`).join('、');
+  const overdueJobs=jobsArr().filter(j=>j.status==='overdue').length;
+  const prompt=`あなたは製造業のQCサークル活動専門家です。以下の架装作業データを分析し、QC報告書に使える日本語の考察を出力してください。
+
+【データサマリー】
+・ログ件数: ${logs.length}件
+・平均工数: ${avgMins}分/台
+・平均ロス時間: ${avgLoss}分/台
+・累計質問回数: ${totalQ}回
+・累計手戻り件数: ${totalR}件
+・累計ゲージ探し回数: ${totalG}回
+・ロス原因内訳: ${causes||'なし'}
+・遅延案件数: ${overdueJobs}件
+
+以下の観点で分析してください：
+1. 📊 現状の問題点（数値根拠付き）
+2. ⚠️ 最優先で改善すべきボトルネック
+3. 💡 具体的な改善提案（優先順位付き）
+4. 📈 改善した場合の期待効果（時間・コスト削減の試算）
+5. 🎯 次のQCサークルテーマ候補
+
+QC報告書にそのまま使えるよう、具体的な数値を交えて簡潔にまとめてください。`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=extractAiText(data)||'エラーが発生しました';
+    box.innerHTML=text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    box.classList.add('show');
+  }catch(e){box.innerHTML='エラー: '+e.message;box.classList.add('show');}
+  btn.disabled=false;
+  btn.innerHTML='✨ AIで分析レポートを生成';
+}
+async function runPaste(){
+  const txt=document.getElementById('pasteData').value.trim();
+  if(!txt){showToast('データを貼り付けてください');return;}
+  const btn=document.getElementById('btnPaste');
+  const box=document.getElementById('pasteBox');
+  btn.disabled=true; btn.innerHTML='<div class="loading-ring"></div> 分析中...';
+  box.classList.remove('show');
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`製造業QCサークルの専門家として、以下の架装作業データを分析し、QC報告書用の考察を日本語で出力してください。\n\n【データ】\n${txt}\n\n分析観点：\n1. 📊 データ概要\n2. ⚠️ 主要な問題点\n3. 💡 改善提案（優先順位付き）\n4. 📈 期待効果の試算`}]})
+    });
+    const data=await res.json();
+    const text=extractAiText(data)||'エラーが発生しました';
+    box.innerHTML=text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    box.classList.add('show');
+  }catch(e){box.innerHTML='エラー: '+e.message;box.classList.add('show');}
+  btn.disabled=false; btn.innerHTML='📊 貼り付けデータを分析';
+}
+
+// ===== JOB MODAL =====
+function openJobModal(memberId,jobId){
+  if(!isBoss()){showToast('案件の追加・編集は管理者のみ可能です');return;}
+  editJobId=jobId||null;
+  document.getElementById('jmTitle').textContent=jobId?'案件編集':'案件追加';
+  const memberOptions='<option value="">未割当</option>'+membersArr().map(m=>`<option value="${m.id}">${m.name}${m.role?' ('+m.role+')':''}</option>`).join('');
+  document.getElementById('fAssign').innerHTML=memberOptions;
+  document.getElementById('fAssignElec').innerHTML=memberOptions;
+  buildSuggestDatalist();
+  if(jobId){
+    const j=jobs[jobId];
+    document.getElementById('fOrd').value=j.orderNo||'';
+    // 車種復元
+    const carTpls=getTemplates('carType');
+    if(j.carType&&carTpls.includes(j.carType)){
+      document.getElementById('fCar').value=j.carType;
+      document.getElementById('fCarManual').style.display='none';
+    } else if(j.carType){
+      document.getElementById('fCar').value='__manual__';
+      document.getElementById('fCarManual').style.display='block';
+      document.getElementById('fCarManual').value=j.carType;
+    } else { document.getElementById('fCar').value=''; }
+    // 架装名復元
+    const nameTpls=getTemplates('jobName');
+    if(j.name&&nameTpls.includes(j.name)){
+      document.getElementById('fName').value=j.name;
+      document.getElementById('fNameManual').style.display='none';
+    } else if(j.name){
+      document.getElementById('fName').value='__manual__';
+      document.getElementById('fNameManual').style.display='block';
+      document.getElementById('fNameManual').value=j.name;
+    } else { document.getElementById('fName').value=''; }
+    document.getElementById('fStart').value=j.start||'';
+    document.getElementById('fEnd').value=j.end||'';
+    document.getElementById('fPlan').value=j.planH||'';
+    document.getElementById('fAssign').value=j.memberId||'';
+    document.getElementById('fAssignElec').value=j.elecMemberId||'';
+    document.getElementById('fStatus').value=j.status||'planned';
+    document.getElementById('fMemo').value=j.memo||'';
+  } else {
+    ['fOrd','fStart','fEnd','fPlan','fMemo'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fCar').value='';
+    document.getElementById('fCarManual').style.display='none';
+    document.getElementById('fCarManual').value='';
+    document.getElementById('fName').value='';
+    document.getElementById('fNameManual').style.display='none';
+    document.getElementById('fNameManual').value='';
+    document.getElementById('fStatus').value='planned';
+    document.getElementById('fAssign').value=memberId||curMember||'';
+    document.getElementById('fAssignElec').value='';
+  }
+  document.getElementById('jobModal').classList.add('open');
+}
+function closeJobModal(){document.getElementById('jobModal').classList.remove('open');editJobId=null;}
+document.getElementById('jobModal').onclick=e=>{if(e.target===e.currentTarget)closeJobModal();};
+
+async function saveJob(){
+  if(!isBoss())return;
+  const name=getFieldVal('fName','fNameManual');
+  const carType=getFieldVal('fCar','fCarManual');
+  const start=document.getElementById('fStart').value;
+  const end=document.getElementById('fEnd').value;
+  if(!name){showToast('架装名は必須です');return;}
+  if(!start){showToast('着工日は必須です');return;}
+  if(end&&start>end){showToast('完成日は着工日より後にしてください');return;}
+  const data={
+    orderNo:document.getElementById('fOrd').value.trim(),
+    carType, name, start, end,
+    planH:parseFloat(document.getElementById('fPlan').value)||0,
+    memberId:document.getElementById('fAssign').value||null,
+    elecMemberId:document.getElementById('fAssignElec').value||null,
+    status:document.getElementById('fStatus').value,
+    memo:document.getElementById('fMemo').value.trim()
+  };
+  if(editJobId){
+    const prevStatus = jobs[editJobId]?.status;
+    await dbSet(`jobs/${editJobId}`,{...jobs[editJobId],...data});
+    showToast('案件を更新しました');
+    if(prevStatus !== 'done' && data.status === 'done') {
+      setTimeout(() => onJobCompleted(editJobId), 500);
+    }
+  } else {
+    data.tasks=[];
+    await dbPush('jobs',data);
+    showToast('案件を追加しました');
+  }
+  closeJobModal();
+}
+async function deleteJob(id){
+  const j=jobs[id];if(!j)return;
+  
+  await dbRemove(`jobs/${id}`);
+  showToast('削除しました'); refreshCurrentScreen();
+}
+
+// ===== MEMBER MODAL =====
+function openMemberModal(id){
+  if(!isBoss())return;
+  editMemberId=id||null;
+  document.getElementById('mmTitle').textContent=id?'作業者編集':'作業者追加';
+  if(id){const m=members[id];document.getElementById('mmName').value=m.name;document.getElementById('mmRole').value=m.role||'';}
+  else{['mmName','mmRole'].forEach(i=>document.getElementById(i).value='');}
+  document.getElementById('memberModal').classList.add('open');
+}
+function closeMemberModal(){document.getElementById('memberModal').classList.remove('open');editMemberId=null;}
+document.getElementById('memberModal').onclick=e=>{if(e.target===e.currentTarget)closeMemberModal();};
+async function saveMember(){
+  if(!isBoss())return;
+  const name=document.getElementById('mmName').value.trim();
+  if(!name){showToast('氏名は必須です');return;}
+  const data={name,role:document.getElementById('mmRole').value.trim()};
+  if(editMemberId)await dbSet(`members/${editMemberId}`,{...members[editMemberId],...data});
+  else await dbPush('members',data);
+  closeMemberModal();
+  showToast(editMemberId?'更新しました':'作業者を追加しました');
+}
+async function deleteMember(id){
+  const m=members[id];if(!m)return;
+  
+  await dbRemove(`members/${id}`);
+  showToast('削除しました');
+}
+
+// ===== SETTINGS / TEMPLATES =====
+const TPL_KEYS={carType:'awk_tpl_car',jobName:'awk_tpl_job',taskTpl:'awk_tpl_task'};
+const TPL_LIST_IDS={carType:'carTypeList',jobName:'jobNameList',taskTpl:'taskTplList'};
+const TPL_INPUT_IDS={carType:'carTypeInput',jobName:'jobNameInput',taskTpl:'taskTplInput'};
+const DEFAULT_TPL={carType:[],jobName:[],taskTpl:['電装配線','外装・板金','艤装・取付','塗装','溶接','内装仕上げ','検査・確認']};
+
+function getTemplates(key){
+  try{const s=localStorage.getItem(TPL_KEYS[key]);return s?JSON.parse(s):[...DEFAULT_TPL[key]];}
+  catch(e){return[...DEFAULT_TPL[key]];}
+}
+function saveTemplates(key,arr){
+  localStorage.setItem(TPL_KEYS[key],JSON.stringify(arr));
+  if(fbReady)try{db.ref('settings/templates/'+key).set(arr);}catch(e){}
+}
+function renderSettings(){
+  ['carType','jobName','taskTpl'].forEach(k=>renderTemplateList(k));
+}
+function renderTemplateList(key){
+  const arr=getTemplates(key);
+  const el=document.getElementById(TPL_LIST_IDS[key]);
+  if(!el)return;
+  el.innerHTML=arr.length
+    ? arr.map((v,i)=>`<div class="tag-item"><span>${v}</span><button class="tag-del" onclick="removeTemplate('${key}',${i})">✕</button></div>`).join('')
+    : '<div style="font-size:12px;color:var(--muted)">未登録</div>';
+}
+function addTemplate(key){
+  const val=document.getElementById(TPL_INPUT_IDS[key]).value.trim();
+  if(!val)return;
+  const arr=getTemplates(key);
+  if(arr.includes(val)){showToast('すでに登録済みです');return;}
+  arr.push(val); saveTemplates(key,arr);
+  document.getElementById(TPL_INPUT_IDS[key]).value='';
+  renderTemplateList(key);
+  showToast('追加しました！');
+}
+function removeTemplate(key,idx){
+  const arr=getTemplates(key);
+  arr.splice(idx,1); saveTemplates(key,arr);
+  renderTemplateList(key);
+  showToast('削除しました');
+}
+function buildSuggestDatalist(){
+  // 車種セレクト
+  const cars = getTemplates('carType');
+  const carSel = document.getElementById('fCar');
+  if(carSel){
+    const curVal = carSel.value;
+    carSel.innerHTML = '<option value="">選択</option>' +
+      cars.map(c=>`<option value="${c}">${c}</option>`).join('') +
+      '<option value="__manual__">✏️ 手入力する</option>';
+    if(curVal) carSel.value = curVal;
+  }
+  // 架装名セレクト
+  const jobs2 = getTemplates('jobName');
+  const nameSel = document.getElementById('fName');
+  if(nameSel){
+    const curVal = nameSel.value;
+    nameSel.innerHTML = '<option value="">選択</option>' +
+      jobs2.map(j=>`<option value="${j}">${j}</option>`).join('') +
+      '<option value="__manual__">✏️ 手入力する</option>';
+    if(curVal) nameSel.value = curVal;
+  }
+}
+
+function toggleManual(selId, inputId){
+  const sel = document.getElementById(selId);
+  const inp = document.getElementById(inputId);
+  if(!sel||!inp) return;
+  if(sel.value==='__manual__'){
+    inp.style.display='block'; inp.focus();
+  } else {
+    inp.style.display='none'; inp.value='';
+  }
+}
+function getFieldVal(selId, inputId){
+  const sel = document.getElementById(selId);
+  if(!sel) return '';
+  if(sel.value==='__manual__'){
+    const inp = document.getElementById(inputId);
+    return inp ? inp.value.trim() : '';
+  }
+  return sel.value;
+}
+
+// ===== AI RESPONSE HELPER =====
+function extractAiText(data) {
+  try {
+    if(!data) return 'レスポンスが空です';
+    if(data.error) return 'APIエラー: ' + (data.error.message || JSON.stringify(data.error));
+    if(!data.content || !Array.isArray(data.content)) return 'レスポンス形式エラー: ' + JSON.stringify(data).slice(0,100);
+    const text = data.content.map(c => c.type==='text' ? (c.text||'') : '').join('');
+    return text || 'テキストが含まれていません';
+  } catch(e) {
+    return 'パースエラー: ' + e.message;
+  }
+}
+
+// ===== INIT =====
+initFirebase();
+// ログタブが開かれたときに原因ピッカーを初期化
+const _origShowMemberTab = showMemberTab;
+window.showMemberTab = function(tab) {
+  _origShowMemberTab(tab);
+  if(tab==='log'){
+    setTimeout(()=>{
+      initCausePicker();
+      setupVarianceCalc();
+    },50);
+  }
+};
+</script>
+
+</body>
+</html>
