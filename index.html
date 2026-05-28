@@ -95,7 +95,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 .member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .member-card{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .2s;text-align:center;position:relative}
 .member-card:active{border-color:var(--accent)}
-.mc-av{width:44px;height:44px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--accent);margin:0 auto 9px}
+.mc-av{width:44px;height:44px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Noto Sans JP',sans-serif;font-size:20px;font-weight:700;color:var(--accent);margin:0 auto 9px}
 .mc-name{font-size:13px;font-weight:500;margin-bottom:2px}
 .mc-role{font-size:10px;color:var(--dim)}
 .mc-stats{font-size:10px;color:var(--muted);margin-top:5px}
@@ -104,7 +104,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 
 /* WORKER HOME */
 .wh-profile{text-align:center;padding:24px 0 8px}
-.wh-av{width:72px;height:72px;border-radius:50%;background:var(--surface2);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);margin:0 auto 12px}
+.wh-av{width:72px;height:72px;border-radius:50%;background:var(--surface2);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Noto Sans JP',sans-serif;font-size:32px;font-weight:700;color:var(--accent);margin:0 auto 12px}
 .wh-name{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#1a1a1a}
 .wh-role{font-size:12px;color:var(--dim);margin-top:3px}
 .wh-stats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:0 16px 16px}
@@ -822,7 +822,7 @@ function _removeNested(path) {
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 function dim(y,m){ return new Date(y,m+1,0).getDate(); }
 function fmt(s){ if(!s)return '—'; const p=s.split('-'); return `${+p[1]}/${+p[2]}`; }
-function initials(n){ if(!n)return '?'; return n.trim().slice(0,2); }
+function initials(n){ if(!n)return '?'; const s=n.trim(); return s.slice(0,1); }
 function isBoss(){ return session.role==='boss'; }
 function jobsArr(){ return Object.entries(jobs).map(([id,j])=>({...j,id})); }
 function membersArr(){ return Object.entries(members).map(([id,m])=>({...m,id})); }
@@ -2228,5 +2228,3 @@ window.showMemberTab = function(tab) {
 </script>
 </body>
 </html>
-
-
