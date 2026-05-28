@@ -699,9 +699,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         </select>
       </div>
     </div>
-    <div class="f-row">
-      <div class="field"><label>担当者（架装）</label><select id="fAssign"></select></div>
-      <div class="field"><label>担当者（電装）</label><select id="fAssignElec"></select></div>
+    <div class="field">
+      <label>担当作業者（複数選択可）</label>
+      <div id="fAssignList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px"></div>
+      <button type="button" class="btn small" onclick="addAssignRow()" style="width:100%">＋ 担当者を追加</button>
     </div>
     <div class="field"><label>メモ</label><textarea id="fMemo" rows="2" placeholder=""></textarea></div>
     <div class="modal-acts">
@@ -827,9 +828,27 @@ function isBoss(){ return session.role==='boss'; }
 function jobsArr(){ return Object.entries(jobs).map(([id,j])=>({...j,id})); }
 function membersArr(){ return Object.entries(members).map(([id,m])=>({...m,id})); }
 function logsArr(){ return Object.entries(workLogs).map(([id,l])=>({...l,id})).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0)); }
-function getJobsForMember(mid){ return jobsArr().filter(j=>j.memberId===mid||j.elecMemberId===mid); }
-function totalH(j){ return (j.planH||0)+((j.tasks||[]).reduce((a,t)=>a+(parseFloat(t.plan)||0),0)); }
-function actualH(j){ return (j.actH||0)+((j.tasks||[]).reduce((a,t)=>a+(parseFloat(t.actual)||0),0)); }
+function getJobsForMember(mid){ 
+  return jobsArr().filter(j=>{
+    if(j.memberIds && Array.isArray(j.memberIds)) return j.memberIds.includes(mid);
+    // 後方互換
+    return j.memberId===mid || j.elecMemberId===mid;
+  }); 
+}
+function totalH(j){ return (j.planH||0); }
+function actualH(j){ 
+  // 全担当者の工程実績を合算
+  let total = j.actH||0;
+  const allTasks = [];
+  if(j.tasks) allTasks.push(...j.tasks);
+  // 担当者ごとのタスク
+  (j.memberIds||[]).forEach(mid => {
+    const mt = j.memberTasks && j.memberTasks[mid];
+    if(mt) allTasks.push(...mt);
+  });
+  total += allTasks.reduce((a,t)=>a+(parseFloat(t.actual)||0),0);
+  return Math.round(total*10)/10;
+}
 function jobPct(j){
   if(j.status==='done') return 100;
   const tp=totalH(j),ta=actualH(j);
@@ -1071,8 +1090,7 @@ function renderOverview(){
         <span class="sb sb-${j.status}">${SL[j.status]}</span>
       </div>
       <div class="ov-card-meta">
-        <span>架装: <span>${m?m.name:'未割当'}</span></span>
-        <span>電装: <span>${j.elecMemberId&&getMember(j.elecMemberId)?getMember(j.elecMemberId).name:'未割当'}</span></span>
+        <span>担当: <span>${(j.memberIds||[j.memberId].filter(Boolean)).map(id=>getMember(id)?.name||'').filter(Boolean).join('・')||'未割当'}</span></span>
         <span>着工: <span>${fmt(j.start)}</span></span>
         <span>完成: <span style="${urg?'color:var(--red);font-weight:700':''}">${fmt(j.end)}${j.status!=='done'&&dl<=7?'（'+(dl<=0?'超過':'残'+dl+'日')+'）':''}</span></span>
       </div>
@@ -1185,7 +1203,8 @@ function renderProgress(){
   if(!filtered.length){c.innerHTML='<div class="empty-msg">案件がありません。</div>';return;}
   let h='';
   for(const j of filtered){
-    const tasks=j.tasks||[];
+    const myMid = curMember||session.memberId;
+    const tasks = (j.memberTasks&&j.memberTasks[myMid]) || j.tasks || [];
     const tp=totalH(j),ta=actualH(j);
     const diff=tp-ta;
     const dc=diff>0?'dp':diff<0?'dn':'dz';
@@ -1225,8 +1244,7 @@ function renderProgress(){
         <span class="sb sb-${j.status}">${SL[j.status]}</span>
       </div>
       <div class="pb-dates">着工 <span>${fmt(j.start)}</span> → 完成 <span>${fmt(j.end)}</span>
-        　架装: <span style="color:var(--text)">${getMember(j.memberId)?.name||'未割当'}</span>
-        　電装: <span style="color:var(--accent)">${j.elecMemberId&&getMember(j.elecMemberId)?getMember(j.elecMemberId).name:'未割当'}</span>
+        　担当: <span style="color:var(--text)">${(j.memberIds||[j.memberId].filter(Boolean)).map(id=>getMember(id)?.name||'').filter(Boolean).join('・')||'未割当'}</span>
       </div>
       ${tp>0?`
       <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
@@ -1243,7 +1261,7 @@ function renderProgress(){
       ${isOver?`<div style="font-size:10px;color:var(--red);margin-bottom:10px">⚠️ 工数オーバー ${kousuPct}%使用（見積の${Math.round(ta/tp*10)/10}倍）</div>`:''}
       `:''}
       <div class="pt-section">
-        <div class="pt-section-label">✏️ 作業入力</div>
+        <div class="pt-section-label">✏️ 自分の作業入力</div>
         <div class="pt-header"><span>作業内容</span><span>実績</span><span>状態</span><span></span></div>
         ${tr}
         <div class="pt-footer">
@@ -1251,6 +1269,7 @@ function renderProgress(){
           <button class="btn small" onclick="addDefaultTasks('${j.id}')">テンプレ</button>
         </div>
       </div>
+      ${renderOtherMemberTasks(j)}
       ${isBoss()?`<div class="pb-acts">
         <button class="btn small" onclick="openJobModal(null,'${j.id}')">✎ 案件編集</button>
         <button class="btn small ghost" onclick="deleteJob('${j.id}')" style="color:var(--muted)">× 削除</button>
@@ -1283,33 +1302,64 @@ async function undoJobDone(jid){
   showToast('↩ 完成を取り消しました');
 }
 
+function renderOtherMemberTasks(j){
+  const myMid = curMember||session.memberId;
+  const otherIds = (j.memberIds||[j.memberId].filter(Boolean)).filter(mid=>mid!==myMid);
+  if(!otherIds.length) return '';
+  let h='<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">';
+  h+='<div style="font-size:11px;color:var(--dim);margin-bottom:8px">👥 他の担当者の作業</div>';
+  for(const mid of otherIds){
+    const m=getMember(mid); if(!m) continue;
+    const mt=(j.memberTasks&&j.memberTasks[mid])||[];
+    const mTotal=mt.reduce((a,t)=>a+(parseFloat(t.actual)||0),0);
+    h+=`<div style="margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px">${m.name} — ${mTotal}h</div>
+      ${mt.map(t=>`<div style="font-size:11px;color:var(--dim);display:flex;justify-content:space-between;padding:2px 0">
+        <span>${t.name||'作業'}</span>
+        <span style="color:${t.status==='done'?'var(--green)':'var(--dim)'};">${t.actual||0}h ${t.status==='done'?'✓':''}</span>
+      </div>`).join('')||'<div style="font-size:11px;color:var(--muted)">未入力</div>'}
+    </div>`;
+  }
+  h+='</div>';
+  return h;
+}
+
 async function addTask(jid){
   const j=jobs[jid];if(!j)return;
-  const tasks=j.tasks||[];
-  tasks.push({id:uid(),name:'',actual:0,status:'planned'});
-  await dbSet(`jobs/${jid}/tasks`,tasks);
-  if(!fbReady)renderProgress();
+  const mid=curMember||session.memberId;
+  const mt=(j.memberTasks&&j.memberTasks[mid])||[];
+  mt.push({id:uid(),name:'',actual:0,status:'planned'});
+  await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);
+  // 後方互換でtasksにも保存
+  await dbSet(`jobs/${jid}/tasks`,mt);
+  if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}
 }
 async function updateTask(jid,tid,field,val){
   const j=jobs[jid];if(!j)return;
-  const tasks=(j.tasks||[]).map(t=>t.id===tid?{...t,[field]:field==='actual'?(parseFloat(val)||0):val}:t);
-  await dbSet(`jobs/${jid}/tasks`,tasks);
-  if(!fbReady)renderProgress();
+  const mid=curMember||session.memberId;
+  const mt=((j.memberTasks&&j.memberTasks[mid])||j.tasks||[]).map(t=>t.id===tid?{...t,[field]:field==='actual'?(parseFloat(val)||0):val}:t);
+  await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);
+  await dbSet(`jobs/${jid}/tasks`,mt);
+  if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}
 }
 async function deleteTask(jid,tid){
   const j=jobs[jid];if(!j)return;
-  const tasks=(j.tasks||[]).filter(t=>t.id!==tid);
-  await dbSet(`jobs/${jid}/tasks`,tasks);
-  if(!fbReady)renderProgress();
+  const mid=curMember||session.memberId;
+  const mt=((j.memberTasks&&j.memberTasks[mid])||j.tasks||[]).filter(t=>t.id!==tid);
+  await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);
+  await dbSet(`jobs/${jid}/tasks`,mt);
+  if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}
 }
 async function addDefaultTasks(jid){
   const j=jobs[jid];if(!j)return;
-  const tasks=j.tasks||[];
+  const mid=curMember||session.memberId;
+  const mt=(j.memberTasks&&j.memberTasks[mid])||[];
   const tpls=getTemplates('taskTpl');
-  const ex=new Set(tasks.map(t=>t.name));
-  for(const n of tpls)if(!ex.has(n))tasks.push({id:uid(),name:n,actual:0,status:'planned'});
-  await dbSet(`jobs/${jid}/tasks`,tasks);
-  if(!fbReady)renderProgress();
+  const ex=new Set(mt.map(t=>t.name));
+  for(const n of tpls)if(!ex.has(n))mt.push({id:uid(),name:n,actual:0,status:'planned'});
+  await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);
+  await dbSet(`jobs/${jid}/tasks`,mt);
+  if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}
   showToast('テンプレート追加しました');
 }
 
@@ -1993,18 +2043,37 @@ async function runPaste(){
 }
 
 // ===== JOB MODAL =====
+function addAssignRow(selectedId=''){
+  const row = document.createElement('div');
+  row.style.cssText='display:flex;gap:6px;align-items:center';
+  const sel = document.createElement('select');
+  sel.style.cssText='flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none';
+  sel.innerHTML='<option value="">— 選択 —</option>'+membersArr().map(m=>`<option value="${m.id}">${m.name}${m.role?' ('+m.role+')':''}</option>`).join('');
+  if(selectedId) sel.value=selectedId;
+  const delBtn = document.createElement('button');
+  delBtn.type='button';
+  delBtn.textContent='×';
+  delBtn.style.cssText='background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;flex-shrink:0';
+  delBtn.onclick=()=>row.remove();
+  row.appendChild(sel); row.appendChild(delBtn);
+  document.getElementById('fAssignList').appendChild(row);
+}
+
+function getAssignedMemberIds(){
+  return [...document.querySelectorAll('#fAssignList select')]
+    .map(s=>s.value).filter(Boolean);
+}
+
 function openJobModal(memberId,jobId){
   if(!isBoss()){showToast('案件の追加・編集は管理者のみ可能です');return;}
   editJobId=jobId||null;
   document.getElementById('jmTitle').textContent=jobId?'案件編集':'案件追加';
-  const memberOptions='<option value="">未割当</option>'+membersArr().map(m=>`<option value="${m.id}">${m.name}${m.role?' ('+m.role+')':''}</option>`).join('');
-  document.getElementById('fAssign').innerHTML=memberOptions;
-  document.getElementById('fAssignElec').innerHTML=memberOptions;
   buildSuggestDatalist();
+  // 担当者リストリセット
+  document.getElementById('fAssignList').innerHTML='';
   if(jobId){
     const j=jobs[jobId];
     document.getElementById('fOrd').value=j.orderNo||'';
-    // 車種復元
     const carTpls=getTemplates('carType');
     if(j.carType&&carTpls.includes(j.carType)){
       document.getElementById('fCar').value=j.carType;
@@ -2014,7 +2083,6 @@ function openJobModal(memberId,jobId){
       document.getElementById('fCarManual').style.display='block';
       document.getElementById('fCarManual').value=j.carType;
     } else { document.getElementById('fCar').value=''; }
-    // 架装名復元
     const nameTpls=getTemplates('jobName');
     if(j.name&&nameTpls.includes(j.name)){
       document.getElementById('fName').value=j.name;
@@ -2027,10 +2095,12 @@ function openJobModal(memberId,jobId){
     document.getElementById('fStart').value=j.start||'';
     document.getElementById('fEnd').value=j.end||'';
     document.getElementById('fPlan').value=j.planH||'';
-    document.getElementById('fAssign').value=j.memberId||'';
-    document.getElementById('fAssignElec').value=j.elecMemberId||'';
     document.getElementById('fStatus').value=j.status||'planned';
     document.getElementById('fMemo').value=j.memo||'';
+    // 担当者復元（新形式 or 旧形式）
+    const ids = j.memberIds||[j.memberId,j.elecMemberId].filter(Boolean);
+    if(ids.length) ids.forEach(id=>addAssignRow(id));
+    else addAssignRow();
   } else {
     ['fOrd','fStart','fEnd','fPlan','fMemo'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('fCar').value='';
@@ -2040,8 +2110,7 @@ function openJobModal(memberId,jobId){
     document.getElementById('fNameManual').style.display='none';
     document.getElementById('fNameManual').value='';
     document.getElementById('fStatus').value='planned';
-    document.getElementById('fAssign').value=memberId||curMember||'';
-    document.getElementById('fAssignElec').value='';
+    addAssignRow(memberId||curMember||'');
   }
   document.getElementById('jobModal').classList.add('open');
 }
@@ -2057,12 +2126,13 @@ async function saveJob(){
   if(!name){showToast('架装名は必須です');return;}
   if(!start){showToast('着工日は必須です');return;}
   if(end&&start>end){showToast('完成日は着工日より後にしてください');return;}
+  const memberIds = getAssignedMemberIds();
   const data={
     orderNo:document.getElementById('fOrd').value.trim(),
     carType, name, start, end,
     planH:parseFloat(document.getElementById('fPlan').value)||0,
-    memberId:document.getElementById('fAssign').value||null,
-    elecMemberId:document.getElementById('fAssignElec').value||null,
+    memberIds,
+    memberId: memberIds[0]||null, // 後方互換
     status:document.getElementById('fStatus').value,
     memo:document.getElementById('fMemo').value.trim()
   };
@@ -2074,7 +2144,7 @@ async function saveJob(){
       setTimeout(() => onJobCompleted(editJobId), 500);
     }
   } else {
-    data.tasks=[];
+    data.tasks=[]; data.memberTasks={};
     await dbPush('jobs',data);
     showToast('案件を追加しました');
   }
