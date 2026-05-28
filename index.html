@@ -887,9 +887,9 @@ function switchLoginTab(tab){
 function populateWorkerSelect(){
   const sel=document.getElementById('workerSelect');
   const arr=membersArr();
-  sel.innerHTML=arr.length
+  sel.innerHTML='<option value="">— 作業者を選択してください —</option>'+(arr.length
     ? arr.map(m=>`<option value="${m.id}">${m.name}${m.role?' ('+m.role+')':''}</option>`).join('')
-    : '<option value="">（作業者未登録）</option>';
+    : '');
 }
 function doLogin(role){
   document.getElementById('loginErr').textContent='';
