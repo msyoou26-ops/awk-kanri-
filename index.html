@@ -1312,12 +1312,21 @@ function renderOtherMemberTasks(j){
     const m=getMember(mid); if(!m) continue;
     const mt=(j.memberTasks&&j.memberTasks[mid])||[];
     const mTotal=mt.reduce((a,t)=>a+(parseFloat(t.actual)||0),0);
-    h+=`<div style="margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;opacity:0.85;pointer-events:none;user-select:none">
-      <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px">${m.name} — ${mTotal}h</div>
-      ${mt.map(t=>`<div style="font-size:11px;color:var(--dim);display:flex;justify-content:space-between;padding:2px 0">
-        <span>${t.name||'作業'}</span>
-        <span style="color:${t.status==='done'?'var(--green)':'var(--dim)'};">${t.actual||0}h ${t.status==='done'?'✓':''}</span>
-      </div>`).join('')||'<div style="font-size:11px;color:var(--muted)">未入力</div>'}
+    h+=`<div style="margin-bottom:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">${m.name} <span style="color:var(--dim);font-weight:400">— 合計 ${mTotal}h</span></div>
+      ${mt.length ? `
+        <div style="display:grid;grid-template-columns:1fr 48px 60px;gap:4px;font-size:10px;color:var(--muted);margin-bottom:4px;padding:0 4px">
+          <span>作業内容</span><span style="text-align:right">実績</span><span style="text-align:center">状態</span>
+        </div>
+        ${mt.map(t=>`
+          <div style="display:grid;grid-template-columns:1fr 48px 60px;gap:4px;padding:4px;border-bottom:1px solid rgba(37,42,61,.3);align-items:center">
+            <span style="font-size:12px;color:var(--text)">${t.name||'作業'}</span>
+            <span style="font-size:12px;color:var(--text);text-align:right">${t.actual||0}h</span>
+            <span style="font-size:10px;text-align:center;padding:2px 6px;border-radius:8px;background:${t.status==='done'?'rgba(30,201,122,.15)':t.status==='ongoing'?'rgba(245,158,11,.15)':'var(--surface)'};color:${t.status==='done'?'var(--green)':t.status==='ongoing'?'var(--accent)':'var(--muted)'}">
+              ${t.status==='done'?'完了':t.status==='ongoing'?'進行中':'未着手'}
+            </span>
+          </div>`).join('')}
+      ` : '<div style="font-size:11px;color:var(--muted)">未入力</div>'}
     </div>`;
   }
   h+='</div>';
