@@ -1204,7 +1204,11 @@ function renderProgress(){
   let h='';
   for(const j of filtered){
     const myMid = curMember||session.memberId;
-    const tasks = (j.memberTasks&&j.memberTasks[myMid]) || j.tasks || [];
+    // 自分がこの案件の担当かチェック（新旧両形式対応）
+    const jobMembers = j.memberIds && j.memberIds.length ? j.memberIds
+      : [j.memberId, j.elecMemberId].filter(Boolean);
+    const isMyJob = !isBoss() && jobMembers.includes(myMid);
+    const tasks = isMyJob ? ((j.memberTasks&&j.memberTasks[myMid]) || []) : [];
     const tp=totalH(j),ta=actualH(j);
     const diff=tp-ta;
     const dc=diff>0?'dp':diff<0?'dn':'dz';
@@ -1260,6 +1264,7 @@ function renderProgress(){
       </div>
       ${isOver?`<div style="font-size:10px;color:var(--red);margin-bottom:10px">⚠️ 工数オーバー ${kousuPct}%使用（見積の${Math.round(ta/tp*10)/10}倍）</div>`:''}
       `:''}
+      ${isMyJob ? `
       <div class="pt-section">
         <div class="pt-section-label">✏️ 自分の作業入力</div>
         <div class="pt-header"><span>作業内容</span><span>実績</span><span>状態</span><span></span></div>
@@ -1270,6 +1275,12 @@ function renderProgress(){
         </div>
       </div>
       ${renderOtherMemberTasks(j)}
+      ` : `
+      <div class="pt-section">
+        <div class="pt-section-label">👥 担当者別 作業状況（閲覧のみ）</div>
+        ${renderAllMemberTasks(j)}
+      </div>
+      `}
       ${isBoss()?`<div class="pb-acts">
         <button class="btn small" onclick="openJobModal(null,'${j.id}')">✎ 案件編集</button>
         <button class="btn small ghost" onclick="deleteJob('${j.id}')" style="color:var(--muted)">× 削除</button>
@@ -1302,7 +1313,33 @@ async function undoJobDone(jid){
   showToast('↩ 完成を取り消しました');
 }
 
-function renderOtherMemberTasks(j){
+function renderAllMemberTasks(j){
+  const memberIds = j.memberIds||[j.memberId].filter(Boolean);
+  if(!memberIds.length) return '<div style="font-size:11px;color:var(--muted)">担当者未割当</div>';
+  let h='';
+  for(const mid of memberIds){
+    const m=getMember(mid); if(!m) continue;
+    const mt=(j.memberTasks&&j.memberTasks[mid])||[];
+    const mTotal=mt.reduce((a,t)=>a+(parseFloat(t.actual)||0),0);
+    h+=`<div style="margin-bottom:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">${m.name} <span style="color:var(--dim);font-weight:400">— ${mTotal}h</span></div>
+      ${mt.length ? `
+        <div style="display:grid;grid-template-columns:1fr 48px 60px;gap:4px;font-size:10px;color:var(--muted);margin-bottom:4px;padding:0 4px">
+          <span>作業内容</span><span style="text-align:right">実績</span><span style="text-align:center">状態</span>
+        </div>
+        ${mt.map(t=>`
+          <div style="display:grid;grid-template-columns:1fr 48px 60px;gap:4px;padding:4px;border-bottom:1px solid rgba(37,42,61,.3);align-items:center">
+            <span style="font-size:12px;color:var(--text)">${t.name||'作業'}</span>
+            <span style="font-size:12px;color:var(--text);text-align:right">${t.actual||0}h</span>
+            <span style="font-size:10px;text-align:center;padding:2px 6px;border-radius:8px;background:${t.status==='done'?'rgba(30,201,122,.15)':t.status==='ongoing'?'rgba(245,158,11,.15)':'var(--surface)'};color:${t.status==='done'?'var(--green)':t.status==='ongoing'?'var(--accent)':'var(--muted)'}">
+              ${t.status==='done'?'完了':t.status==='ongoing'?'進行中':'未着手'}
+            </span>
+          </div>`).join('')}
+      ` : '<div style="font-size:11px;color:var(--muted)">未入力</div>'}
+    </div>`;
+  }
+  return h;
+}
   const myMid = curMember||session.memberId;
   const otherIds = (j.memberIds||[j.memberId].filter(Boolean)).filter(mid=>mid!==myMid);
   if(!otherIds.length) return '';
