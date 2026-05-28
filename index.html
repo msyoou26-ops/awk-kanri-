@@ -830,9 +830,9 @@ function membersArr(){ return Object.entries(members).map(([id,m])=>({...m,id}))
 function logsArr(){ return Object.entries(workLogs).map(([id,l])=>({...l,id})).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0)); }
 function getJobsForMember(mid){ 
   return jobsArr().filter(j=>{
-    if(j.memberIds && Array.isArray(j.memberIds)) return j.memberIds.includes(mid);
-    // 後方互換
-    return j.memberId===mid || j.elecMemberId===mid;
+    const ids = j.memberIds && j.memberIds.length ? j.memberIds
+      : [j.memberId, j.elecMemberId].filter(Boolean);
+    return ids.includes(mid);
   }); 
 }
 function totalH(j){ return (j.planH||0); }
@@ -1264,35 +1264,8 @@ function renderProgress(){
       </div>
       ${isOver?`<div style="font-size:10px;color:var(--red);margin-bottom:10px">⚠️ 工数オーバー ${kousuPct}%使用（見積の${Math.round(ta/tp*10)/10}倍）</div>`:''}
       `:''}
-      ${isMyJob ? `
-      <div class="pt-section">
-        <div class="pt-section-label">✏️ 自分の作業入力</div>
-        <div class="pt-header"><span>作業内容</span><span>実績</span><span>状態</span><span></span></div>
-        ${tr}
-        <div class="pt-footer">
-          <button class="btn small" onclick="addTask('${j.id}')">＋ 追加</button>
-          <button class="btn small" onclick="addDefaultTasks('${j.id}')">テンプレ</button>
-        </div>
-      </div>
-      ${renderOtherMemberTasks(j)}
-      ` : `
-      <div class="pt-section">
-        <div class="pt-section-label">👥 担当者別 作業状況（閲覧のみ）</div>
-        ${renderAllMemberTasks(j)}
-      </div>
-      `}
-      ${isBoss()?`<div class="pb-acts">
-        <button class="btn small" onclick="openJobModal(null,'${j.id}')">✎ 案件編集</button>
-        <button class="btn small ghost" onclick="deleteJob('${j.id}')" style="color:var(--muted)">× 削除</button>
-      </div>`:`<div class="pb-acts">
-        ${j.status!=='done'
-          ?`<button class="btn primary" style="flex:1;padding:12px;font-size:14px" onclick="markJobDone('${j.id}')">🎉 完成にする</button>`
-          :`<div style="display:flex;gap:8px;width:100%">
-              <div style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--green);font-weight:700">✅ 完成済み</div>
-              <button class="btn small" style="color:var(--muted);font-size:11px" onclick="undoJobDone('${j.id}')">↩ 完成取り消し</button>
-            </div>`
-        }
-      </div>`}
+      ${renderTaskSection(j, isMyJob, tr)}
+      ${renderJobActions(j)}
     </div>`;
   }
   c.innerHTML=h;
@@ -1311,6 +1284,41 @@ async function undoJobDone(jid){
   await dbSet(`jobs/${jid}/status`,'ongoing');
   if(!fbReady){ jobs[jid].status='ongoing'; renderProgress(); renderOverview(); renderDashboard(); }
   showToast('↩ 完成を取り消しました');
+}
+
+function renderTaskSection(j, isMyJob, tr) {
+  if(isMyJob) {
+    return '<div class="pt-section">'
+      + '<div class="pt-section-label">✏️ 自分の作業入力</div>'
+      + '<div class="pt-header"><span>作業内容</span><span>実績</span><span>状態</span><span></span></div>'
+      + tr
+      + '<div class="pt-footer">'
+      + '<button class="btn small" onclick="addTask(\'' + j.id + '\')">＋ 追加</button>'
+      + '<button class="btn small" onclick="addDefaultTasks(\'' + j.id + '\')">テンプレ</button>'
+      + '</div></div>'
+      + renderOtherMemberTasks(j);
+  } else {
+    return '<div class="pt-section">'
+      + '<div class="pt-section-label">👥 担当者別 作業状況（閲覧のみ）</div>'
+      + renderAllMemberTasks(j)
+      + '</div>';
+  }
+}
+
+function renderJobActions(j) {
+  if(isBoss()) {
+    return '<div class="pb-acts">'
+      + '<button class="btn small" onclick="openJobModal(null,\'' + j.id + '\')">✎ 案件編集</button>'
+      + '<button class="btn small ghost" onclick="deleteJob(\'' + j.id + '\')" style="color:var(--muted)">× 削除</button>'
+      + '</div>';
+  }
+  if(j.status !== 'done') {
+    return '<div class="pb-acts"><button class="btn primary" style="flex:1;padding:12px;font-size:14px" onclick="markJobDone(\'' + j.id + '\')">🎉 完成にする</button></div>';
+  }
+  return '<div class="pb-acts"><div style="display:flex;gap:8px;width:100%">'
+    + '<div style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--green);font-weight:700">✅ 完成済み</div>'
+    + '<button class="btn small" style="color:var(--muted);font-size:11px" onclick="undoJobDone(\'' + j.id + '\')">↩ 完成取り消し</button>'
+    + '</div></div>';
 }
 
 function renderAllMemberTasks(j){
@@ -1340,6 +1348,8 @@ function renderAllMemberTasks(j){
   }
   return h;
 }
+
+function renderOtherMemberTasks(j){
   const myMid = curMember||session.memberId;
   const otherIds = (j.memberIds||[j.memberId].filter(Boolean)).filter(mid=>mid!==myMid);
   if(!otherIds.length) return '';
