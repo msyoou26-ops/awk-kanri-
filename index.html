@@ -671,6 +671,14 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
 <div class="modal-bg" id="jobModal">
   <div class="modal">
     <div class="modal-hdr"><h2 id="jmTitle">案件追加</h2><button class="modal-close" onclick="closeJobModal()">✕</button></div>
+    <!-- 指示書読み取りボタン -->
+    <div style="margin-bottom:14px">
+      <label style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface2);border:1.5px dashed var(--border2);border-radius:12px;padding:13px;cursor:pointer;font-size:13px;color:var(--accent);font-weight:700;transition:all .2s" id="scanLabel">
+        📷 架装日程指示書を撮影して自動入力
+        <input type="file" accept="image/*" id="scanInput" style="display:none" onchange="scanInstruction(this)">
+      </label>
+      <div id="scanStatus" style="font-size:11px;color:var(--dim);text-align:center;margin-top:6px;min-height:16px"></div>
+    </div>
     <div class="f-row">
       <div class="field"><label>オーダーNo.</label><input type="text" id="fOrd" placeholder=""></div>
       <div class="field"><label>車種</label>
@@ -2096,6 +2104,98 @@ async function runPaste(){
     box.classList.add('show');
   }catch(e){box.innerHTML='エラー: '+e.message;box.classList.add('show');}
   btn.disabled=false; btn.innerHTML='📊 貼り付けデータを分析';
+}
+
+// ===== 指示書スキャン =====
+async function scanInstruction(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const status = document.getElementById('scanStatus');
+  const label = document.getElementById('scanLabel');
+  status.textContent = '📖 読み取り中...';
+  label.style.opacity = '0.6';
+
+  // 画像をbase64に変換
+  const base64 = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('読み込み失敗'));
+    r.readAsDataURL(file);
+  });
+
+  const prompt = `この架装日程指示書の画像から以下の情報を読み取ってください。
+
+抽出する項目：
+1. 受注No（「受注No」「架装No」「C/#No」などのラベルの横の値）
+2. 架装名（「架装名称」「架装内容」などのラベルの横の値）
+3. 車種（型式・車種名、例：E26、キャラバンなど）
+4. トリム工数（「トリム」の行にある合計工数の時間数、単位はH）
+
+必ずJSON形式のみで返答してください。他の文章は一切不要です：
+{"orderNo":"","jobName":"","carType":"","planH":""}
+
+値が読み取れない場合はその項目を空文字にしてください。planHは数値のみ（例：95）。`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: file.type||'image/jpeg', data: base64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = extractAiText(data);
+    // JSONパース
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+
+    // フィールドに自動入力
+    let filled = [];
+    if(parsed.orderNo) { document.getElementById('fOrd').value = parsed.orderNo; filled.push('受注No'); }
+    if(parsed.jobName) {
+      // テンプレに一致するか確認
+      const nameTpls = getTemplates('jobName');
+      if(nameTpls.includes(parsed.jobName)) {
+        document.getElementById('fName').value = parsed.jobName;
+        document.getElementById('fNameManual').style.display = 'none';
+      } else {
+        document.getElementById('fName').value = '__manual__';
+        document.getElementById('fNameManual').style.display = 'block';
+        document.getElementById('fNameManual').value = parsed.jobName;
+      }
+      filled.push('架装名');
+    }
+    if(parsed.carType) {
+      const carTpls = getTemplates('carType');
+      if(carTpls.includes(parsed.carType)) {
+        document.getElementById('fCar').value = parsed.carType;
+        document.getElementById('fCarManual').style.display = 'none';
+      } else {
+        document.getElementById('fCar').value = '__manual__';
+        document.getElementById('fCarManual').style.display = 'block';
+        document.getElementById('fCarManual').value = parsed.carType;
+      }
+      filled.push('車種');
+    }
+    if(parsed.planH) { document.getElementById('fPlan').value = parsed.planH; filled.push('見積工数'); }
+
+    status.style.color = 'var(--green)';
+    status.textContent = filled.length ? `✅ 読み取り完了：${filled.join('・')}` : '⚠️ 読み取れませんでした。手動で入力してください';
+  } catch(e) {
+    status.style.color = 'var(--red)';
+    status.textContent = '❌ 読み取り失敗：' + e.message;
+  }
+  label.style.opacity = '1';
+  input.value = ''; // 同じファイルを再選択できるようリセット
 }
 
 // ===== JOB MODAL =====
