@@ -685,11 +685,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
       <div class="field"><label>オーダーNo.</label><input type="text" id="fOrd" placeholder=""></div>
       <div class="field"><label>ユーザー名</label><input type="text" id="fUser" placeholder="例: 京都市消防局"></div>
     </div>
-        <select id="fCar" onchange="toggleManual('fCar','fCarManual')">
-          <option value="">選択</option>
-        </select>
-        <input type="text" id="fCarManual" placeholder="車種を入力" style="display:none;margin-top:6px;width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:12px;border-radius:10px;font-size:14px;outline:none">
-      </div>
+    <div class="field"><label>車種</label>
+      <select id="fCar" onchange="toggleManual('fCar','fCarManual')">
+        <option value="">選択</option>
+      </select>
+      <input type="text" id="fCarManual" placeholder="車種を入力" style="display:none;margin-top:6px;width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:12px;border-radius:10px;font-size:14px;outline:none">
     </div>
     <div class="field"><label>架装名 *</label>
       <select id="fName" onchange="toggleManual('fName','fNameManual')">
@@ -2100,6 +2100,7 @@ function openJobModal(memberId,jobId){
   if(jobId){
     const j=jobs[jobId];
     document.getElementById('fOrd').value=j.orderNo||'';
+    document.getElementById('fUser').value=j.userName||'';
     const carTpls=getTemplates('carType');
     if(j.carType&&carTpls.includes(j.carType)){
       document.getElementById('fCar').value=j.carType;
@@ -2127,7 +2128,7 @@ function openJobModal(memberId,jobId){
     if(ids.length) ids.forEach(id=>addAssignRow(id));
     else addAssignRow();
   } else {
-    ['fOrd','fStart','fEnd','fPlan','fMemo'].forEach(id=>document.getElementById(id).value='');
+    ['fOrd','fUser','fStart','fEnd','fPlan','fMemo'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('fCar').value='';
     document.getElementById('fCarManual').style.display='none';
     document.getElementById('fCarManual').value='';
@@ -2154,6 +2155,7 @@ async function saveJob(){
   const memberIds = getAssignedMemberIds();
   const data={
     orderNo:document.getElementById('fOrd').value.trim(),
+    userName:document.getElementById('fUser').value.trim(),
     carType, name, start, end,
     planH:parseFloat(document.getElementById('fPlan').value)||0,
     memberIds,
