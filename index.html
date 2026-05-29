@@ -888,7 +888,7 @@ function populateWorkerSelect(){
   const sel=document.getElementById('workerSelect');
   const arr=membersArr();
   sel.innerHTML='<option value="">— 作業者を選択してください —</option>'+(arr.length
-    ? arr.map(m=>`<option value="${m.id}">${m.name}${m.role?' ('+m.role+')':''}</option>`).join('')
+    ? arr.map(m=>`<option value="${m.id}">${m.name.replace(/\s+/g,' ')}${m.role?' ('+m.role.replace(/\s+/g,' ')+')':''}</option>`).join('')
     : '');
 }
 function doLogin(role){
