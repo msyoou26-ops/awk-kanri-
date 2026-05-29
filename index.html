@@ -362,6 +362,16 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         <div class="hc-title">設定</div>
         <div class="hc-desc">車種・架装名マスタ管理</div>
       </div>
+      <!-- ★ 案件追加カード（全幅） -->
+      <div class="home-card" onclick="openJobModal(null,null)"
+           style="grid-column:span 2;display:flex;flex-direction:row;align-items:center;gap:16px;padding:16px 20px;border-color:rgba(240,165,0,.35);background:linear-gradient(135deg,rgba(240,165,0,.08),rgba(240,165,0,.03))">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(240,165,0,.15);border:1.5px solid rgba(240,165,0,.4);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">＋</div>
+        <div style="flex:1;min-width:0">
+          <div class="hc-title" style="font-size:16px;color:var(--accent)">案件追加</div>
+          <div class="hc-desc" style="margin-top:3px">新規架装案件を登録する</div>
+        </div>
+        <div style="color:var(--accent);font-size:20px;opacity:.5;flex-shrink:0">›</div>
+      </div>
     </div>
     <div id="homeAlerts"></div>
     <div class="section-lbl">👷 作業者
@@ -838,11 +848,9 @@ function getJobsForMember(mid){
 }
 function totalH(j){ return (j.planH||0); }
 function actualH(j){ 
-  // 全担当者の工程実績を合算
   let total = j.actH||0;
   const allTasks = [];
   if(j.tasks) allTasks.push(...j.tasks);
-  // 担当者ごとのタスク
   (j.memberIds||[]).forEach(mid => {
     const mt = j.memberTasks && j.memberTasks[mid];
     if(mt) allTasks.push(...mt);
@@ -1007,7 +1015,6 @@ function renderWorkerHome(){
     <div class="whs"><div class="whs-n" style="color:var(--accent2)">${on}</div><div class="whs-l">施工中</div></div>
     <div class="whs"><div class="whs-n" style="color:var(--green)">${dn}</div><div class="whs-l">完成</div></div>
     <div class="whs"><div class="whs-n" style="color:#f472b6">${tp}h</div><div class="whs-l">工数</div></div>`;
-  // アラート
   const t=new Date(); t.setHours(0,0,0,0);
   const dl=mj.filter(j=>j.status!=='done'&&j.end&&Math.ceil((new Date(j.end)-t)/86400000)<=7)
     .map(j=>({...j,dl:Math.ceil((new Date(j.end)-t)/86400000)})).sort((a,b)=>a.dl-b.dl);
@@ -1075,7 +1082,6 @@ function renderOverview(){
     const m=getMember(j.memberId);
     const tp=totalH(j), ta=actualH(j);
     const isDone = j.status==='done';
-    // 全体ビューは工数使用率ベース（完成は100%緑固定）
     const pct = isDone ? 100 : tp>0 ? Math.min(Math.round(ta/tp*100), 100) : 0;
     const bc = isDone ? '#1ec97a' : pct>=100?'#f04040':pct>=80?'#f59e0b':'#1ec97a';
     const dl=j.end?daysLeft(j.end):999;
@@ -1205,7 +1211,6 @@ function renderProgress(){
   let h='';
   for(const j of filtered){
     const myMid = curMember||session.memberId;
-    // 自分がこの案件の担当かチェック（新旧両形式対応）
     const jobMembers = j.memberIds && j.memberIds.length ? j.memberIds
       : [j.memberId, j.elecMemberId].filter(Boolean);
     const isMyJob = !isBoss() && jobMembers.includes(myMid);
@@ -1214,10 +1219,8 @@ function renderProgress(){
     const diff=tp-ta;
     const dc=diff>0?'dp':diff<0?'dn':'dz';
     const ds=diff>0?`残${diff}h`:diff<0?`超過 +${Math.abs(diff)}h`:'±0';
-
-    // 工数バー：実績÷見積（オーバーしたら赤くはみ出す表現）
     const kousuPct = tp>0 ? Math.round(ta/tp*100) : 0;
-    const barWidth = Math.min(kousuPct, 100); // バー自体は100%まで
+    const barWidth = Math.min(kousuPct, 100);
     const barColor = kousuPct>=100 ? '#f04040' : kousuPct>=80 ? '#f59e0b' : '#1ec97a';
     const isOver = tp>0 && ta>tp;
     let tr='';
@@ -1387,7 +1390,6 @@ async function addTask(jid){
   const mt=(j.memberTasks&&j.memberTasks[mid])||[];
   mt.push({id:uid(),name:'',actual:0,status:'planned'});
   await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);
-  // 後方互換でtasksにも保存
   await dbSet(`jobs/${jid}/tasks`,mt);
   if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}
 }
@@ -1427,12 +1429,10 @@ function populateLogJobSelect(){
   const mj = getJobsForMember(mid).filter(j => j.status !== 'done');
   sel.innerHTML = '<option value="">— 案件を選択 —</option>' +
     mj.map(j => `<option value="${j.id}">${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）</option>`).join('');
-  // 施工中が1件だけなら自動選択
   const ongoing = mj.filter(j => j.status === 'ongoing');
   if(ongoing.length === 1) sel.value = ongoing[0].id;
 }
 const CAUSE_QC_MAP = {
-  // 作業効率・工数
   '作業手順のバラツキ':     { qc:'標準化', icon:'📋', color:'#f59e0b' },
   '経験による工数差':       { qc:'標準化', icon:'📋', color:'#f59e0b' },
   '工程の抜け・やり直し':   { qc:'手戻り削減', icon:'🔄', color:'#f04040' },
@@ -1440,14 +1440,12 @@ const CAUSE_QC_MAP = {
   '工具の共有待ち':         { qc:'設備改善', icon:'🔧', color:'#8b5cf6' },
   '技術力不足':             { qc:'教育・訓練', icon:'📚', color:'#3b7ff5' },
   '段取り・準備不足':       { qc:'段取り改善', icon:'⚙️', color:'#f59e0b' },
-  // 管理・情報
   '図面が見つからない':     { qc:'図面管理', icon:'📐', color:'#f59e0b' },
   '図面の指示が不明確':     { qc:'図面管理', icon:'📐', color:'#f59e0b' },
   '手順書・マニュアル不足': { qc:'標準化', icon:'📋', color:'#f59e0b' },
   '熟練者への質問・指示待ち':{ qc:'教育・訓練', icon:'📚', color:'#3b7ff5' },
   '情報伝達ミス':           { qc:'情報共有', icon:'📢', color:'#3b7ff5' },
   '部品・材料の手配遅れ':   { qc:'調達管理', icon:'📦', color:'#1ec97a' },
-  // 設備・環境
   '設備・機器トラブル':     { qc:'設備保全', icon:'🔧', color:'#8b5cf6' },
   '作業スペース不足':       { qc:'5S・レイアウト', icon:'🏭', color:'#8b5cf6' },
   '部品・在庫切れ':         { qc:'調達管理', icon:'📦', color:'#1ec97a' },
@@ -1507,7 +1505,6 @@ function updateQcPreview() {
   }
 }
 
-// 工数バラツキ計算（未使用）
 function setupVarianceCalc() {}
 function calcVariance() {}
 
@@ -1521,7 +1518,6 @@ function resetCausePicker() {
   updateQcPreview();
 }
 
-// タイマー・カウンター（簡略化により未使用）
 function cc(){}
 function startTimer(){}
 function stopTimer(){}
@@ -1537,8 +1533,6 @@ async function saveWorkLog(){
 
   const j = jobs[jobId];
   const vehicleLabel = j ? `${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）` : '不明';
-
-  // QCテーマ自動判定
   const qcThemes = [...new Set(selectedCauses.map(c=>CAUSE_QC_MAP[c]?.qc).filter(Boolean))];
 
   const log = {
@@ -1628,23 +1622,19 @@ function renderQcStat(){
   const logs=logsArr();
   if(!logs.length){document.getElementById('qcStatContent').innerHTML='<div class="empty-msg">データがありません</div>';return;}
 
-  // QCテーマ集計
   const qcCount={};
   logs.forEach(l=>(l.qcThemes||[]).forEach(t=>{qcCount[t]=(qcCount[t]||0)+1;}));
   const qcEntries=Object.entries(qcCount).sort((a,b)=>b[1]-a[1]);
   const maxQc=qcEntries[0]?qcEntries[0][1]:1;
 
-  // 原因集計
   const causeCount={};
   logs.forEach(l=>(l.causes||[]).forEach(c=>{causeCount[c]=(causeCount[c]||0)+1;}));
   const causeEntries=Object.entries(causeCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const maxC=causeEntries[0]?causeEntries[0][1]:1;
 
-  // 月別ログ
   const byM=Array(12).fill(0);
   logs.forEach(l=>{if(l.date){const m=parseInt(l.date.split('-')[1],10)-1;if(m>=0&&m<12)byM[m]++;}});
 
-  // 作業者別ロス
   const memberLoss={};
   logs.forEach(l=>{
     if(!memberLoss[l.memberName])memberLoss[l.memberName]={loss:0,cnt:0,q:0,r:0};
@@ -1657,8 +1647,6 @@ function renderQcStat(){
   const qcColors={'標準化':'#f59e0b','手戻り削減':'#f04040','5S・定位置化':'#f04040','設備改善':'#8b5cf6','教育・訓練':'#3b7ff5','段取り改善':'#f59e0b','図面管理':'#f59e0b','情報共有':'#3b7ff5','調達管理':'#1ec97a','設備保全':'#8b5cf6','5S・レイアウト':'#8b5cf6','工程改善':'#1ec97a'};
 
   document.getElementById('qcStatContent').innerHTML=`
-
-    <!-- QCテーマ自動集計 -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;border-left:3px solid var(--accent);padding-left:8px">🎯 QCテーマ 自動集計</div>
       <div style="font-size:10px;color:var(--dim);margin-bottom:12px">ロス原因から自動判定されたQC改善テーマ（件数＝蓄積された根拠データ数）</div>
@@ -1673,7 +1661,6 @@ function renderQcStat(){
       :'<div style="font-size:12px;color:var(--dim)">ログを記録するとQCテーマが自動集計されます</div>'}
     </div>
 
-    <!-- ロス原因パレート -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;border-left:3px solid var(--accent);padding-left:8px">⚠️ ロス原因 パレート</div>
       <div style="font-size:10px;color:var(--dim);margin-bottom:12px">多い順に並べた原因一覧（上から優先的に改善）</div>
@@ -1691,7 +1678,6 @@ function renderQcStat(){
       }).join(''):'<div style="font-size:12px;color:var(--dim)">原因記録なし</div>'}
     </div>
 
-    <!-- 月別 -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--accent);margin-bottom:12px;border-left:3px solid var(--accent);padding-left:8px">📅 月別ログ件数</div>
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px">
@@ -1702,7 +1688,6 @@ function renderQcStat(){
       </div>
     </div>
 
-    <!-- 作業者別 -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--accent);margin-bottom:12px;border-left:3px solid var(--accent);padding-left:8px">👷 作業者別 サマリー</div>
       ${Object.entries(memberLoss).map(([name,v])=>`
@@ -1713,7 +1698,6 @@ function renderQcStat(){
           </div>
           <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px">
             <span>ロス <strong style="color:var(--red)">${v.loss}分</strong></span>
-            <span></span>
             <span>質問 <strong>${v.q}回</strong></span>
             <span>手戻り <strong>${v.r}件</strong></span>
           </div>
@@ -1750,22 +1734,18 @@ async function onJobCompleted(jobId) {
   const tp = totalH(j), ta = actualH(j);
   const isOver = tp > 0 && ta > tp;
 
-  // 同じ架装名の過去完成案件を取得
   const sameType = jobsArr().filter(jj =>
     jj.id !== jobId && jj.status === 'done' &&
     jj.name === j.name
   );
 
-  // この案件のログを取得
   const jobLogs = logsArr().filter(l => l.vehicleLabel && l.vehicleLabel.includes(j.name));
 
-  // 工数オーバーしてない場合は簡易通知のみ
   if(!isOver && sameType.length === 0) {
     showToast(`✅ ${j.name} 完成！`);
     return;
   }
 
-  // モーダル表示してAI分析開始
   document.getElementById('completionModal').classList.add('open');
   document.getElementById('completionModalContent').innerHTML = `
     <div style="text-align:center;padding:24px;color:var(--dim)">
@@ -1773,12 +1753,10 @@ async function onJobCompleted(jobId) {
       <div style="font-size:13px">「${j.name}」の完成データを分析中...</div>
     </div>`;
 
-  // 過去同種の平均工数
   const avgPastH = sameType.length
     ? Math.round(sameType.reduce((a,jj)=>a+actualH(jj),0)/sameType.length*10)/10
     : null;
 
-  // ロス原因集計
   const causeMap = {};
   jobLogs.forEach(l => (l.causes||[]).forEach(c => { causeMap[c]=(causeMap[c]||0)+1; }));
   const topCauses = Object.entries(causeMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k}(${v}件)`).join('、');
@@ -1794,13 +1772,10 @@ async function onJobCompleted(jobId) {
 ・工数オーバー: ${isOver ? `+${Math.round((ta-tp)*10)/10}h（${Math.round((ta-tp)/tp*100)}%超過）` : 'なし'}
 ${avgPastH ? `・同じ架装の過去平均実績: ${avgPastH}h（${sameType.length}件分）` : ''}
 ${topCauses ? `・今回記録されたロス原因: ${topCauses}` : ''}
-${jobLogs.length ? `・作業ログ件数: ${jobLogs.length}件、質問合計: ${jobLogs.reduce((a,l)=>a+l.q,0)}回、手戻り合計: ${jobLogs.reduce((a,l)=>a+l.r,0)}件` : ''}
-
-【作業工程の実績】
-${(j.tasks||[]).map(t=>`・${t.name}: ${t.actual||0}h（${t.status==='done'?'完了':'未完了'}）`).join('\n')||'工程データなし'}
+${jobLogs.length ? `・作業ログ件数: ${jobLogs.length}件` : ''}
 
 以下の点を日本語で簡潔に分析してください：
-1. ${isOver ? '⚠️ 工数オーバーの主な要因（いつもと違った点）' : '✅ 工数の状況'}
+1. ${isOver ? '⚠️ 工数オーバーの主な要因' : '✅ 工数の状況'}
 2. 🔍 今回特に時間がかかった工程とその理由の推定
 ${sameType.length ? `3. 📊 過去${sameType.length}件と比較して今回の特徴` : '3. 📊 今回のデータの特徴'}
 4. 💡 次回同じ架装をする際の改善ポイント（具体的に）
@@ -1817,7 +1792,6 @@ ${sameType.length ? `3. 📊 過去${sameType.length}件と比較して今回の
     const text = extractAiText(data) || 'エラーが発生しました';
     const formatted = text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--accent)">$1</strong>');
 
-    // Firebase/localStorageに保存
     const record = {
       jobId, jobName:j.name, carType:j.carType||'',
       completedAt: new Date().toISOString().split('T')[0],
@@ -1859,7 +1833,6 @@ function renderTypeStats() {
     document.getElementById('typeStatCards').innerHTML = '<div class="empty-msg">完成案件がまだありません</div>';
     return;
   }
-  // 架装名でグループ化
   const groups = {};
   done.forEach(j => {
     const key = j.name;
@@ -1879,7 +1852,6 @@ function renderTypeStats() {
     const maxH = actHs.length ? Math.max(...actHs) : 0;
     const spread = maxH - minH;
 
-    // 関連ロス原因集計
     const relLogs = logsArr().filter(l => l.vehicleLabel && l.vehicleLabel.includes(name));
     const causeMap = {};
     relLogs.forEach(l => (l.causes||[]).forEach(c => { causeMap[c]=(causeMap[c]||0)+1; }));
@@ -1930,7 +1902,6 @@ async function runTypeAi() {
   btn.innerHTML = '<div class="loading-ring"></div> 分析中...';
   box.classList.remove('show');
 
-  // 種別ごとにデータ集計
   const groups = {};
   done.forEach(j => {
     const key = j.name;
@@ -1981,7 +1952,6 @@ ${summary}
 // ===== 完成分析 履歴 =====
 let completionAnalyses = {};
 function renderCompletionHistory() {
-  // Firebase or localStorage から履歴取得
   const analyses = Object.entries(completionAnalyses)
     .map(([id,a])=>({...a,id}))
     .sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
@@ -2126,7 +2096,6 @@ function openJobModal(memberId,jobId){
   editJobId=jobId||null;
   document.getElementById('jmTitle').textContent=jobId?'案件編集':'案件追加';
   buildSuggestDatalist();
-  // 担当者リストリセット
   document.getElementById('fAssignList').innerHTML='';
   if(jobId){
     const j=jobs[jobId];
@@ -2154,7 +2123,6 @@ function openJobModal(memberId,jobId){
     document.getElementById('fPlan').value=j.planH||'';
     document.getElementById('fStatus').value=j.status||'planned';
     document.getElementById('fMemo').value=j.memo||'';
-    // 担当者復元（新形式 or 旧形式）
     const ids = j.memberIds||[j.memberId,j.elecMemberId].filter(Boolean);
     if(ids.length) ids.forEach(id=>addAssignRow(id));
     else addAssignRow();
@@ -2189,7 +2157,7 @@ async function saveJob(){
     carType, name, start, end,
     planH:parseFloat(document.getElementById('fPlan').value)||0,
     memberIds,
-    memberId: memberIds[0]||null, // 後方互換
+    memberId: memberIds[0]||null,
     status:document.getElementById('fStatus').value,
     memo:document.getElementById('fMemo').value.trim()
   };
@@ -2209,7 +2177,6 @@ async function saveJob(){
 }
 async function deleteJob(id){
   const j=jobs[id];if(!j)return;
-  
   await dbRemove(`jobs/${id}`);
   showToast('削除しました'); refreshCurrentScreen();
 }
@@ -2237,7 +2204,6 @@ async function saveMember(){
 }
 async function deleteMember(id){
   const m=members[id];if(!m)return;
-  
   await dbRemove(`members/${id}`);
   showToast('削除しました');
 }
@@ -2284,7 +2250,6 @@ function removeTemplate(key,idx){
   showToast('削除しました');
 }
 function buildSuggestDatalist(){
-  // 車種セレクト
   const cars = getTemplates('carType');
   const carSel = document.getElementById('fCar');
   if(carSel){
@@ -2294,7 +2259,6 @@ function buildSuggestDatalist(){
       '<option value="__manual__">✏️ 手入力する</option>';
     if(curVal) carSel.value = curVal;
   }
-  // 架装名セレクト
   const jobs2 = getTemplates('jobName');
   const nameSel = document.getElementById('fName');
   if(nameSel){
@@ -2341,7 +2305,6 @@ function extractAiText(data) {
 
 // ===== INIT =====
 initFirebase();
-// ログタブが開かれたときに原因ピッカーを初期化
 const _origShowMemberTab = showMemberTab;
 window.showMemberTab = function(tab) {
   _origShowMemberTab(tab);
