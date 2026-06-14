@@ -678,7 +678,7 @@ const INDIRECT_TYPES=[
   {key:'admin',icon:'📋',label:'書類・事務処理'},
   {key:'other',icon:'📌',label:'その他'},
 ];
-let db,jobs={},members={},workLogs={},nippoLogs={},completionAnalyses={};
+let db,jobs={},members={},workLogs={},nippoLogs={},completionAnalyses={},cloudTemplates={},cloudBossPass=null;
 let curMember=null,editJobId=null,editMemberId=null;
 let curYear=today.getFullYear(),curMonth=today.getMonth();
 let pbFilter='all',loginTab='boss';
@@ -698,6 +698,8 @@ function initFirebase(){
     db.ref('workLogs').on('value',snap=>{workLogs=snap.val()||{};refreshCurrentScreen();});
     db.ref('nippoLogs').on('value',snap=>{nippoLogs=snap.val()||{};refreshCurrentScreen();});
     db.ref('completionAnalyses').on('value',snap=>{completionAnalyses=snap.val()||{};});
+    db.ref('settings/templates').on('value',snap=>{cloudTemplates=snap.val()||{};refreshCurrentScreen();if(document.getElementById('settingsScreen')&&document.getElementById('settingsScreen').classList.contains('active'))renderSettings();});
+    db.ref('settings/bossPassword').on('value',snap=>{const v=snap.val();if(v){cloudBossPass=v;bossPassword=v;}});
   }catch(e){useFallback();}
 }
 function useFallback(){
@@ -775,7 +777,8 @@ function populateWorkerSelect(){
 function doLogin(role){
   document.getElementById('loginErr').textContent='';
   if(role==='boss'){
-    if(document.getElementById('bossPass').value===bossPassword){session={role:'boss',memberId:null};document.getElementById('bossPass').value='';showScreen('homeScreen');}
+    const checkPass=cloudBossPass!==null?cloudBossPass:bossPassword;
+    if(document.getElementById('bossPass').value===checkPass){session={role:'boss',memberId:null};document.getElementById('bossPass').value='';showScreen('homeScreen');}
     else{document.getElementById('loginErr').textContent='パスワードが違います';document.getElementById('bossPass').value='';}
   }else{
     const mid=document.getElementById('workerSelect').value;
@@ -784,7 +787,15 @@ function doLogin(role){
   }
 }
 function doLogout(){session={role:null,memberId:null};curMember=null;document.getElementById('bossPass').value='';switchLoginTab('boss');showScreen('loginScreen');}
-function changePassword(){const np=document.getElementById('newPass').value.trim();if(!np){showToast('パスワードを入力してください');return;}bossPassword=np;localStorage.setItem('awk_boss_pass',np);document.getElementById('newPass').value='';showToast('パスワードを変更しました');}
+function changePassword(){
+  const np=document.getElementById('newPass').value.trim();
+  if(!np){showToast('パスワードを入力してください');return;}
+  bossPassword=np;
+  localStorage.setItem('awk_boss_pass',np);
+  if(fbReady){try{db.ref('settings/bossPassword').set(np);}catch(e){}}
+  document.getElementById('newPass').value='';
+  showToast('パスワードを変更しました（全端末で共有されます）');
+}
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -1294,8 +1305,15 @@ const TPL_KEYS={carType:'awk_tpl_car',jobName:'awk_tpl_job',taskTpl:'awk_tpl_tas
 const TPL_LIST_IDS={carType:'carTypeList',jobName:'jobNameList',taskTpl:'taskTplList'};
 const TPL_INPUT_IDS={carType:'carTypeInput',jobName:'jobNameInput',taskTpl:'taskTplInput'};
 const DEFAULT_TPL={carType:[],jobName:[],taskTpl:['電装配線','外装・板金','艤装・取付','塗装','溶接','内装仕上げ','検査・確認']};
-function getTemplates(key){try{const s=localStorage.getItem(TPL_KEYS[key]);return s?JSON.parse(s):[...DEFAULT_TPL[key]];}catch(e){return[...DEFAULT_TPL[key]];}}
-function saveTemplates(key,arr){localStorage.setItem(TPL_KEYS[key],JSON.stringify(arr));if(fbReady)try{db.ref('settings/templates/'+key).set(arr);}catch(e){}}
+function getTemplates(key){
+  if(fbReady&&cloudTemplates&&cloudTemplates[key]!==undefined)return cloudTemplates[key]||[];
+  try{const s=localStorage.getItem(TPL_KEYS[key]);return s?JSON.parse(s):[...DEFAULT_TPL[key]];}catch(e){return[...DEFAULT_TPL[key]];}
+}
+function saveTemplates(key,arr){
+  localStorage.setItem(TPL_KEYS[key],JSON.stringify(arr));
+  cloudTemplates[key]=arr;
+  if(fbReady){try{db.ref('settings/templates/'+key).set(arr);}catch(e){}}
+}
 function renderSettings(){['carType','jobName','taskTpl'].forEach(k=>renderTemplateList(k));}
 function renderTemplateList(key){const arr=getTemplates(key);const el=document.getElementById(TPL_LIST_IDS[key]);if(!el)return;el.innerHTML=arr.length?arr.map((v,i)=>`<div class="tag-item"><span>${v}</span><button class="tag-del" onclick="removeTemplate('${key}',${i})">✕</button></div>`).join(''):'<div style="font-size:12px;color:var(--muted)">未登録</div>';}
 function addTemplate(key){const val=document.getElementById(TPL_INPUT_IDS[key]).value.trim();if(!val)return;const arr=getTemplates(key);if(arr.includes(val)){showToast('すでに登録済みです');return;}arr.push(val);saveTemplates(key,arr);document.getElementById(TPL_INPUT_IDS[key]).value='';renderTemplateList(key);showToast('追加しました！');}
