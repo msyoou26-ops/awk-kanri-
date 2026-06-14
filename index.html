@@ -397,21 +397,21 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
           <button id="btnModeIndirect" onclick="setLogMode('indirect')" style="background:transparent;border:none;color:var(--dim);padding:11px 8px;font-size:13px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:500">🔄 間接作業</button>
         </div>
         <div id="directArea">
-          <div style="font-size:11px;color:var(--dim);margin-bottom:6px">対象案件 <span style="color:var(--red)">*</span></div>
-          <select id="nippoJobSelect" style="width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);padding:12px;border-radius:10px;font-size:14px;outline:none;margin-bottom:14px"><option value="">— 案件を選択 —</option></select>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:8px">作業した案件と時間を入力（複数案件OK） <span style="color:var(--red)">*</span></div>
+          <div id="nippoJobList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
         </div>
         <div id="indirectArea" style="display:none">
           <div style="font-size:11px;color:var(--dim);margin-bottom:8px">間接作業の種類 <span style="color:var(--red)">*</span></div>
           <div id="indirectChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
-        </div>
-        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">作業時間 <span style="color:var(--red)">*</span></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-          <div style="display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:10px;overflow:hidden;flex:1">
-            <button onclick="changeHour(-0.5)" style="background:var(--surface2);border:none;color:var(--accent);font-size:22px;font-weight:700;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
-            <input id="hourVal" type="number" min="0.01" step="0.01" value="0.5" inputmode="decimal" style="flex:1;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);background:transparent;border:none;outline:none;padding:0 8px">
-            <button onclick="changeHour(0.5)" style="background:var(--surface2);border:none;color:var(--accent);font-size:22px;font-weight:700;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">＋</button>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:8px">作業時間 <span style="color:var(--red)">*</span></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:10px;overflow:hidden;flex:1">
+              <button onclick="changeHour(-0.5)" style="background:var(--surface2);border:none;color:var(--accent);font-size:22px;font-weight:700;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
+              <input id="hourVal" type="number" min="0.01" step="0.01" value="0.5" inputmode="decimal" style="flex:1;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);background:transparent;border:none;outline:none;padding:0 8px">
+              <button onclick="changeHour(0.5)" style="background:var(--surface2);border:none;color:var(--accent);font-size:22px;font-weight:700;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">＋</button>
+            </div>
+            <div style="font-size:13px;color:var(--dim)">時間</div>
           </div>
-          <div style="font-size:13px;color:var(--dim)">時間</div>
         </div>
         <div style="font-size:11px;color:var(--dim);margin-bottom:8px">残業時間（定時 8:00〜17:00 / 任意入力）</div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
@@ -805,7 +805,7 @@ function showScreen(id){
   if(id==='settingsScreen')renderSettings();
   if(id==='qcScreen')renderQcScreen();
   if(id==='aiScreen'){renderAiSummary();switchAiTab('all');}
-  if(id==='nippoScreen'){renderNippoToday();switchNippoTab('today');initNippoJobSelect();initIndirectChips();}
+  if(id==='nippoScreen'){renderNippoToday();switchNippoTab('today');initNippoJobList();initIndirectChips();}
 }
 function goHome(){isBoss()?showScreen('homeScreen'):showScreen('workerHomeScreen');}
 function goBackFromMember(){goHome();}
@@ -867,7 +867,7 @@ function switchNippoTab(tab){
     document.getElementById('nippo'+t.charAt(0).toUpperCase()+t.slice(1)+'Tab').style.display=t===tab?'block':'none';
   });
   if(tab==='today')renderNippoToday();
-  if(tab==='input'){initNippoJobSelect();initIndirectChips();}
+  if(tab==='input'){initNippoJobList();initIndirectChips();}
   if(tab==='history')renderNippoHistory();
 }
 function renderNippoToday(){
@@ -876,9 +876,9 @@ function renderNippoToday(){
   const todayLogs=nippoLogsArr().filter(l=>l.memberId===mid&&l.date===dt);
   const directLogs=todayLogs.filter(l=>l.type==='direct');
   const indirectLogs=todayLogs.filter(l=>l.type==='indirect');
-  const dH=Math.round(directLogs.reduce((a,l)=>a+(l.hours||0),0)*10)/10;
-  const iH=Math.round(indirectLogs.reduce((a,l)=>a+(l.hours||0),0)*10)/10;
-  const tot=Math.round((dH+iH)*10)/10;
+  const dH=Math.round(directLogs.reduce((a,l)=>a+(l.hours||0),0)*100)/100;
+  const iH=Math.round(indirectLogs.reduce((a,l)=>a+(l.hours||0),0)*100)/100;
+  const tot=Math.round((dH+iH)*100)/100;
   const d=new Date();
   document.getElementById('nippoDatelbl').textContent=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）`;
   const dp=tot>0?Math.round(dH/tot*100):0;
@@ -896,13 +896,21 @@ function renderNippoToday(){
   document.getElementById('nippoDirect').innerHTML=directLogs.length?directLogs.map(l=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);min-width:36px">${l.hours}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${l.jobName||'—'}</div>${l.memo?`<div style="font-size:11px;color:var(--dim);margin-top:2px">${l.memo}</div>`:''}</div><button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px">×</button></div>`).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし</div>';
   document.getElementById('nippoIndirect').innerHTML=indirectLogs.length?indirectLogs.map(l=>{const t2=INDIRECT_TYPES.find(t=>t.key===l.indirectType)||{icon:'📌',label:'その他'};return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent2);min-width:36px">${l.hours}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${t2.icon} ${t2.label}</div>${l.memo?`<div style="font-size:11px;color:var(--dim);margin-top:2px">${l.memo}</div>`:''}</div><button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px">×</button></div>`;}).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし</div>';
 }
-function initNippoJobSelect(){
+function initNippoJobList(){
   const mid=session.memberId;if(!mid)return;
-  const sel=document.getElementById('nippoJobSelect');if(!sel)return;
+  const el=document.getElementById('nippoJobList');if(!el)return;
   const mj=getJobsForMember(mid).filter(j=>j.status!=='done');
-  sel.innerHTML='<option value="">— 案件を選択 —</option>'+mj.map(j=>`<option value="${j.id}">${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）</option>`).join('');
-  const ongoing=mj.filter(j=>j.status==='ongoing');
-  if(ongoing.length===1)sel.value=ongoing[0].id;
+  if(!mj.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">担当案件がありません</div>';return;}
+  el.innerHTML=mj.map(j=>{
+    const label=`${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）`;
+    const dc=SC[j.status]||'#6366f1';
+    return `<div class="nippo-job-row" data-job-id="${j.id}" style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:10px 12px">
+      <span class="sdot" style="background:${dc};flex-shrink:0"></span>
+      <div style="flex:1;min-width:0;font-size:13px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
+      <input class="nippo-job-hour" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal" style="width:64px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green);background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 4px">
+      <span style="font-size:11px;color:var(--dim);flex-shrink:0">h</span>
+    </div>`;
+  }).join('');
 }
 function initIndirectChips(){
   const el=document.getElementById('indirectChips');if(!el)return;
@@ -921,20 +929,55 @@ function changeOvertime(delta){const el=document.getElementById('overtimeVal');c
 async function saveNippoLog(){
   const mid=session.memberId;if(!mid){showToast('ログインし直してください');return;}
   const m=getMember(mid);
-  if(nippoCurrentHour<=0){showToast('作業時間を入力してください');return;}
-  let logData={memberId:mid,memberName:m?m.name:'',date:new Date().toISOString().split('T')[0],hours:Math.round((parseFloat(document.getElementById('hourVal').value)||0)*100)/100,overtime:Math.round((parseFloat(document.getElementById('overtimeVal').value)||0)*100)/100,memo:document.getElementById('nippoMemo').value.trim(),savedAt:Date.now()};
+  const dateStr=new Date().toISOString().split('T')[0];
+  const memo=document.getElementById('nippoMemo').value.trim();
+  const overtimeVal=Math.round((parseFloat(document.getElementById('overtimeVal').value)||0)*100)/100;
+  let entries=[];
+
   if(nippoLogMode==='direct'){
-    const jobId=document.getElementById('nippoJobSelect').value;
-    if(!jobId){showToast('案件を選択してください');return;}
-    const j=jobs[jobId];logData.type='direct';logData.jobId=jobId;logData.jobName=j?`${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）`:'';
+    const rows=document.querySelectorAll('.nippo-job-row');
+    rows.forEach(row=>{
+      const jobId=row.dataset.jobId;
+      const hInput=row.querySelector('.nippo-job-hour');
+      const hours=Math.round((parseFloat(hInput.value)||0)*100)/100;
+      if(hours>0){
+        const j=jobs[jobId];
+        entries.push({memberId:mid,memberName:m?m.name:'',date:dateStr,type:'direct',jobId,jobName:j?`${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）`:'',hours,overtime:0,memo:'',savedAt:Date.now()});
+      }
+    });
+    if(!entries.length){showToast('時間を入力した案件がありません');return;}
   }else{
     if(!selectedIndirectType){showToast('間接作業の種類を選択してください');return;}
-    logData.type='indirect';logData.indirectType=selectedIndirectType;
+    const hours=Math.round((parseFloat(document.getElementById('hourVal').value)||0)*100)/100;
+    if(hours<=0){showToast('作業時間を入力してください');return;}
+    entries.push({memberId:mid,memberName:m?m.name:'',date:dateStr,type:'indirect',indirectType:selectedIndirectType,hours,overtime:0,memo:'',savedAt:Date.now()});
   }
-  await dbPush('nippoLogs',logData);
-  if(!fbReady){nippoLogs[uid()]=logData;}
-  document.getElementById('nippoMemo').value='';document.getElementById('hourVal').value='0.5';document.getElementById('overtimeVal').value='0';selectedIndirectType='';
-  showToast(`✅ ${nippoLogMode==='direct'?'直接作業':'間接作業'}を記録しました`);
+
+  // メモは最初の記録に添付
+  if(memo&&entries.length)entries[0].memo=memo;
+
+  // 残業時間は別エントリとして記録（合計には含まれる）
+  if(overtimeVal>0){
+    entries.push({memberId:mid,memberName:m?m.name:'',date:dateStr,type:'overtime',hours:0,overtime:overtimeVal,memo:'',savedAt:Date.now()});
+  }
+
+  for(const e of entries){
+    await dbPush('nippoLogs',e);
+    if(!fbReady)nippoLogs[uid()]=e;
+  }
+
+  // リセット
+  document.getElementById('nippoMemo').value='';
+  document.getElementById('overtimeVal').value='0';
+  if(nippoLogMode==='direct'){
+    document.querySelectorAll('.nippo-job-hour').forEach(inp=>inp.value='');
+  }else{
+    document.getElementById('hourVal').value='0.5';
+    selectedIndirectType='';initIndirectChips();
+  }
+
+  const jobCount=entries.filter(e=>e.type!=='overtime').length;
+  showToast(`✅ ${nippoLogMode==='direct'?jobCount+'件の直接作業':'間接作業'}を記録しました`);
   switchNippoTab('today');
 }
 async function deleteNippoLog(id){
