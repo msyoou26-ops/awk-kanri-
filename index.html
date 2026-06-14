@@ -815,7 +815,7 @@ function renderHome(){
       <div class="mc-av">${initials(m.name)}</div><div class="mc-name">${m.name}</div><div class="mc-role">${m.role||'作業者'}</div>
       <div class="mc-stats"><span>${mj.length}</span>件 <span>${on}</span>施工中 <span>${dn}</span>完成</div>
       <div style="margin-top:8px"><button onclick="event.stopPropagation();bossViewMemberNippo('${m.id}')" style="background:rgba(30,201,122,.1);border:1px solid rgba(30,201,122,.3);color:var(--green);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Noto Sans JP',sans-serif">📈 日報を見る</button></div>
-    </div>\`;
+    </div>`;
   }
   h+=`<div class="add-card" onclick="openMemberModal()"><div style="font-size:22px;color:var(--muted)">＋</div><div style="font-size:11px;color:var(--muted)">作業者を追加</div></div>`;
   document.getElementById('memberGrid').innerHTML=h;
