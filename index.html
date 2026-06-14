@@ -990,7 +990,7 @@ function renderNippoHistory(){
   const logs=nippoLogsArr().filter(l=>l.memberId===mid);
   if(!logs.length){document.getElementById('nippoHistoryList').innerHTML='<div class="empty-msg">記録がありません</div>';return;}
   const byDate={};
-  logs.forEach(l=>{if(!byDate[l.date])byDate[l.date]={direct:[],indirect:[]};if(l.type==='direct')byDate[l.date].direct.push(l);else byDate[l.date].indirect.push(l);});
+  logs.forEach(l=>{if(!byDate[l.date])byDate[l.date]={direct:[],indirect:[],overtime:0};if(l.type==='direct')byDate[l.date].direct.push(l);else if(l.type==='indirect')byDate[l.date].indirect.push(l);byDate[l.date].overtime=Math.round((byDate[l.date].overtime+(l.overtime||0))*100)/100;});
   // 月別残業集計
   const byMonth={};
   logs.forEach(l=>{const m=l.date?l.date.slice(0,7):'';if(!m)return;if(!byMonth[m])byMonth[m]=0;byMonth[m]=Math.round((byMonth[m]+(l.overtime||0))*100)/100;});
@@ -1007,7 +1007,7 @@ function renderNippoHistory(){
     const dH=Math.round(dl.direct.reduce((a,l)=>a+(l.hours||0),0)*100)/100;
     const iH=Math.round(dl.indirect.reduce((a,l)=>a+(l.hours||0),0)*100)/100;
     const tot=Math.round((dH+iH)*100)/100;
-    const otDay=Math.round([...dl.direct,...dl.indirect].reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
+    const otDay=dl.overtime||0;
     const dp=tot>0?Math.round(dH/tot*100):0;const ip=tot>0?100-dp:0;
     const[y,m2,d2]=date.split('-');const dObj=new Date(+y,+m2-1,+d2);
     h+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
@@ -1074,13 +1074,13 @@ function renderBossNippo(){
       </div>
     </div>`;
   const byDate={};
-  logs.forEach(l=>{if(!byDate[l.date])byDate[l.date]={direct:[],indirect:[]};if(l.type==='direct')byDate[l.date].direct.push(l);else byDate[l.date].indirect.push(l);});
+  logs.forEach(l=>{if(!byDate[l.date])byDate[l.date]={direct:[],indirect:[],overtime:0};if(l.type==='direct')byDate[l.date].direct.push(l);else if(l.type==='indirect')byDate[l.date].indirect.push(l);byDate[l.date].overtime=Math.round((byDate[l.date].overtime+(l.overtime||0))*100)/100;});
   if(!Object.keys(byDate).length){document.getElementById('bossNippoList').innerHTML='<div class="empty-msg">この月の記録はありません</div>';return;}
   let h='<div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:8px">📅 日別明細</div>';
-  for(const[date,dl]of Object.entries(byDate).sort((a,b)=>b.localeCompare(a))){
+  for(const[date,dl]of Object.entries(byDate).sort((a,b)=>b[0].localeCompare(a[0]))){
     const dH=Math.round(dl.direct.reduce((a,l)=>a+(l.hours||0),0)*100)/100;
     const iH=Math.round(dl.indirect.reduce((a,l)=>a+(l.hours||0),0)*100)/100;
-    const otD=Math.round([...dl.direct,...dl.indirect].reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
+    const otD=dl.overtime||0;
     const tot2=Math.round((dH+iH)*100)/100;
     const[y2,m2,d2]=date.split('-');const dObj=new Date(+y2,+m2-1,+d2);
     h+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px">
