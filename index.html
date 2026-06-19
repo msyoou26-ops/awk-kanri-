@@ -703,7 +703,7 @@ const INDIRECT_TYPES=[
   {key:'Z503',icon:'🔧',label:'設備、治工具メンテ、修理、始業点検'},
   {key:'Z601',icon:'🎯',label:'QC活動'},
 ];
-let db,jobs={},members={},workLogs={},nippoLogs={},completionAnalyses={},cloudTemplates={},cloudBossPass=null;
+let db,jobs={},members={},workLogs={},nippoLogs={},completionAnalyses={},cloudTemplates={},cloudBossPass=null,cloudMemberOrder=[];
 let curMember=null,editJobId=null,editMemberId=null;
 let curYear=today.getFullYear(),curMonth=today.getMonth();
 let pbFilter='all',loginTab='boss';
@@ -725,6 +725,7 @@ function initFirebase(){
     db.ref('completionAnalyses').on('value',snap=>{completionAnalyses=snap.val()||{};});
     db.ref('settings/templates').on('value',snap=>{cloudTemplates=snap.val()||{};refreshCurrentScreen();if(document.getElementById('settingsScreen')&&document.getElementById('settingsScreen').classList.contains('active'))renderSettings();});
     db.ref('settings/bossPassword').on('value',snap=>{const v=snap.val();if(v){cloudBossPass=v;bossPassword=v;}});
+    db.ref('settings/memberOrder').on('value',snap=>{cloudMemberOrder=snap.val()||[];if(document.querySelector('.screen.active')?.id==='homeScreen')renderHome();});
   }catch(e){useFallback();}
 }
 function useFallback(){
@@ -766,7 +767,27 @@ function fmt(s){if(!s)return '—';const p=s.split('-');return `${+p[1]}/${+p[2]
 function initials(n){if(!n)return '?';const s=n.trim();return s.split(/[\s　]+/)[0].slice(0,2);}
 function isBoss(){return session.role==='boss';}
 function jobsArr(){return Object.entries(jobs).map(([id,j])=>({...j,id}));}
-function membersArr(){return Object.entries(members).map(([id,m])=>({...m,id}));}
+function membersArr(){
+  const arr=Object.entries(members).map(([id,m])=>({...m,id}));
+  const order=getMemberOrder();
+  if(order&&order.length){
+    arr.sort((a,b)=>{
+      const ia=order.indexOf(a.id),ib=order.indexOf(b.id);
+      const ra=ia===-1?9999:ia,rb=ib===-1?9999:ib;
+      return ra-rb;
+    });
+  }
+  return arr;
+}
+function getMemberOrder(){
+  if(fbReady&&cloudMemberOrder&&cloudMemberOrder.length)return cloudMemberOrder;
+  try{const s=localStorage.getItem('awk_member_order');return s?JSON.parse(s):[];}catch(e){return[];}
+}
+async function saveMemberOrder(order){
+  cloudMemberOrder=order;
+  localStorage.setItem('awk_member_order',JSON.stringify(order));
+  if(fbReady){try{await db.ref('settings/memberOrder').set(order);}catch(e){}}
+}
 function logsArr(){return Object.entries(workLogs).map(([id,l])=>({...l,id})).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));}
 function nippoLogsArr(){return Object.entries(nippoLogs).map(([id,l])=>({...l,id})).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));}
 function getJobsForMember(mid){return jobsArr().filter(j=>{const ids=j.memberIds&&j.memberIds.length?j.memberIds:[j.memberId,j.elecMemberId].filter(Boolean);return ids.includes(mid);});}
@@ -868,7 +889,8 @@ function renderHome(){
   for(const m of mem){
     const mj=getJobsForMember(m.id);
     const on=mj.filter(j=>j.status==='ongoing').length,dn=mj.filter(j=>j.status==='done').length;
-    h+=`<div class="member-card" onclick="bossViewMember('${m.id}')">
+    h+=`<div class="member-card" data-member-id="${m.id}" onclick="bossViewMember('${m.id}')">
+      <div class="mc-drag-handle" style="position:absolute;top:6px;left:6px;color:var(--muted);font-size:16px;padding:4px;cursor:grab;touch-action:none;line-height:1">⠿</div>
       <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
         <button onclick="event.stopPropagation();openMemberModal('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px">✎</button>
         <button onclick="event.stopPropagation();deleteMember('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px">×</button>
@@ -880,7 +902,80 @@ function renderHome(){
   }
   h+=`<div class="add-card" onclick="openMemberModal()"><div style="font-size:22px;color:var(--muted)">＋</div><div style="font-size:11px;color:var(--muted)">作業者を追加</div></div>`;
   document.getElementById('memberGrid').innerHTML=h;
+  initMemberDrag();
 }
+// ===== 作業者カード 長押しドラッグ&ドロップ =====
+let _dragState=null;
+function initMemberDrag(){
+  const grid=document.getElementById('memberGrid');
+  if(!grid)return;
+  const cards=[...grid.querySelectorAll('.member-card')];
+  cards.forEach(card=>{
+    const handle=card.querySelector('.mc-drag-handle');
+    if(!handle)return;
+    handle.onpointerdown=(e)=>_startDrag(e,card,grid);
+  });
+}
+function _startDrag(e,card,grid){
+  e.preventDefault();
+  e.stopPropagation();
+  const rect=card.getBoundingClientRect();
+  const placeholder=document.createElement('div');
+  placeholder.className='member-card';
+  placeholder.style.cssText=`border:2px dashed var(--accent);background:transparent;visibility:visible;width:${rect.width}px;height:${rect.height}px;border-radius:14px;flex-shrink:0`;
+  card.parentNode.insertBefore(placeholder,card.nextSibling);
+
+  card.style.position='fixed';
+  card.style.zIndex='999';
+  card.style.width=rect.width+'px';
+  card.style.left=rect.left+'px';
+  card.style.top=rect.top+'px';
+  card.style.pointerEvents='none';
+  card.style.boxShadow='0 12px 32px rgba(0,0,0,.5)';
+  card.style.transform='scale(1.04)';
+  card.style.transition='transform .15s';
+  document.body.appendChild(card);
+
+  _dragState={card,placeholder,grid,offsetX:e.clientX-rect.left,offsetY:e.clientY-rect.top};
+
+  document.onpointermove=_onDragMove;
+  document.onpointerup=_endDrag;
+}
+function _onDragMove(e){
+  if(!_dragState)return;
+  const{card,placeholder,grid,offsetX,offsetY}=_dragState;
+  card.style.left=(e.clientX-offsetX)+'px';
+  card.style.top=(e.clientY-offsetY)+'px';
+
+  // find element under pointer (excluding the dragged card itself)
+  card.style.display='none';
+  const elAtPoint=document.elementFromPoint(e.clientX,e.clientY);
+  card.style.display='';
+  const overCard=elAtPoint?elAtPoint.closest('.member-card'):null;
+  if(overCard&&overCard!==placeholder&&grid.contains(overCard)&&overCard!==card){
+    const rect=overCard.getBoundingClientRect();
+    const isAfter=e.clientY>rect.top+rect.height/2 || (Math.abs(e.clientY-(rect.top+rect.height/2))<10 && e.clientX>rect.left+rect.width/2);
+    if(isAfter)overCard.after(placeholder);
+    else overCard.before(placeholder);
+  }
+}
+async function _endDrag(e){
+  if(!_dragState)return;
+  const{card,placeholder,grid}=_dragState;
+  document.onpointermove=null;
+  document.onpointerup=null;
+
+  placeholder.replaceWith(card);
+  card.style.cssText='';
+  _dragState=null;
+
+  // 新しい順番を保存
+  const order=[...grid.querySelectorAll('.member-card[data-member-id]')].map(c=>c.dataset.memberId);
+  await saveMemberOrder(order);
+  if(!fbReady)renderHome();
+  showToast('🔀 並び順を変更しました');
+}
+
 function renderHomeAlerts(){
   const sec=document.getElementById('homeAlerts');if(!sec)return;
   const arr=jobsArr().filter(j=>j.status!=='done');
@@ -1299,12 +1394,20 @@ function renderJobActions(j){
 }
 function renderAllMemberTasks(j){
   const memberIds=j.memberIds||[j.memberId].filter(Boolean);if(!memberIds.length)return '<div style="font-size:11px;color:var(--muted)">担当者未割当</div>';
-  let h='';for(const mid of memberIds){const m=getMember(mid);if(!m)continue;const mt=(j.memberTasks&&j.memberTasks[mid])||[];const mTotal=mt.reduce((a,t)=>a+(parseFloat(t.actual)||0),0);h+=`<div style="margin-bottom:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">${m.name} <span style="color:var(--dim);font-weight:400">— ${mTotal}h</span></div>${mt.length?mt.map(t=>`<div style="display:grid;grid-template-columns:1fr 48px 60px;gap:4px;padding:4px;border-bottom:1px solid rgba(37,42,61,.3);align-items:center"><span style="font-size:12px;color:var(--text)">${t.name||'作業'}</span><span style="font-size:12px;color:var(--text);text-align:right">${t.actual||0}h</span><span style="font-size:10px;text-align:center;padding:2px 6px;border-radius:8px;background:${t.status==='done'?'rgba(30,201,122,.15)':t.status==='ongoing'?'rgba(245,158,11,.15)':'var(--surface)'};color:${t.status==='done'?'var(--green)':t.status==='ongoing'?'var(--accent)':'var(--muted)'}">${t.status==='done'?'完了':t.status==='ongoing'?'進行中':'未着手'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--muted)">未入力</div>'}</div>`;}return h;
+  const hasSplit=jobHasGroupSplit(j);
+  let h='';for(const mid of memberIds){const m=getMember(mid);if(!m)continue;const mt=(j.memberTasks&&j.memberTasks[mid])||[];const mTotal=mt.reduce((a,t)=>a+(parseFloat(t.actual)||0),0);
+    const grp=hasSplit?jobGroupOf(j,mid):null;
+    const grpBadge=hasSplit?`<div style="display:inline-block;font-size:9px;font-weight:700;color:${grp==='elec'?'var(--accent2)':'var(--green)'};background:${grp==='elec'?'rgba(59,127,245,.12)':'rgba(30,201,122,.12)'};border:1px solid ${grp==='elec'?'rgba(59,127,245,.3)':'rgba(30,201,122,.3)'};padding:2px 7px;border-radius:7px;margin-bottom:6px">${grp==='elec'?'⚡ 電装担当グループ':'🔧 本作業グループ'}　見積${totalH(j)}h中${grp==='elec'?Math.round(ELEC_RATIO*100):Math.round((1-ELEC_RATIO)*100)}%（${groupPlanH(j,grp)}h）</div>`:'';
+    h+=`<div style="margin-bottom:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">${m.name} <span style="color:var(--dim);font-weight:400">— ${mTotal}h</span></div>${grpBadge}${mt.length?mt.map(t=>`<div style="display:grid;grid-template-columns:1fr 48px 60px;gap:4px;padding:4px;border-bottom:1px solid rgba(37,42,61,.3);align-items:center"><span style="font-size:12px;color:var(--text)">${t.name||'作業'}</span><span style="font-size:12px;color:var(--text);text-align:right">${t.actual||0}h</span><span style="font-size:10px;text-align:center;padding:2px 6px;border-radius:8px;background:${t.status==='done'?'rgba(30,201,122,.15)':t.status==='ongoing'?'rgba(245,158,11,.15)':'var(--surface)'};color:${t.status==='done'?'var(--green)':t.status==='ongoing'?'var(--accent)':'var(--muted)'}">${t.status==='done'?'完了':t.status==='ongoing'?'進行中':'未着手'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--muted)">未入力</div>'}</div>`;}return h;
 }
 function renderOtherMemberTasks(j){
   const myMid=curMember||session.memberId;const otherIds=(j.memberIds||[j.memberId].filter(Boolean)).filter(mid=>mid!==myMid);if(!otherIds.length)return '';
+  const hasSplit=jobHasGroupSplit(j);
   let h='<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px"><div style="font-size:11px;color:var(--dim);margin-bottom:8px">👥 他の担当者の作業（閲覧のみ）</div>';
-  for(const mid of otherIds){const m=getMember(mid);if(!m)continue;const mt=(j.memberTasks&&j.memberTasks[mid])||[];const mTotal=mt.reduce((a,t)=>a+(parseFloat(t.actual)||0),0);h+=`<div style="margin-bottom:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">${m.name} <span style="color:var(--dim);font-weight:400">— 合計 ${mTotal}h</span></div>${mt.length?mt.map(t=>`<div style="display:grid;grid-template-columns:1fr 48px 60px;gap:4px;padding:4px;align-items:center"><span style="font-size:12px;color:var(--text)">${t.name||'作業'}</span><span style="font-size:12px;color:var(--text);text-align:right">${t.actual||0}h</span><span style="font-size:10px;text-align:center;padding:2px 6px;border-radius:8px;background:${t.status==='done'?'rgba(30,201,122,.15)':'var(--surface)'};color:${t.status==='done'?'var(--green)':'var(--muted)'}">${t.status==='done'?'完了':'未'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--muted)">未入力</div>'}</div>`;}
+  for(const mid of otherIds){const m=getMember(mid);if(!m)continue;const mt=(j.memberTasks&&j.memberTasks[mid])||[];const mTotal=mt.reduce((a,t)=>a+(parseFloat(t.actual)||0),0);
+    const grp=hasSplit?jobGroupOf(j,mid):null;
+    const grpBadge=hasSplit?`<div style="display:inline-block;font-size:9px;font-weight:700;color:${grp==='elec'?'var(--accent2)':'var(--green)'};background:${grp==='elec'?'rgba(59,127,245,.12)':'rgba(30,201,122,.12)'};border:1px solid ${grp==='elec'?'rgba(59,127,245,.3)':'rgba(30,201,122,.3)'};padding:2px 7px;border-radius:7px;margin-bottom:6px">${grp==='elec'?'⚡ 電装担当グループ':'🔧 本作業グループ'}　見積${totalH(j)}h中${grp==='elec'?Math.round(ELEC_RATIO*100):Math.round((1-ELEC_RATIO)*100)}%（${groupPlanH(j,grp)}h）</div>`:'';
+    h+=`<div style="margin-bottom:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">${m.name} <span style="color:var(--dim);font-weight:400">— 合計 ${mTotal}h</span></div>${grpBadge}${mt.length?mt.map(t=>`<div style="display:grid;grid-template-columns:1fr 48px 60px;gap:4px;padding:4px;align-items:center"><span style="font-size:12px;color:var(--text)">${t.name||'作業'}</span><span style="font-size:12px;color:var(--text);text-align:right">${t.actual||0}h</span><span style="font-size:10px;text-align:center;padding:2px 6px;border-radius:8px;background:${t.status==='done'?'rgba(30,201,122,.15)':'var(--surface)'};color:${t.status==='done'?'var(--green)':'var(--muted)'}">${t.status==='done'?'完了':'未'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--muted)">未入力</div>'}</div>`;}
   return h+'</div>';
 }
 async function addTask(jid){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=(j.memberTasks&&j.memberTasks[mid])||[];mt.push({id:uid(),name:'',actual:0,status:'planned'});await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}}
