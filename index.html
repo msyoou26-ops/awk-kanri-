@@ -402,7 +402,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         </div>
         <div id="indirectArea" style="display:none">
           <div style="font-size:11px;color:var(--dim);margin-bottom:8px">間接作業の種類 <span style="color:var(--red)">*</span></div>
-          <div id="indirectChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
+          <div id="indirectChips" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:340px;overflow-y:auto;padding-right:2px"></div>
           <div style="font-size:11px;color:var(--dim);margin-bottom:8px">作業時間 <span style="color:var(--red)">*</span></div>
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
             <div style="display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:10px;overflow:hidden;flex:1">
@@ -660,6 +660,21 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
 
 <div class="toast" id="toast"></div>
 
+<!-- 削除確認モーダル -->
+<div class="modal-bg" id="confirmModal">
+  <div class="modal" style="max-width:380px;border-radius:18px">
+    <div style="text-align:center;padding:8px 0 4px">
+      <div style="font-size:36px;margin-bottom:10px">⚠️</div>
+      <div id="confirmTitle" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">本当に削除しますか？</div>
+      <div id="confirmMsg" style="font-size:13px;color:var(--dim);line-height:1.7;margin-bottom:20px">この操作は取り消せません。</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn" style="flex:1;padding:13px" onclick="closeConfirmModal()">キャンセル</button>
+      <button class="btn danger" style="flex:1;padding:13px" id="confirmOkBtn">削除する</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const FIREBASE_CONFIG={apiKey:"AIzaSyALzcHgWi33tip-QiMYfjeJCJgxEt8KI-4",authDomain:"awk-kanri.firebaseapp.com",databaseURL:"https://awk-kanri-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"awk-kanri",storageBucket:"awk-kanri.firebasestorage.app",messagingSenderId:"995372648364",appId:"1:995372648364:web:51084b71722ec46e331c09"};
 const SC={ongoing:'#3b7ff5',done:'#1ec97a',overdue:'#f04040',planned:'#6366f1'};
@@ -668,15 +683,25 @@ const WD=['日','月','火','水','木','金','土'];
 const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 const today=new Date();
 const INDIRECT_TYPES=[
-  {key:'meeting',icon:'🗣️',label:'会議・打合せ'},
-  {key:'cleaning',icon:'🧹',label:'清掃・5S'},
-  {key:'training',icon:'📚',label:'教育・訓練'},
-  {key:'preparation',icon:'⚙️',label:'段取り・準備'},
-  {key:'transport',icon:'🚚',label:'運搬・搬入出'},
-  {key:'inspection',icon:'🔍',label:'検査・品質確認'},
-  {key:'maintenance',icon:'🔧',label:'設備保全'},
-  {key:'admin',icon:'📋',label:'書類・事務処理'},
-  {key:'other',icon:'📌',label:'その他'},
+  {key:'Z101',icon:'☕',label:'休憩、朝礼、夕礼、月頭朝礼、清掃'},
+  {key:'Z102',icon:'🎌',label:'会社行事、式典、健診'},
+  {key:'Z201',icon:'🧑‍🏫',label:'作業指導教育（教える側）'},
+  {key:'Z202',icon:'📖',label:'作業教育受講（教わる側）除くOJT'},
+  {key:'Z203',icon:'📚',label:'社内外教育（NS教育、資格、コンプラ、KY）'},
+  {key:'Z301',icon:'🧰',label:'架装段取り・付帯部品準備'},
+  {key:'Z302',icon:'🗣️',label:'会議・報告会 参加'},
+  {key:'Z303',icon:'📄',label:'資料作成（QRQC、工数実績、帳票）'},
+  {key:'Z304',icon:'🤝',label:'他部署との調整'},
+  {key:'Z306',icon:'🕒',label:'残業・休出申請、進捗確認'},
+  {key:'Z307',icon:'📋',label:'標準作業書作成・メンテ'},
+  {key:'Z308',icon:'✅',label:'各チェックシートメンテ'},
+  {key:'Z309',icon:'📑',label:'教育資料メンテ'},
+  {key:'Z401',icon:'🚚',label:'車両回送'},
+  {key:'Z403',icon:'📞',label:'連間架装作業手配、進捗確認'},
+  {key:'Z501',icon:'📐',label:'レイアウト確認、社内基準書、規格書'},
+  {key:'Z502',icon:'🦺',label:'ISES、F-PES、ｐDM、安全パトロール標準確認'},
+  {key:'Z503',icon:'🔧',label:'設備、治工具メンテ、修理、始業点検'},
+  {key:'Z601',icon:'🎯',label:'QC活動'},
 ];
 let db,jobs={},members={},workLogs={},nippoLogs={},completionAnalyses={},cloudTemplates={},cloudBossPass=null;
 let curMember=null,editJobId=null,editMemberId=null;
@@ -746,7 +771,7 @@ function logsArr(){return Object.entries(workLogs).map(([id,l])=>({...l,id})).so
 function nippoLogsArr(){return Object.entries(nippoLogs).map(([id,l])=>({...l,id})).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));}
 function getJobsForMember(mid){return jobsArr().filter(j=>{const ids=j.memberIds&&j.memberIds.length?j.memberIds:[j.memberId,j.elecMemberId].filter(Boolean);return ids.includes(mid);});}
 function totalH(j){return(j.planH||0);}
-function actualH(j){let t=j.actH||0;const all=[];if(j.tasks)all.push(...j.tasks);(j.memberIds||[]).forEach(mid=>{const mt=j.memberTasks&&j.memberTasks[mid];if(mt)all.push(...mt);});t+=all.reduce((a,t2)=>a+(parseFloat(t2.actual)||0),0);return Math.round(t*10)/10;}
+function actualH(j){let t=0;const all=[];(j.memberIds||[]).forEach(mid=>{const mt=j.memberTasks&&j.memberTasks[mid];if(mt)all.push(...mt);});if(!all.length&&j.tasks)all.push(...j.tasks);t+=all.reduce((a,t2)=>a+(parseFloat(t2.actual)||0),0);return Math.round(t*100)/100;}
 function daysLeft(d){const t=new Date();t.setHours(0,0,0,0);return Math.ceil((new Date(d)-t)/86400000);}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 function getMember(mid){return members[mid]||null;}
@@ -894,7 +919,7 @@ function renderNippoToday(){
   const otEl=document.getElementById('nippoOvertimeH');
   if(otEl)otEl.textContent=otH+'h';
   document.getElementById('nippoDirect').innerHTML=directLogs.length?directLogs.map(l=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);min-width:36px">${l.hours}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${l.jobName||'—'}</div>${l.memo?`<div style="font-size:11px;color:var(--dim);margin-top:2px">${l.memo}</div>`:''}</div><button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px">×</button></div>`).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし</div>';
-  document.getElementById('nippoIndirect').innerHTML=indirectLogs.length?indirectLogs.map(l=>{const t2=INDIRECT_TYPES.find(t=>t.key===l.indirectType)||{icon:'📌',label:'その他'};return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent2);min-width:36px">${l.hours}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${t2.icon} ${t2.label}</div>${l.memo?`<div style="font-size:11px;color:var(--dim);margin-top:2px">${l.memo}</div>`:''}</div><button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px">×</button></div>`;}).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし</div>';
+  document.getElementById('nippoIndirect').innerHTML=indirectLogs.length?indirectLogs.map(l=>{const t2=INDIRECT_TYPES.find(t=>t.key===l.indirectType)||{key:'',icon:'📌',label:'その他'};return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent2);min-width:36px">${l.hours}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${t2.icon} <span style="color:var(--accent2);font-weight:700;font-size:11px">${t2.key}</span> ${t2.label}</div>${l.memo?`<div style="font-size:11px;color:var(--dim);margin-top:2px">${l.memo}</div>`:''}</div><button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px">×</button></div>`;}).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし</div>';
 }
 function initNippoJobList(){
   const mid=session.memberId;if(!mid)return;
@@ -914,7 +939,17 @@ function initNippoJobList(){
 }
 function initIndirectChips(){
   const el=document.getElementById('indirectChips');if(!el)return;
-  el.innerHTML=INDIRECT_TYPES.map(t=>`<div onclick="selectIndirectType('${t.key}')" id="chip_${t.key}" style="padding:8px 12px;border-radius:10px;border:1.5px solid ${selectedIndirectType===t.key?'var(--accent2)':'var(--border2)'};font-size:12px;font-weight:600;cursor:pointer;background:${selectedIndirectType===t.key?'rgba(59,127,245,.2)':'var(--surface2)'};color:${selectedIndirectType===t.key?'#60a5fa':'var(--dim)'};display:flex;align-items:center;gap:5px;white-space:nowrap"><span>${t.icon}</span><span>${t.label}</span></div>`).join('');
+  el.innerHTML=INDIRECT_TYPES.map(t=>{
+    const on=selectedIndirectType===t.key;
+    return `<div onclick="selectIndirectType('${t.key}')" id="chip_${t.key}" style="padding:10px 12px;border-radius:10px;border:1.5px solid ${on?'var(--accent2)':'var(--border2)'};cursor:pointer;background:${on?'rgba(59,127,245,.15)':'var(--surface2)'};display:flex;align-items:center;gap:10px;width:100%">
+      <span style="font-size:18px;flex-shrink:0">${t.icon}</span>
+      <div style="flex:1;min-width:0">
+        <span style="font-size:11px;font-weight:800;color:${on?'#60a5fa':'var(--accent)'};margin-right:6px">${t.key}</span>
+        <span style="font-size:12px;color:${on?'#60a5fa':'var(--text)'}">${t.label}</span>
+      </div>
+      ${on?'<span style="color:var(--accent2);font-size:16px;flex-shrink:0">✓</span>':''}
+    </div>`;
+  }).join('');
 }
 function selectIndirectType(key){selectedIndirectType=key;initIndirectChips();}
 function setLogMode(mode){
@@ -980,11 +1015,12 @@ async function saveNippoLog(){
   showToast(`✅ ${nippoLogMode==='direct'?jobCount+'件の直接作業':'間接作業'}を記録しました`);
   switchNippoTab('today');
 }
-async function deleteNippoLog(id){
+async function _doDeleteNippoLog(id){
   await dbRemove(`nippoLogs/${id}`);
   if(!fbReady){delete nippoLogs[id];renderNippoToday();}
-  showToast('削除しました');
+  showToast('🗑️ 削除しました');
 }
+function deleteNippoLog(id){confirmAction('日報の記録を削除しますか？','この記録は元に戻せません。',()=>_doDeleteNippoLog(id));}
 function renderNippoHistory(){
   const mid=session.memberId;if(!mid)return;
   const logs=nippoLogsArr().filter(l=>l.memberId===mid);
@@ -1234,7 +1270,8 @@ function renderOtherMemberTasks(j){
 }
 async function addTask(jid){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=(j.memberTasks&&j.memberTasks[mid])||[];mt.push({id:uid(),name:'',actual:0,status:'planned'});await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}}
 async function updateTask(jid,tid,field,val){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=((j.memberTasks&&j.memberTasks[mid])||j.tasks||[]).map(t=>t.id===tid?{...t,[field]:field==='actual'?(parseFloat(val)||0):val}:t);await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}}
-async function deleteTask(jid,tid){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=((j.memberTasks&&j.memberTasks[mid])||j.tasks||[]).filter(t=>t.id!==tid);await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}}
+async function _doDeleteTask(jid,tid){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=((j.memberTasks&&j.memberTasks[mid])||j.tasks||[]).filter(t=>t.id!==tid);await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}}
+function deleteTask(jid,tid){confirmAction('工程を削除しますか？','入力した実績時間も削除されます。',()=>_doDeleteTask(jid,tid));}
 async function addDefaultTasks(jid){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=(j.memberTasks&&j.memberTasks[mid])||[];const tpls=getTemplates('taskTpl');const ex=new Set(mt.map(t=>t.name));for(const n of tpls)if(!ex.has(n))mt.push({id:uid(),name:n,actual:0,status:'planned'});await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}showToast('テンプレート追加しました');}
 
 function populateLogJobSelect(){const mid=curMember||session.memberId;const sel=document.getElementById('logJobSelect');if(!sel)return;const mj=getJobsForMember(mid).filter(j=>j.status!=='done');sel.innerHTML='<option value="">— 案件を選択 —</option>'+mj.map(j=>`<option value="${j.id}">${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）</option>`).join('');const ongoing=mj.filter(j=>j.status==='ongoing');if(ongoing.length===1)sel.value=ongoing[0].id;}
@@ -1261,7 +1298,8 @@ function renderMemberLogs(){
   if(!logs.length){el.innerHTML='<div class="empty-msg">まだ記録がありません</div>';return;}
   el.innerHTML=logs.map(l=>`<div class="log-entry"><div class="log-header"><div><div class="log-title">${l.vehicleLabel||'—'}</div><div class="log-date">${l.date}</div></div><button onclick="deleteWorkLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;line-height:1;flex-shrink:0">×</button></div>${l.causes&&l.causes.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${l.causes.map(c=>{const info=CAUSE_QC_MAP[c];return info?`<span style="font-size:11px;padding:3px 8px;border-radius:10px;background:${info.color}22;color:${info.color};border:1px solid ${info.color}44">${info.icon} ${c}</span>`:''}).join('')}</div>`:''}${l.qcThemes&&l.qcThemes.length?`<div style="font-size:10px;color:var(--accent);margin-bottom:4px">🎯 ${l.qcThemes.join(' / ')}</div>`:''}${l.memo?`<div style="font-size:12px;color:var(--dim);line-height:1.6">📝 ${l.memo}</div>`:''}</div>`).join('');
 }
-async function deleteWorkLog(id){await dbRemove(`workLogs/${id}`);if(!fbReady){delete workLogs[id];renderMemberLogs();renderQcLogList();}showToast('🗑️ 削除しました');}
+async function _doDeleteWorkLog(id){await dbRemove(`workLogs/${id}`);if(!fbReady){delete workLogs[id];renderMemberLogs();renderQcLogList();}showToast('🗑️ 削除しました');}
+function deleteWorkLog(id){confirmAction('QCログを削除しますか？','この記録は元に戻せません。',()=>_doDeleteWorkLog(id));}
 
 // ===== QC =====
 function renderQcScreen(){const active=document.getElementById('qNavLog').classList.contains('on');if(active)renderQcLogList();else renderQcStat();}
@@ -1336,12 +1374,14 @@ async function saveJob(){
   else{data.tasks=[];data.memberTasks={};await dbPush('jobs',data);showToast('案件を追加しました');}
   closeJobModal();
 }
-async function deleteJob(id){await dbRemove(`jobs/${id}`);showToast('削除しました');refreshCurrentScreen();}
+async function _doDeleteJob(id){await dbRemove(`jobs/${id}`);showToast('🗑️ 案件を削除しました');refreshCurrentScreen();}
+function deleteJob(id){const j=jobs[id];const nm=j?j.name:'この案件';confirmAction('案件を削除しますか？',`「${nm}」を削除すると、作業ログや進捗データも失われます。`,()=>_doDeleteJob(id));}
 function openMemberModal(id){if(!isBoss())return;editMemberId=id||null;document.getElementById('mmTitle').textContent=id?'作業者編集':'作業者追加';if(id){const m=members[id];document.getElementById('mmName').value=m.name;document.getElementById('mmRole').value=m.role||'';}else{['mmName','mmRole'].forEach(i=>document.getElementById(i).value='');}document.getElementById('memberModal').classList.add('open');}
 function closeMemberModal(){document.getElementById('memberModal').classList.remove('open');editMemberId=null;}
 document.getElementById('memberModal').onclick=e=>{if(e.target===e.currentTarget)closeMemberModal();};
 async function saveMember(){if(!isBoss())return;const name=document.getElementById('mmName').value.trim();if(!name){showToast('氏名は必須です');return;}const data={name,role:document.getElementById('mmRole').value.trim()};if(editMemberId)await dbSet(`members/${editMemberId}`,{...members[editMemberId],...data});else await dbPush('members',data);closeMemberModal();showToast(editMemberId?'更新しました':'作業者を追加しました');}
-async function deleteMember(id){await dbRemove(`members/${id}`);showToast('削除しました');}
+async function _doDeleteMember(id){await dbRemove(`members/${id}`);showToast('🗑️ 作業者を削除しました');}
+function deleteMember(id){const m=members[id];const nm=m?m.name:'この作業者';confirmAction('作業者を削除しますか？',`「${nm}」を削除します。担当中の案件からも外れます。`,()=>_doDeleteMember(id));}
 
 // ===== SETTINGS =====
 const TPL_KEYS={carType:'awk_tpl_car',jobName:'awk_tpl_job',taskTpl:'awk_tpl_task'};
@@ -1360,11 +1400,26 @@ function saveTemplates(key,arr){
 function renderSettings(){['carType','jobName','taskTpl'].forEach(k=>renderTemplateList(k));}
 function renderTemplateList(key){const arr=getTemplates(key);const el=document.getElementById(TPL_LIST_IDS[key]);if(!el)return;el.innerHTML=arr.length?arr.map((v,i)=>`<div class="tag-item"><span>${v}</span><button class="tag-del" onclick="removeTemplate('${key}',${i})">✕</button></div>`).join(''):'<div style="font-size:12px;color:var(--muted)">未登録</div>';}
 function addTemplate(key){const val=document.getElementById(TPL_INPUT_IDS[key]).value.trim();if(!val)return;const arr=getTemplates(key);if(arr.includes(val)){showToast('すでに登録済みです');return;}arr.push(val);saveTemplates(key,arr);document.getElementById(TPL_INPUT_IDS[key]).value='';renderTemplateList(key);showToast('追加しました！');}
-function removeTemplate(key,idx){const arr=getTemplates(key);arr.splice(idx,1);saveTemplates(key,arr);renderTemplateList(key);showToast('削除しました');}
+function _doRemoveTemplate(key,idx){const arr=getTemplates(key);arr.splice(idx,1);saveTemplates(key,arr);renderTemplateList(key);showToast('🗑️ 削除しました');}
+function removeTemplate(key,idx){const arr=getTemplates(key);const val=arr[idx]||'この項目';confirmAction('テンプレートを削除しますか？',`「${val}」を一覧から削除します。`,()=>_doRemoveTemplate(key,idx));}
 function buildSuggestDatalist(){const cars=getTemplates('carType');const carSel=document.getElementById('fCar');if(carSel){const curVal=carSel.value;carSel.innerHTML='<option value="">選択</option>'+cars.map(c=>`<option value="${c}">${c}</option>`).join('')+'<option value="__manual__">✏️ 手入力する</option>';if(curVal)carSel.value=curVal;}const jobs2=getTemplates('jobName');const nameSel=document.getElementById('fName');if(nameSel){const curVal=nameSel.value;nameSel.innerHTML='<option value="">選択</option>'+jobs2.map(j=>`<option value="${j}">${j}</option>`).join('')+'<option value="__manual__">✏️ 手入力する</option>';if(curVal)nameSel.value=curVal;}}
 function toggleManual(selId,inputId){const sel=document.getElementById(selId),inp=document.getElementById(inputId);if(!sel||!inp)return;if(sel.value==='__manual__'){inp.style.display='block';inp.focus();}else{inp.style.display='none';inp.value='';}}
 function getFieldVal(selId,inputId){const sel=document.getElementById(selId);if(!sel)return '';if(sel.value==='__manual__'){const inp=document.getElementById(inputId);return inp?inp.value.trim():'';}return sel.value;}
 function extractAiText(data){try{if(!data)return 'レスポンスが空です';if(data.error)return 'APIエラー: '+(data.error.message||JSON.stringify(data.error));if(!data.content||!Array.isArray(data.content))return 'レスポンス形式エラー';const text=data.content.map(c=>c.type==='text'?(c.text||''):'').join('');return text||'テキストが含まれていません';}catch(e){return 'パースエラー: '+e.message;}}
+
+// ===== 削除確認モーダル =====
+function confirmAction(title, msg, onConfirm){
+  document.getElementById('confirmTitle').textContent=title;
+  document.getElementById('confirmMsg').textContent=msg;
+  const modal=document.getElementById('confirmModal');
+  const okBtn=document.getElementById('confirmOkBtn');
+  const newOkBtn=okBtn.cloneNode(true);
+  okBtn.parentNode.replaceChild(newOkBtn,okBtn);
+  newOkBtn.onclick=async()=>{closeConfirmModal();await onConfirm();};
+  modal.classList.add('open');
+}
+function closeConfirmModal(){document.getElementById('confirmModal').classList.remove('open');}
+document.getElementById('confirmModal').onclick=e=>{if(e.target===e.currentTarget)closeConfirmModal();};
 
 // ===== INIT =====
 initFirebase();
