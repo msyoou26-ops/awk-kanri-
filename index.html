@@ -771,6 +771,31 @@ function logsArr(){return Object.entries(workLogs).map(([id,l])=>({...l,id})).so
 function nippoLogsArr(){return Object.entries(nippoLogs).map(([id,l])=>({...l,id})).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));}
 function getJobsForMember(mid){return jobsArr().filter(j=>{const ids=j.memberIds&&j.memberIds.length?j.memberIds:[j.memberId,j.elecMemberId].filter(Boolean);return ids.includes(mid);});}
 function totalH(j){return(j.planH||0);}
+// ===== 電装/本作業 工数振り分け =====
+const ELEC_RATIO=0.3; // 電装担当グループの取り分
+function isElecMember(mid){const m=getMember(mid);return !!(m&&m.role&&m.role.includes('電装担当'));}
+function jobGroupOf(j,mid){return isElecMember(mid)?'elec':'main';}
+function jobMemberIdsAll(j){return j.memberIds&&j.memberIds.length?j.memberIds:[j.memberId,j.elecMemberId].filter(Boolean);}
+function jobHasGroupSplit(j){
+  const ids=jobMemberIdsAll(j);
+  const hasElec=ids.some(id=>isElecMember(id));
+  const hasMain=ids.some(id=>!isElecMember(id));
+  return hasElec&&hasMain;
+}
+function groupPlanH(j,group){
+  const tp=totalH(j);
+  if(!jobHasGroupSplit(j))return tp; // 片方のグループしかいない場合は全額
+  return group==='elec'?Math.round(tp*ELEC_RATIO*100)/100:Math.round(tp*(1-ELEC_RATIO)*100)/100;
+}
+function groupActualH(j,group){
+  const ids=jobMemberIdsAll(j).filter(id=>jobHasGroupSplit(j)?(group==='elec'?isElecMember(id):!isElecMember(id)):true);
+  let t=0;
+  ids.forEach(mid=>{
+    const mt=(j.memberTasks&&j.memberTasks[mid])||[];
+    t+=mt.reduce((a,t2)=>a+(parseFloat(t2.actual)||0),0);
+  });
+  return Math.round(t*100)/100;
+}
 function actualH(j){let t=0;const all=[];(j.memberIds||[]).forEach(mid=>{const mt=j.memberTasks&&j.memberTasks[mid];if(mt)all.push(...mt);});if(!all.length&&j.tasks)all.push(...j.tasks);t+=all.reduce((a,t2)=>a+(parseFloat(t2.actual)||0),0);return Math.round(t*100)/100;}
 function daysLeft(d){const t=new Date();t.setHours(0,0,0,0);return Math.ceil((new Date(d)-t)/86400000);}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
@@ -1176,6 +1201,10 @@ function renderOverview(){
     h+=`<div class="ov-card" style="${urg?'border-color:var(--red)':warn?'border-color:var(--accent)':''}">
       <div class="ov-card-top"><div style="flex:1"><div class="ov-card-name">${j.name}</div><div class="ov-card-sub">${j.orderNo?j.orderNo+' / ':''}${j.userName||''}</div></div><span class="sb sb-${j.status}">${SL[j.status]}</span></div>
       <div class="ov-card-meta"><span>担当: <span>${(j.memberIds||[j.memberId].filter(Boolean)).map(id=>getMember(id)?.name||'').filter(Boolean).join('・')||'未割当'}</span></span><span>着工: <span>${fmt(j.start)}</span></span><span>完成: <span style="${urg?'color:var(--red);font-weight:700':''}">${fmt(j.end)}${j.status!=='done'&&dl<=7?'（'+(dl<=0?'超過':'残'+dl+'日')+'）':''}</span></span></div>
+      ${jobHasGroupSplit(j)?`<div style="display:flex;gap:6px;margin-bottom:8px">
+        <span style="font-size:10px;font-weight:700;color:var(--accent2);background:rgba(59,127,245,.12);border:1px solid rgba(59,127,245,.3);padding:2px 8px;border-radius:8px">⚡ 電装 ${groupActualH(j,'elec')}h / ${groupPlanH(j,'elec')}h</span>
+        <span style="font-size:10px;font-weight:700;color:var(--green);background:rgba(30,201,122,.12);border:1px solid rgba(30,201,122,.3);padding:2px 8px;border-radius:8px">🔧 本作業 ${groupActualH(j,'main')}h / ${groupPlanH(j,'main')}h</span>
+      </div>`:''}
       <div style="display:flex;align-items:center;gap:8px"><div class="ov-pw"><div class="ov-pb" style="width:${pct}%;background:${bc}"></div></div><div style="font-size:11px;color:${bc};font-weight:700;min-width:60px;text-align:right">${diffLabel||pct+'%'}</div></div>
       ${isBoss()?`<div class="ov-actions"><button class="act-btn" onclick="openJobModal(null,'${j.id}')">✎ 編集</button><button class="act-btn del" onclick="deleteJob('${j.id}')">✕ 削除</button></div>`:''}
     </div>`;
@@ -1208,11 +1237,13 @@ function renderGantt(){
 // ===== NENKAN =====
 function renderNenkan(){
   const dj=getJobsForMember(curMember).filter(j=>j.status==='done');
-  const tp=dj.reduce((a,j)=>a+totalH(j),0),ta=dj.reduce((a,j)=>a+actualH(j),0);
-  const sur=tp-ta,sc=sur>=0?'dp':'dn',ss=sur>=0?`+${sur}h`:`${sur}h`;
+  const tp=dj.reduce((a,j)=>{const hasSplit=jobHasGroupSplit(j);const grp=hasSplit?jobGroupOf(j,curMember):null;return a+(hasSplit?groupPlanH(j,grp):totalH(j));},0);
+  const ta=dj.reduce((a,j)=>{const hasSplit=jobHasGroupSplit(j);const grp=hasSplit?jobGroupOf(j,curMember):null;return a+(hasSplit?groupActualH(j,grp):actualH(j));},0);
+  const tpR=Math.round(tp*100)/100,taR=Math.round(ta*100)/100;
+  const sur=Math.round((tpR-taR)*100)/100,sc=sur>=0?'dp':'dn',ss=sur>=0?`+${sur}h`:`${sur}h`;
   const byM=Array(12).fill(0);
   dj.forEach(j=>{if(j.end){const m=parseInt(j.end.split('-')[1],10)-1;byM[m]++;}});
-  document.getElementById('nkWrap').innerHTML=`<div class="nk-wrap"><div class="nk-ttl">年間実績 ${curYear}</div><div class="nk-grid"><div class="nkc c-done"><div class="nkn">${dj.length}</div><div class="nkl">完成台数</div></div><div class="nkc c-act"><div class="nkn">${ta}h</div><div class="nkl">実績工数</div></div><div class="nkc c-sur"><div class="nkn ${sc}">${ss}</div><div class="nkl">${sur>=0?'余り':'超過'}</div></div></div><div style="font-size:10px;color:var(--dim);margin-bottom:6px">月別完成台数</div><div class="nk-months">${byM.map((c,i)=>`<div class="nm${c>0?' has':''}"><div class="nm-l">${MN[i]}</div><div class="nm-n${c>0?'':' z'}">${c>0?c:'—'}</div></div>`).join('')}</div></div>`;
+  document.getElementById('nkWrap').innerHTML=`<div class="nk-wrap"><div class="nk-ttl">年間実績 ${curYear}</div><div class="nk-grid"><div class="nkc c-done"><div class="nkn">${dj.length}</div><div class="nkl">完成台数</div></div><div class="nkc c-act"><div class="nkn">${taR}h</div><div class="nkl">実績工数</div></div><div class="nkc c-sur"><div class="nkn ${sc}">${ss}</div><div class="nkl">${sur>=0?'余り':'超過'}</div></div></div><div style="font-size:10px;color:var(--dim);margin-bottom:6px">月別完成台数</div><div class="nk-months">${byM.map((c,i)=>`<div class="nm${c>0?' has':''}"><div class="nm-l">${MN[i]}</div><div class="nm-n${c>0?'':' z'}">${c>0?c:'—'}</div></div>`).join('')}</div></div>`;
 }
 
 // ===== PROGRESS =====
@@ -1228,12 +1259,18 @@ function renderProgress(){
     const jobMembers=j.memberIds&&j.memberIds.length?j.memberIds:[j.memberId,j.elecMemberId].filter(Boolean);
     const isMyJob=!isBoss()&&jobMembers.includes(myMid);
     const tasks=isMyJob?((j.memberTasks&&j.memberTasks[myMid])||[]):[];
-    const tp=totalH(j),ta=actualH(j),diff=tp-ta;
+    const hasSplit=jobHasGroupSplit(j);
+    const myGroup=isMyJob?jobGroupOf(j,myMid):null;
+    // 表示する工数：自分のグループがあればグループ別、無ければ案件全体
+    const tp=(isMyJob&&hasSplit)?groupPlanH(j,myGroup):totalH(j);
+    const ta=(isMyJob&&hasSplit)?groupActualH(j,myGroup):actualH(j);
+    const diff=Math.round((tp-ta)*100)/100;
     const ds=diff>0?`残${diff}h`:diff<0?`超過 +${Math.abs(diff)}h`:'±0';
     const kousuPct=tp>0?Math.round(ta/tp*100):0;
     const barWidth=Math.min(kousuPct,100);
     const barColor=kousuPct>=100?'#f04040':kousuPct>=80?'#f59e0b':'#1ec97a';
     const isOver=tp>0&&ta>tp;
+    const groupLabel=hasSplit?(myGroup==='elec'?'⚡ 電装担当グループ':'🔧 本作業グループ'):'';
     let tr='';
     for(const t of tasks){
       const a2=parseFloat(t.actual)||0;const tc=t.status==='done'?'#1ec97a':t.status==='ongoing'?'#f59e0b':'#3d4460';
@@ -1241,7 +1278,9 @@ function renderProgress(){
     }
     h+=`<div class="pb-card"><div class="pb-bar" style="background:${SC[j.status]||'#6366f1'}"></div>
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px"><div style="flex:1"><div class="pb-nm">${j.name}</div><div class="pb-sub">${j.orderNo?j.orderNo+' / ':''}${j.userName||''}</div></div><span class="sb sb-${j.status}">${SL[j.status]}</span></div>
-      <div class="pb-dates">着工 <span>${fmt(j.start)}</span> → 完成 <span>${fmt(j.end)}</span>　担当: <span style="color:var(--text)">${(j.memberIds||[j.memberId].filter(Boolean)).map(id=>getMember(id)?.name||'').filter(Boolean).join('・')||'未割当'}</span></div>
+      ${groupLabel?`<div style="display:inline-block;font-size:10px;font-weight:700;color:var(--accent2);background:rgba(59,127,245,.12);border:1px solid rgba(59,127,245,.3);padding:2px 8px;border-radius:8px;margin-bottom:6px">${groupLabel}　見積${totalH(j)}h中 ${Math.round((tp/totalH(j))*100)||0}%（${tp}h）</div>` : ''}
+      <div class="pb-dates">着工 <span>${fmt(j.start)}</span> 
+→ 完成 <span>${fmt(j.end)}</span>　担当: <span style="color:var(--text)">${(j.memberIds||[j.memberId].filter(Boolean)).map(id=>getMember(id)?.name||'').filter(Boolean).join('・')||'未割当'}</span></div>
       ${tp>0?`<div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--dim)">工数使用率</span><span style="font-size:12px;font-weight:700"><span style="color:var(--text)">${ta}h</span><span style="color:var(--dim)"> / ${tp}h</span><span style="color:${diff>0?'var(--green)':diff<0?'var(--red)':'var(--dim)'}">　${ds}</span></span></div><div style="position:relative;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:${isOver?'4':'10'}px"><div style="position:absolute;left:0;top:0;height:100%;width:${barWidth}%;background:${barColor};border-radius:4px;transition:width .4s"></div></div>${isOver?`<div style="font-size:10px;color:var(--red);margin-bottom:10px">⚠️ 工数オーバー ${kousuPct}%使用</div>`:''}`:''}
       ${renderTaskSection(j,isMyJob,tr)}${renderJobActions(j)}</div>`;
   }
