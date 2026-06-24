@@ -397,6 +397,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
           <button id="btnModeIndirect" onclick="setLogMode('indirect')" style="background:transparent;border:none;color:var(--dim);padding:11px 8px;font-size:13px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:500">🔄 間接作業</button>
         </div>
         <div id="directArea">
+          <!-- 残り時間バナー -->
+          <div id="nippoRemainingBanner" style="display:none;margin-bottom:10px;padding:10px 14px;background:rgba(30,201,122,.1);border:1px solid rgba(30,201,122,.3);border-radius:10px">
+            <div style="font-size:11px;color:var(--dim);margin-bottom:2px">今日の残り直接作業時間（定時8h − 間接合計）</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--green)" id="nippoRemainingH">—</div>
+          </div>
           <div style="font-size:11px;color:var(--dim);margin-bottom:8px">作業した案件と時間を入力（複数案件OK） <span style="color:var(--red)">*</span></div>
           <div id="nippoJobList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
         </div>
@@ -455,10 +460,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
 <!-- MEMBER SCREEN -->
 <div id="memberScreen" class="screen">
   <div class="hdr"><button class="back-btn" onclick="goBackFromMember()">← 戻る</button><div class="hdr-title" id="mHdrTitle"></div><button class="icon-btn" id="btnAddJob" onclick="openJobModal(curMember,null)">＋</button></div>
-  <div class="tab-bar">
+  <div class="tab-bar" id="memberTabBar">
     <button class="tab on" id="mNavG" onclick="showMemberTab('gantt')">📅 架装日程</button>
     <button class="tab" id="mNavP" onclick="showMemberTab('progress')">📊 進捗管理</button>
-    <button class="tab" id="mNavL" onclick="showMemberTab('log')">📝 作業ログ</button>
+    <button class="tab" id="mNavL" onclick="showMemberTab('log')" style="display:none">📝 作業ログ</button>
     <button class="tab" id="mNavN" onclick="showMemberTab('nippo')">📈 日報</button>
   </div>
   <div class="app-body">
@@ -1056,6 +1061,8 @@ function initNippoJobList(){
       <span style="font-size:11px;color:var(--dim);flex-shrink:0">h</span>
     </div>`;
   }).join('');
+
+  updateRemainingTime();
 }
 function initIndirectChips(){
   const el=document.getElementById('indirectChips');if(!el)return;
@@ -1074,6 +1081,7 @@ function initIndirectChips(){
 function selectIndirectType(key){selectedIndirectType=key;initIndirectChips();}
 function setLogMode(mode){
   nippoLogMode=mode;
+  if(mode==='direct')updateRemainingTime();
   document.getElementById('btnModeDirect').style.cssText=`background:${mode==='direct'?'var(--green)':'transparent'};border:none;color:${mode==='direct'?'#000':'var(--dim)'};padding:11px 8px;font-size:13px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:${mode==='direct'?700:500}`;
   document.getElementById('btnModeIndirect').style.cssText=`background:${mode==='indirect'?'var(--accent2)':'transparent'};border:none;color:${mode==='indirect'?'#fff':'var(--dim)'};padding:11px 8px;font-size:13px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:${mode==='indirect'?700:500}`;
   document.getElementById('directArea').style.display=mode==='direct'?'block':'none';
@@ -1081,6 +1089,26 @@ function setLogMode(mode){
 }
 function changeHour(delta){const el=document.getElementById('hourVal');const cur=parseFloat(el.value)||0;el.value=Math.max(0.01,Math.round((cur+delta)*100)/100);}
 function changeOvertime(delta){const el=document.getElementById('overtimeVal');const cur=parseFloat(el.value)||0;el.value=Math.max(0,Math.round((cur+delta)*100)/100);}
+function updateRemainingTime(){
+  // 今日すでに記録した間接時間を計算
+  const mid=session.memberId;if(!mid)return;
+  const dt=new Date().toISOString().split('T')[0];
+  const todayIndirect=nippoLogsArr().filter(l=>l.memberId===mid&&l.date===dt&&l.type==='indirect');
+  const todayOT=nippoLogsArr().filter(l=>l.memberId===mid&&l.date===dt&&l.type==='overtime');
+  const indirectH=Math.round(todayIndirect.reduce((a,l)=>a+(l.hours||0),0)*100)/100;
+  const otH=Math.round(todayOT.reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
+  const TEIJI=8; // 定時8時間
+  const remaining=Math.max(0,Math.round((TEIJI+otH-indirectH)*100)/100);
+  const banner=document.getElementById('nippoRemainingBanner');
+  const lbl=document.getElementById('nippoRemainingH');
+  if(banner&&lbl){
+    banner.style.display='block';
+    lbl.textContent=remaining+'h';
+    lbl.style.color=remaining<=0?'var(--red)':'var(--green)';
+    banner.style.borderColor=remaining<=0?'rgba(240,64,64,.3)':'rgba(30,201,122,.3)';
+    banner.style.background=remaining<=0?'rgba(240,64,64,.08)':'rgba(30,201,122,.1)';
+  }
+}
 async function saveNippoLog(){
   const mid=session.memberId;if(!mid){showToast('ログインし直してください');return;}
   const m=getMember(mid);
@@ -1133,6 +1161,7 @@ async function saveNippoLog(){
 
   const jobCount=entries.filter(e=>e.type!=='overtime').length;
   showToast(`✅ ${nippoLogMode==='direct'?jobCount+'件の直接作業':'間接作業'}を記録しました`);
+  updateRemainingTime();
   switchNippoTab('today');
 }
 async function _doDeleteNippoLog(id){
@@ -1263,13 +1292,18 @@ function openMemberScreen(tab){
   document.getElementById('btnAddJob').style.display=isBoss()?'flex':'none';
   showScreen('memberScreen');
   const bn=document.getElementById('memberBottomNav');
-  if(isBoss()){bn.innerHTML=`<button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button><button class="bnav" onclick="showScreen('overviewScreen')"><div class="bnav-icon">📋</div>案件</button><button class="bnav" onclick="showMemberTab('nippo')"><div class="bnav-icon">📈</div>日報</button><button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">📝</div>QCログ</button>`;}
+  if(isBoss()){
+    bn.innerHTML=`<button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button><button class="bnav" onclick="showScreen('overviewScreen')"><div class="bnav-icon">📋</div>案件</button><button class="bnav" onclick="showMemberTab('nippo')"><div class="bnav-icon">📈</div>日報</button><button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">📝</div>QCログ</button>`;
+    // 管理者は作業ログタブを非表示
+    const logTab=document.getElementById('mNavL');if(logTab)logTab.style.display='none';
+  }
   else{bn.innerHTML=`<button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button><button class="bnav" id="bnG" onclick="showMemberTab('gantt')"><div class="bnav-icon">📅</div>日程</button><button class="bnav" id="bnP" onclick="showMemberTab('progress')"><div class="bnav-icon">📊</div>進捗</button><button class="bnav" id="bnL" onclick="showMemberTab('log')"><div class="bnav-icon">📝</div>ログ</button>`;}
   showMemberTab(tab||'gantt');
 }
 function showMemberTab(tab){
   const active=document.querySelector('.screen.active')?.id;
   if(session.role==='worker'&&active!=='memberScreen'){curMember=session.memberId;openMemberScreen(tab);return;}
+  if(isBoss()&&tab==='log')tab='gantt'; // 管理者は作業ログ不要
   ['gantt','progress','log','nippo'].forEach(t=>{const el=document.getElementById('m'+t.charAt(0).toUpperCase()+t.slice(1)+'Tab');if(el)el.style.display=t===tab?'block':'none';});
   document.getElementById('mNavG').classList.toggle('on',tab==='gantt');
   document.getElementById('mNavP').classList.toggle('on',tab==='progress');
@@ -1369,7 +1403,25 @@ function renderProgress(){
     let tr='';
     for(const t of tasks){
       const a2=parseFloat(t.actual)||0;const tc=t.status==='done'?'#1ec97a':t.status==='ongoing'?'#f59e0b':'#3d4460';
-      tr+=`<div class="pt-row"><div class="pt-name"><span class="pt-dot" style="background:${tc}"></span><input type="text" value="${(t.name||'').replace(/"/g,'&quot;')}" placeholder="作業内容" class="pt-input-name" onchange="updateTask('${j.id}','${t.id}','name',this.value)"></div><div class="pt-act"><input type="number" value="${a2||''}" placeholder="0" min="0" step="0.5" class="pt-input-num" onchange="updateTask('${j.id}','${t.id}','actual',this.value)"><span class="pt-unit">h</span></div><select class="pt-select" onchange="updateTask('${j.id}','${t.id}','status',this.value)"><option value="planned"${t.status==='planned'?' selected':''}>未着手</option><option value="ongoing"${t.status==='ongoing'?' selected':''}>進行中</option><option value="done"${t.status==='done'?' selected':''}>完了</option></select><div class="pt-del" onclick="deleteTask('${j.id}','${t.id}')">✕</div></div>`;
+      tr+=`<div class="pt-row" style="grid-template-columns:1fr 90px 68px 24px;gap:4px">
+        <div class="pt-name"><span class="pt-dot" style="background:${tc}"></span>
+          <input type="text" value="${(t.name||'').replace(/"/g,'&quot;')}" placeholder="作業内容" class="pt-input-name" onchange="updateTask('${j.id}','${t.id}','name',this.value)">
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+          <div style="font-size:9px;color:var(--dim)">累計 ${a2}h</div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <input type="number" value="" placeholder="+h" min="0" step="0.5" class="pt-input-num" style="color:var(--green);width:42px"
+              onchange="addTaskHours('${j.id}','${t.id}',this.value);this.value=''">
+            <span style="font-size:9px;color:var(--green)">追加</span>
+          </div>
+        </div>
+        <select class="pt-select" style="font-size:11px" onchange="updateTask('${j.id}','${t.id}','status',this.value)">
+          <option value="planned"${t.status==='planned'?' selected':''}>未着手</option>
+          <option value="ongoing"${t.status==='ongoing'?' selected':''}>進行中</option>
+          <option value="done"${t.status==='done'?' selected':''}>完了</option>
+        </select>
+        <div class="pt-del" onclick="deleteTask('${j.id}','${t.id}')">✕</div>
+      </div>`;
     }
     h+=`<div class="pb-card"><div class="pb-bar" style="background:${SC[j.status]||'#6366f1'}"></div>
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px"><div style="flex:1"><div class="pb-nm">${j.name}</div><div class="pb-sub">${j.orderNo?j.orderNo+' / ':''}${j.userName||''}</div></div><span class="sb sb-${j.status}">${SL[j.status]}</span></div>
@@ -1411,6 +1463,20 @@ function renderOtherMemberTasks(j){
   return h+'</div>';
 }
 async function addTask(jid){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=(j.memberTasks&&j.memberTasks[mid])||[];mt.push({id:uid(),name:'',actual:0,status:'planned'});await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}}
+async function addTaskHours(jid,tid,addVal){
+  const add=parseFloat(addVal)||0;if(add<=0)return;
+  const j=jobs[jid];if(!j)return;
+  const mid=curMember||session.memberId;
+  const mt=((j.memberTasks&&j.memberTasks[mid])||j.tasks||[]).map(t=>{
+    if(t.id!==tid)return t;
+    const newActual=Math.round(((parseFloat(t.actual)||0)+add)*100)/100;
+    return {...t,actual:newActual,status:newActual>0&&t.status==='planned'?'ongoing':t.status};
+  });
+  await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);
+  await dbSet(`jobs/${jid}/tasks`,mt);
+  if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}
+  showToast(`+${add}h 追加しました`);
+}
 async function updateTask(jid,tid,field,val){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=((j.memberTasks&&j.memberTasks[mid])||j.tasks||[]).map(t=>t.id===tid?{...t,[field]:field==='actual'?(parseFloat(val)||0):val}:t);await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}}
 async function _doDeleteTask(jid,tid){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=((j.memberTasks&&j.memberTasks[mid])||j.tasks||[]).filter(t=>t.id!==tid);await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}}
 function deleteTask(jid,tid){confirmAction('工程を削除しますか？','入力した実績時間も削除されます。',()=>_doDeleteTask(jid,tid));}
