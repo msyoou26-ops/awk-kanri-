@@ -1446,24 +1446,33 @@ function renderProgress(){
     let tr='';
     for(const t of tasks){
       const a2=parseFloat(t.actual)||0;const tc=t.status==='done'?'#1ec97a':t.status==='ongoing'?'#f59e0b':'#3d4460';
-      tr+=`<div class="pt-row" style="grid-template-columns:1fr 90px 68px 24px;gap:4px">
-        <div class="pt-name"><span class="pt-dot" style="background:${tc}"></span>
-          <input type="text" value="${(t.name||'').replace(/"/g,'&quot;')}" placeholder="作業内容" class="pt-input-name" onchange="updateTask('${j.id}','${t.id}','name',this.value)">
+      tr+=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${tc};flex-shrink:0;display:inline-block"></span>
+          <input type="text" value="${(t.name||'').replace(/"/g,'&quot;')}" placeholder="作業内容" class="pt-input-name" style="font-size:15px;font-weight:500;flex:1" onchange="updateTask('${j.id}','${t.id}','name',this.value)">
+          <div class="pt-del" onclick="deleteTask('${j.id}','${t.id}')">✕</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
-          <div style="font-size:9px;color:var(--dim)">累計 ${a2}h</div>
-          <div style="display:flex;align-items:center;gap:2px">
-            <input type="number" value="" placeholder="+h" min="0" step="0.5" class="pt-input-num" style="color:var(--green);width:42px"
-              onchange="addTaskHours('${j.id}','${t.id}',this.value);this.value=''">
-            <span style="font-size:9px;color:var(--green)">追加</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;background:var(--surface);border-radius:8px;padding:8px 10px;text-align:center">
+            <div style="font-size:10px;color:var(--dim);margin-bottom:2px">累計時間</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:${a2>0?'var(--accent)':'var(--muted)'};line-height:1">${a2}h</div>
+          </div>
+          <div style="flex:1;background:var(--surface);border-radius:8px;padding:8px 10px;text-align:center">
+            <div style="font-size:10px;color:var(--green);margin-bottom:4px">＋ 今日の追加</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+              <input type="number" value="" placeholder="0" min="0" step="0.5" style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);background:transparent;border:none;outline:none;width:60px;text-align:center"
+                onchange="addTaskHours('${j.id}','${t.id}',this.value);this.value=''">
+              <span style="font-size:12px;color:var(--green)">h</span>
+            </div>
+          </div>
+          <div style="flex:1">
+            <select style="width:100%;background:var(--surface);border:1px solid var(--border2);color:var(--text);padding:8px 6px;border-radius:8px;font-size:12px;outline:none;font-family:'Noto Sans JP',sans-serif" onchange="updateTask('${j.id}','${t.id}','status',this.value)">
+              <option value="planned"${t.status==='planned'?' selected':''}>未着手</option>
+              <option value="ongoing"${t.status==='ongoing'?' selected':''}>進行中</option>
+              <option value="done"${t.status==='done'?' selected':''}>完了</option>
+            </select>
           </div>
         </div>
-        <select class="pt-select" style="font-size:11px" onchange="updateTask('${j.id}','${t.id}','status',this.value)">
-          <option value="planned"${t.status==='planned'?' selected':''}>未着手</option>
-          <option value="ongoing"${t.status==='ongoing'?' selected':''}>進行中</option>
-          <option value="done"${t.status==='done'?' selected':''}>完了</option>
-        </select>
-        <div class="pt-del" onclick="deleteTask('${j.id}','${t.id}')">✕</div>
       </div>`;
     }
     h+=`<div class="pb-card"><div class="pb-bar" style="background:${SC[j.status]||'#6366f1'}"></div>
@@ -1479,7 +1488,7 @@ function renderProgress(){
 async function markJobDone(jid){const j=jobs[jid];if(!j)return;await dbSet(`jobs/${jid}/status`,'done');if(!fbReady){jobs[jid].status='done';renderProgress();renderOverview();}showToast('🎉 完成にしました！');setTimeout(()=>onJobCompleted(jid),600);}
 async function undoJobDone(jid){const j=jobs[jid];if(!j)return;await dbSet(`jobs/${jid}/status`,'ongoing');if(!fbReady){jobs[jid].status='ongoing';renderProgress();renderOverview();}showToast('↩ 完成を取り消しました');}
 function renderTaskSection(j,isMyJob,tr){
-  if(isMyJob)return '<div class="pt-section"><div class="pt-section-label">✏️ 自分の作業入力</div><div class="pt-header"><span>作業内容</span><span>実績</span><span>状態</span><span></span></div>'+tr+'<div class="pt-footer"><button class="btn small" onclick="addTask(\''+j.id+'\')">＋ 追加</button><button class="btn small" onclick="addDefaultTasks(\''+j.id+'\')">テンプレ</button></div></div>'+renderOtherMemberTasks(j);
+  if(isMyJob)return '<div class="pt-section"><div class="pt-section-label">✏️ 自分の作業入力</div>'+tr+'<div class="pt-footer"><button class="btn small" onclick="addTask(\''+j.id+'\')">＋ 追加</button><button class="btn small" onclick="addDefaultTasks(\''+j.id+'\')">テンプレ</button></div></div>'+renderOtherMemberTasks(j);
   return '<div class="pt-section"><div class="pt-section-label">👥 担当者別 作業状況（閲覧のみ）</div>'+renderAllMemberTasks(j)+'</div>';
 }
 function renderJobActions(j){
