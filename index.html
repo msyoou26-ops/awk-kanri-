@@ -254,6 +254,10 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
+.nippo-h-btn{padding:10px 4px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;text-align:center;font-family:'Noto Sans JP',sans-serif;transition:all .15s}
+.nippo-h-btn.on{border-color:var(--accent);background:rgba(240,165,0,.12);color:var(--accent)}
+.nippo-zchip{padding:10px 12px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s}
+.nippo-zchip.on{border-color:#6366f1;background:rgba(99,102,241,.12)}
 </style>
 </head>
 <body>
@@ -352,88 +356,122 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div class="hdr-title">日報</div>
   </div>
   <div class="tab-bar">
-    <button class="tab on" id="nippoNavToday" onclick="switchNippoTab('today')">📊 今日の集計</button>
-    <button class="tab" id="nippoNavInput" onclick="switchNippoTab('input')">✏️ 作業入力</button>
-    <button class="tab" id="nippoNavHistory" onclick="switchNippoTab('history')">📋 履歴</button>
+    <button class="tab on" id="nippoNavToday" onclick="switchNippoTab('today')">今日</button>
+    <button class="tab" id="nippoNavInput" onclick="switchNippoTab('input')">入力</button>
+    <button class="tab" id="nippoNavHistory" onclick="switchNippoTab('history')">履歴</button>
   </div>
   <div class="app-body">
+
+    <!-- 今日タブ -->
     <div id="nippoTodayTab">
-      <div style="background:linear-gradient(135deg,rgba(240,165,0,.1),rgba(59,127,245,.07));border:1px solid rgba(240,165,0,.2);border-radius:16px;padding:18px;margin-bottom:16px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:3px;color:var(--dim);margin-bottom:6px;text-align:center" id="nippoDatelbl"></div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--dim);margin-bottom:8px;text-align:center">直接率 / 間接率</div>
-        <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;margin:0 0 6px;gap:2px">
-          <div id="nippoDirectBar" style="background:linear-gradient(90deg,var(--green),#4ade80);border-radius:6px 0 0 6px;width:50%;transition:width .6s"></div>
-          <div id="nippoIndirectBar" style="background:linear-gradient(90deg,var(--accent2),#818cf8);border-radius:0 6px 6px 0;width:50%;transition:width .6s"></div>
+      <!-- 日付・サマリーヘッダー -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:10px" id="nippoDatelbl"></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+          <div style="text-align:center">
+            <div style="font-size:20px;font-weight:700;color:var(--text);line-height:1" id="nippoTotalH">—</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:3px">合計</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:20px;font-weight:700;color:#1ec97a;line-height:1" id="nippoDirectH">—</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:3px">直接</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:20px;font-weight:700;color:#6366f1;line-height:1" id="nippoIndirectH">—</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:3px">間接</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:20px;font-weight:700;color:#f04040;line-height:1" id="nippoOvertimeH">—</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:3px">残業</div>
+          </div>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:11px">
-          <span style="color:var(--green);font-weight:700" id="nippoDirectPct">—%</span>
-          <span style="color:var(--dim);font-size:10px">直接 / 間接</span>
-          <span style="color:var(--accent2);font-weight:700" id="nippoIndirectPct">—%</span>
+        <!-- 直接率バー -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:10px;color:#1ec97a;font-weight:700;min-width:28px" id="nippoDirectPct">—%</div>
+          <div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
+            <div id="nippoDirectBar" style="height:100%;width:0%;background:#1ec97a;border-radius:3px;transition:width .5s"></div>
+          </div>
+          <div style="font-size:10px;color:#6366f1;font-weight:700;min-width:28px;text-align:right" id="nippoIndirectPct">—%</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--accent)" id="nippoTotalH">0h</div><div style="font-size:10px;color:var(--dim);margin-top:3px">合計時間</div></div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--green)" id="nippoDirectH">0h</div><div style="font-size:10px;color:var(--dim);margin-top:3px">直接作業</div></div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--accent2)" id="nippoIndirectH">0h</div><div style="font-size:10px;color:var(--dim);margin-top:3px">間接作業</div></div>
-        <div style="background:var(--surface);border:1px solid rgba(240,64,64,.3);border-radius:12px;padding:14px 10px;text-align:center;grid-column:span 3"><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--red)" id="nippoOvertimeH">0h</div><div style="font-size:10px;color:var(--dim);margin-top:3px">残業時間</div></div>
+
+      <!-- 直接作業リスト -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:#1ec97a">直接作業</div>
+          <div style="font-size:10px;color:var(--dim)">進捗管理から自動反映</div>
+        </div>
+        <div id="nippoDirect"><div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">まだ記録なし</div></div>
       </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--green);margin-bottom:10px;border-left:3px solid var(--green);padding-left:8px">✅ 直接作業（架装）</div>
-        <div id="nippoDirect"></div>
+
+      <!-- 間接作業リスト -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:#6366f1">間接作業</div>
+          <button onclick="switchNippoTab('input')" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--accent);cursor:pointer">＋ 追加</button>
+        </div>
+        <div id="nippoIndirect"><div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">まだ記録なし</div></div>
       </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--accent2);margin-bottom:10px;border-left:3px solid var(--accent2);padding-left:8px">🔄 間接作業</div>
-        <div id="nippoIndirect"></div>
-      </div>
-      <button class="btn full" onclick="switchNippoTab('input')">＋ 作業を追加記録する</button>
     </div>
 
+    <!-- 入力タブ -->
     <div id="nippoInputTab" style="display:none">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:1px">📝 日報を記録（Zコード・残業）</div>
-        <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:12px;letter-spacing:1px;border-left:3px solid var(--accent2);padding-left:8px">🔄 間接作業（Zコード）を入力</div>
-        <div id="btnModeDirect" style="display:none"></div>
-        <div id="btnModeIndirect" style="display:none"></div>
-        <div id="directArea">
-          <div style="padding:12px 14px;background:rgba(30,201,122,.07);border:1px solid rgba(30,201,122,.25);border-radius:12px;margin-bottom:4px">
-            <div style="font-size:11px;color:var(--dim);margin-bottom:4px">直接作業時間は進捗管理の入力から自動集計されます</div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <div style="flex:1">
-                <div style="font-size:10px;color:var(--dim)">今日の直接作業合計</div>
-                <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green)" id="nippoAutoDirectH">0h</div>
-              </div>
-            </div>
-          </div>
-          <div id="nippoJobList" style="display:none"></div>
+
+      <!-- STEP1: Zコード選択 -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">間接作業を記録する</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:12px">Zコードを選んで時間を入力してください</div>
+
+        <!-- Zコードグループ -->
+        <div style="font-size:10px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:6px">よく使うZコード</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px" id="nippoQuickChips"></div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:6px">その他</div>
+        <div id="indirectChips" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;max-height:200px;overflow-y:auto"></div>
+
+        <!-- 時間入力 -->
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">作業時間</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px" id="nippoHourChips">
+          <button onclick="setNippoHour(0.5)" class="nippo-h-btn">0.5h</button>
+          <button onclick="setNippoHour(1)" class="nippo-h-btn">1h</button>
+          <button onclick="setNippoHour(1.5)" class="nippo-h-btn">1.5h</button>
+          <button onclick="setNippoHour(2)" class="nippo-h-btn">2h</button>
+          <button onclick="setNippoHour(2.5)" class="nippo-h-btn">2.5h</button>
         </div>
-        <div id="indirectArea" style="display:block">
-          <div style="font-size:11px;color:var(--dim);margin-bottom:8px">Zコードを選択 <span style="color:var(--red)">*</span></div>
-          <div id="indirectChips" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:340px;overflow-y:auto;padding-right:2px"></div>
-          <div style="font-size:11px;color:var(--dim);margin-bottom:8px">作業時間 <span style="color:var(--red)">*</span></div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-            <div style="display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:10px;overflow:hidden;flex:1">
-              <button onclick="changeHour(-0.5)" style="background:var(--surface2);border:none;color:var(--accent);font-size:22px;font-weight:700;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
-              <input id="hourVal" type="number" min="0.01" step="0.01" value="0.5" inputmode="decimal" style="flex:1;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);background:transparent;border:none;outline:none;padding:0 8px">
-              <button onclick="changeHour(0.5)" style="background:var(--surface2);border:none;color:var(--accent);font-size:22px;font-weight:700;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">＋</button>
-            </div>
-            <div style="font-size:13px;color:var(--dim)">時間</div>
-          </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <button onclick="changeHour(-0.5)" style="width:44px;height:44px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+          <input id="hourVal" type="number" min="0.5" step="0.5" value="0.5" inputmode="decimal" style="flex:1;text-align:center;font-size:22px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:10px;outline:none">
+          <span style="font-size:13px;color:var(--dim)">h</span>
+          <button onclick="changeHour(0.5)" style="width:44px;height:44px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">＋</button>
         </div>
-        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">残業時間（任意入力）</div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-          <div style="display:flex;align-items:center;border:1.5px solid rgba(240,64,64,.35);border-radius:10px;overflow:hidden;flex:1">
-            <button onclick="changeOvertime(-0.5)" style="background:var(--surface2);border:none;color:var(--red);font-size:22px;font-weight:700;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
-            <input id="overtimeVal" type="number" min="0" step="0.01" value="0" inputmode="decimal" style="flex:1;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--red);background:transparent;border:none;outline:none;padding:0 8px">
-            <button onclick="changeOvertime(0.5)" style="background:var(--surface2);border:none;color:var(--red);font-size:22px;font-weight:700;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">＋</button>
-          </div>
-          <div style="font-size:13px;color:var(--dim)">時間</div>
-        </div>
+
+        <!-- メモ -->
         <div style="font-size:11px;color:var(--dim);margin-bottom:6px">メモ（任意）</div>
-        <textarea id="nippoMemo" placeholder="気になったことや特記事項など" style="width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);padding:12px;border-radius:10px;font-size:14px;outline:none;min-height:72px;resize:none;margin-bottom:16px"></textarea>
-        <button class="btn primary full" onclick="saveNippoLog()">💾 記録する</button>
+        <textarea id="nippoMemo" placeholder="特記事項があれば" style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px;border-radius:10px;font-size:13px;outline:none;min-height:56px;resize:none;margin-bottom:14px;box-sizing:border-box"></textarea>
+
+        <button class="btn primary full" onclick="saveNippoLog()" style="padding:14px;font-size:14px;font-weight:700">記録する</button>
+      </div>
+
+      <!-- 残業入力 -->
+      <div style="background:var(--surface);border:1px solid rgba(240,64,64,.2);border-radius:14px;padding:14px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">残業時間を記録する<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:8px">任意</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="changeOvertime(-0.5)" style="width:44px;height:44px;border-radius:10px;border:1px solid rgba(240,64,64,.3);background:var(--surface2);color:#f04040;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+          <input id="overtimeVal" type="number" min="0" step="0.5" value="0" inputmode="decimal" style="flex:1;text-align:center;font-size:22px;font-weight:700;color:#f04040;background:var(--surface2);border:1px solid rgba(240,64,64,.3);border-radius:10px;padding:10px;outline:none">
+          <span style="font-size:13px;color:var(--dim)">h</span>
+          <button onclick="changeOvertime(0.5)" style="width:44px;height:44px;border-radius:10px;border:1px solid rgba(240,64,64,.3);background:var(--surface2);color:#f04040;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">＋</button>
+        </div>
+      </div>
+
+      <!-- 直接作業確認 -->
+      <div style="background:rgba(30,201,122,.05);border:1px solid rgba(30,201,122,.2);border-radius:14px;padding:14px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#1ec97a;margin-bottom:6px">直接作業（自動集計）</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">進捗管理で入力した時間が自動で反映されます</div>
+        <div style="font-size:24px;font-weight:700;color:#1ec97a" id="nippoAutoDirectH">0h</div>
       </div>
     </div>
 
+    <!-- 履歴タブ -->
     <div id="nippoHistoryTab" style="display:none">
       <div id="nippoHistoryList"></div>
     </div>
@@ -1073,8 +1111,25 @@ function renderNippoToday(){
     if(l.taskName)directByJob[key].tasks.push(`${l.taskName}:${l.hours}h${l.loss?' 🔴':''}`);
     directByJob[key].ids.push(l.id);
   });
-  document.getElementById('nippoDirect').innerHTML=Object.keys(directByJob).length?Object.values(directByJob).map(g=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:10px"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);min-width:40px">${g.total}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${g.jobName}</div>${g.tasks.length?`<div style="font-size:10px;color:var(--dim);margin-top:2px">${g.tasks.join('　')}</div>`:''}</div></div>${g.loss>0?`<div style="margin-top:4px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(240,64,64,.1);border:1px solid rgba(240,64,64,.2);border-radius:8px;font-size:10px;color:var(--red);font-weight:700">🔴 ロス ${g.loss}h</div>`:''}</div>`).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし（進捗管理で＋追加すると自動反映）</div>';
-  document.getElementById('nippoIndirect').innerHTML=indirectLogs.length?indirectLogs.map(l=>{const t2=INDIRECT_TYPES.find(t=>t.key===l.indirectType)||{key:'',icon:'📌',label:'その他'};return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent2);min-width:36px">${l.hours}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${t2.icon} <span style="color:var(--accent2);font-weight:700;font-size:11px">${t2.key}</span> ${t2.label}</div>${l.memo?`<div style="font-size:11px;color:var(--dim);margin-top:2px">${l.memo}</div>`:''}</div><button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px">×</button></div>`;}).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし</div>';
+  document.getElementById('nippoDirect').innerHTML=Object.keys(directByJob).length?Object.values(directByJob).map(g=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:18px;font-weight:700;color:#1ec97a;min-width:40px">${g.total}h</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${g.jobName}</div>
+        ${g.tasks.length?`<div style="font-size:10px;color:var(--dim);margin-top:2px">${g.tasks.join(' / ')}</div>`:''}
+        ${g.loss>0?`<div style="display:inline-block;margin-top:4px;padding:2px 7px;background:rgba(240,64,64,.1);border:1px solid rgba(240,64,64,.2);border-radius:6px;font-size:10px;color:#f04040;font-weight:700">🔴 ロス ${g.loss}h</div>`:''}
+      </div>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">まだ記録なし</div>';
+  document.getElementById('nippoIndirect').innerHTML=indirectLogs.length?indirectLogs.map(l=>{
+    const t2=INDIRECT_TYPES.find(t=>t.key===l.indirectType)||{key:'',icon:'📌',label:'その他'};
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:18px;font-weight:700;color:#6366f1;min-width:40px">${l.hours}h</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text);font-weight:500">${t2.icon} ${t2.label}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:1px">${t2.key}${l.memo?' — '+l.memo:''}</div>
+      </div>
+      <button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;flex-shrink:0">×</button>
+    </div>`;}).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">まだ記録なし</div>';
 }
 function initNippoJobList(){
   const mid=session.memberId;if(!mid)return;
@@ -1095,18 +1150,32 @@ function initNippoJobList(){
   updateRemainingTime();
 }
 function initIndirectChips(){
-  const el=document.getElementById('indirectChips');if(!el)return;
-  el.innerHTML=INDIRECT_TYPES.map(t=>{
+  const QUICK_KEYS=['Z101','Z503','Z301','Z302'];
+  const quickEl=document.getElementById('nippoQuickChips');
+  const otherEl=document.getElementById('indirectChips');
+  const renderChip=(t,isQuick)=>{
     const on=selectedIndirectType===t.key;
-    return `<div onclick="selectIndirectType('${t.key}')" id="chip_${t.key}" style="padding:10px 12px;border-radius:10px;border:1.5px solid ${on?'var(--accent2)':'var(--border2)'};cursor:pointer;background:${on?'rgba(59,127,245,.15)':'var(--surface2)'};display:flex;align-items:center;gap:10px;width:100%">
-      <span style="font-size:18px;flex-shrink:0">${t.icon}</span>
+    if(isQuick){
+      return `<div onclick="selectIndirectType('${t.key}')" id="chip_${t.key}" class="nippo-zchip${on?' on':''}">
+        <span style="font-size:16px">${t.icon}</span>
+        <div style="flex:1;min-width:0;overflow:hidden">
+          <div style="font-size:10px;font-weight:800;color:${on?'#6366f1':'var(--accent)'}">${t.key}</div>
+          <div style="font-size:11px;color:${on?'#6366f1':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.label}</div>
+        </div>
+        ${on?'<span style="color:#6366f1;font-size:14px">✓</span>':''}
+      </div>`;
+    }
+    return `<div onclick="selectIndirectType('${t.key}')" id="chip_${t.key}" class="nippo-zchip${on?' on':''}">
+      <span style="font-size:15px">${t.icon}</span>
       <div style="flex:1;min-width:0">
-        <span style="font-size:11px;font-weight:800;color:${on?'#60a5fa':'var(--accent)'};margin-right:6px">${t.key}</span>
-        <span style="font-size:12px;color:${on?'#60a5fa':'var(--text)'}">${t.label}</span>
+        <span style="font-size:10px;font-weight:800;color:${on?'#6366f1':'var(--accent)'};margin-right:6px">${t.key}</span>
+        <span style="font-size:12px;color:${on?'#6366f1':'var(--text)'}">${t.label}</span>
       </div>
-      ${on?'<span style="color:var(--accent2);font-size:16px;flex-shrink:0">✓</span>':''}
+      ${on?'<span style="color:#6366f1;font-size:14px">✓</span>':''}
     </div>`;
-  }).join('');
+  };
+  if(quickEl)quickEl.innerHTML=INDIRECT_TYPES.filter(t=>QUICK_KEYS.includes(t.key)).map(t=>renderChip(t,true)).join('');
+  if(otherEl)otherEl.innerHTML=INDIRECT_TYPES.filter(t=>!QUICK_KEYS.includes(t.key)).map(t=>renderChip(t,false)).join('');
 }
 function selectIndirectType(key){selectedIndirectType=key;initIndirectChips();}
 function setLogMode(mode){
@@ -1199,7 +1268,8 @@ async function saveNippoLog(){
   document.getElementById('overtimeVal').value='0';
   document.getElementById('hourVal').value='0.5';
   selectedIndirectType='';initIndirectChips();
-  showToast(`✅ Zコードを記録しました`);
+  document.querySelectorAll('.nippo-h-btn').forEach(b=>b.classList.remove('on'));
+  showToast('✅ 記録しました');
   updateRemainingTime();
   switchNippoTab('today');
 }
@@ -1700,6 +1770,12 @@ document.getElementById('confirmModal').onclick=e=>{if(e.target===e.currentTarge
 
 // ===== INIT =====
 
+function setNippoHour(h){
+  document.getElementById('hourVal').value=h;
+  document.querySelectorAll('.nippo-h-btn').forEach(btn=>{
+    btn.classList.toggle('on', parseFloat(btn.textContent)===h);
+  });
+}
 // ===== ロスフラグ管理 =====
 const _lossFlags={};
 function toggleLossFlag(tid){
