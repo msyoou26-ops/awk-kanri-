@@ -202,7 +202,6 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     <div style="font-size:11px;color:var(--dim);flex:1">現場OS</div>
     <div class="hdr-right">
       <span style="font-size:10px;padding:3px 8px;border-radius:8px;background:var(--blue-m);color:var(--blue);font-weight:700">管理者</span>
-      <button class="btn-ghost" onclick="showScreen('settingsScreen')">設定</button>
       <button class="btn-ghost" onclick="doLogout()">ログアウト</button>
     </div>
   </div>
@@ -213,9 +212,15 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     <!-- アラート -->
     <div id="dashAlerts"></div>
     <!-- 案件進捗サマリー -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div class="sec-lbl" style="margin-bottom:0">案件進捗</div>
-      <button class="btn-ghost" onclick="showScreen('progressScreen')">すべて見る →</button>
+      <button class="btn" style="font-size:11px;padding:5px 10px" onclick="openJobModal(null)">＋ 案件追加</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="dash-job-tab tab on" style="font-size:11px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);cursor:pointer" onclick="setDashJobFilter('ongoing',this)">施工中</button>
+      <button class="dash-job-tab tab" style="font-size:11px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--dim);cursor:pointer" onclick="setDashJobFilter('over',this)">超過中</button>
+      <button class="dash-job-tab tab" style="font-size:11px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--dim);cursor:pointer" onclick="setDashJobFilter('all',this)">全件</button>
+      <button class="dash-job-tab tab" style="font-size:11px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--dim);cursor:pointer" onclick="setDashJobFilter('done',this)">完成</button>
     </div>
     <div id="dashJobList"></div>
     <!-- ロス時間ランキング -->
@@ -229,11 +234,11 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     <div id="memberGrid"></div>
   </div>
   <div class="bottom-nav">
-    <button class="bnav on" onclick="showScreen('homeScreen')"><div class="bnav-icon">📊</div>ダッシュ</button>
-    <button class="bnav" onclick="showScreen('progressScreen')"><div class="bnav-icon">📋</div>進捗</button>
+    <button class="bnav on" onclick="showScreen('homeScreen')"><div class="bnav-icon">🏠</div>ホーム</button>
     <button class="bnav" onclick="showScreen('inputScreen')"><div class="bnav-icon">✏️</div>入力</button>
     <button class="bnav" onclick="showScreen('analysisScreen')"><div class="bnav-icon">📈</div>分析</button>
     <button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">🎯</div>QC</button>
+    <button class="bnav" onclick="showScreen('settingsScreen')"><div class="bnav-icon">⚙️</div>設定</button>
   </div>
 </div>
 
@@ -371,9 +376,9 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   <div class="bottom-nav">
     <button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button>
     <button class="bnav on"><div class="bnav-icon">✏️</div>入力</button>
-    <button class="bnav" onclick="showScreen('progressScreen')"><div class="bnav-icon">📋</div>進捗</button>
     <button class="bnav" onclick="showScreen('analysisScreen')"><div class="bnav-icon">📈</div>分析</button>
     <button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">🎯</div>QC</button>
+    <button class="bnav" onclick="showScreen('settingsScreen')"><div class="bnav-icon">⚙️</div>設定</button>
   </div>
 </div>
 
@@ -428,9 +433,9 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   <div class="bottom-nav">
     <button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button>
     <button class="bnav" onclick="showScreen('inputScreen')"><div class="bnav-icon">✏️</div>入力</button>
-    <button class="bnav" onclick="showScreen('progressScreen')"><div class="bnav-icon">📋</div>進捗</button>
     <button class="bnav on"><div class="bnav-icon">📈</div>分析</button>
     <button class="bnav" onclick="showScreen('qcScreen')"><div class="bnav-icon">🎯</div>QC</button>
+    <button class="bnav" onclick="showScreen('settingsScreen')"><div class="bnav-icon">⚙️</div>設定</button>
   </div>
 </div>
 
@@ -476,9 +481,9 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   <div class="bottom-nav">
     <button class="bnav" onclick="goHome()"><div class="bnav-icon">🏠</div>ホーム</button>
     <button class="bnav" onclick="showScreen('inputScreen')"><div class="bnav-icon">✏️</div>入力</button>
-    <button class="bnav" onclick="showScreen('progressScreen')"><div class="bnav-icon">📋</div>進捗</button>
     <button class="bnav" onclick="showScreen('analysisScreen')"><div class="bnav-icon">📈</div>分析</button>
     <button class="bnav on"><div class="bnav-icon">🎯</div>QC</button>
+    <button class="bnav" onclick="showScreen('settingsScreen')"><div class="bnav-icon">⚙️</div>設定</button>
   </div>
 </div>
 
@@ -820,11 +825,21 @@ function renderDashAlerts(){
   if(over.length)h+=`<div style="background:var(--red-l);border:1px solid rgba(220,38,38,.15);border-radius:12px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px">📊 工数超過 ${over.length}件</div>${over.map(j=>{const diff=Math.round((actualH(j)-totalH(j))*100)/100;return`<div style="font-size:12px;color:var(--text2)">${esc(j.name)} +${diff}h超過</div>`;}).join('')}</div>`;
   el.innerHTML=h;
 }
+let dashJobFilter='ongoing';
+function setDashJobFilter(f,el){
+  dashJobFilter=f;
+  document.querySelectorAll('.dash-job-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderDashJobList();
+}
 function renderDashJobList(){
   const el=document.getElementById('dashJobList');if(!el)return;
-  const ongoing=jobsArr().filter(j=>j.status==='ongoing').slice(0,4);
-  if(!ongoing.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px">施工中の案件がありません</div>';return;}
-  el.innerHTML=ongoing.map(j=>jobMiniCard(j)).join('');
+  let all=jobsArr();
+  if(dashJobFilter==='ongoing')all=all.filter(j=>j.status==='ongoing');
+  else if(dashJobFilter==='done')all=all.filter(j=>j.status==='done');
+  else if(dashJobFilter==='over')all=all.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
+  if(!all.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px">案件がありません</div>';return;}
+  el.innerHTML=all.map(j=>jobMiniCard(j)).join('');
 }
 function jobMiniCard(j){
   const tp=totalH(j),ta=actualH(j),lh=lossH(j);
