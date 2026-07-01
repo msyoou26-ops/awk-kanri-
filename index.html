@@ -593,12 +593,17 @@ const FIREBASE_CONFIG={apiKey:"AIzaSyALzcHgWi33tip-QiMYfjeJCJgxEt8KI-4",authDoma
 
 const WD=['日','月','火','水','木','金','土'];
 const today=new Date();
+function todayJST(){
+  const jst=new Date(Date.now()+9*60*60*1000);
+  return jst.toISOString().split('T')[0];
+}
+// 後方互換のため残す
 function getJSTDateStr(d){
   const dt=d||new Date();
   const jst=new Date(dt.getTime()+9*60*60*1000);
   return jst.toISOString().split('T')[0];
 }
-const todayStr=getJSTDateStr();
+const todayStr=todayJST();
 
 const STATUS_COLOR={ongoing:'var(--blue)',done:'var(--green)',overdue:'var(--red)',planned:'var(--purple)'};
 const STATUS_LABEL={ongoing:'施工中',done:'完成',overdue:'遅延',planned:'予定'};
@@ -653,6 +658,13 @@ let progressFilter='all';
 let inputState={jobId:null,taskId:null,hour:1,ot:0,losses:[],memo:''};
 let selectedZCode=null;
 let showAllZ=false;
+let inputWorkerId=null; // 管理者が選択した作業者ID（session.memberIdとは別管理）
+
+// 2. 作業者ID取得ヘルパー
+function getInputWorkerId(){
+  if(isBoss()) return inputWorkerId;
+  return session.memberId;
+}
 
 // ===== FIREBASE =====
 function initFirebase(){
@@ -751,7 +763,7 @@ function doLogin(role){
   }
 }
 function doLogout(){session={role:null,memberId:null};switchLoginTab('boss');showScreen('loginScreen');}
-function goHome(){isBoss()?showScreen('homeScreen'):showScreen('workerHomeScreen');}
+function goHome(){if(isBoss())inputWorkerId=null;isBoss()?showScreen('homeScreen'):showScreen('workerHomeScreen');}
 
 // ===== SCREEN =====
 function showScreen(id){
@@ -970,14 +982,12 @@ function renderProgressCard(j){
 
 // ===== 作業入力 =====
 function selectInputWorker(mid){
-  session.memberId=mid;
+  inputWorkerId=mid; // session.memberIdは書き換えない
   inputState={jobId:null,taskId:null,hour:1,ot:0,losses:[],memo:''};
   renderInputScreen();
-  const hdr=document.getElementById('workerNameHdr');
-  const m=getMember(mid);if(m&&hdr)hdr.textContent=m.name;
 }
 function renderInputScreen(){
-  const mid=session.memberId;
+  const mid=getInputWorkerId();
   // 管理者の場合は作業者選択UIを表示
   if(isBoss()&&!mid){
     const el=document.getElementById('inputJobList');
@@ -1025,8 +1035,8 @@ function renderInputTasks(){
   const j=jobs[inputState.jobId];
   if(!j){el.innerHTML='<div style="font-size:12px;color:var(--muted)">先に案件を選んでください</div>';document.getElementById('inputStep2').style.display='none';return;}
   document.getElementById('inputStep2').style.display='block';
-  const mid=session.memberId;
-  const tasks=mid?(((j.memberTasks&&j.memberTasks[mid])||j.tasks)||[]):j.tasks||[];
+  const mid=getInputWorkerId();
+  const tasks=mid?((j.memberTasks&&j.memberTasks[mid])||[]):[];
   if(!tasks.length){
     el.innerHTML=`<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">工程がまだありません<br><button class="btn" style="margin-top:8px;font-size:12px" onclick="addNewTask()">＋ 工程を追加</button></div>`;
     return;
@@ -1047,22 +1057,21 @@ function renderInputTasks(){
 function selectInputTask(tid){inputState.taskId=tid;renderInputTasks();}
 async function addNewTask(){
   const j=jobs[inputState.jobId];if(!j)return;
-  const mid=session.memberId;if(!mid)return;
-  const mt=(j.memberTasks&&j.memberTasks[mid])||j.tasks||[];
-  mt.push({id:uid(),name:'',actual:0,lossH:0,status:'planned'});
-  await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,mt);
-  await dbSet(`jobs/${inputState.jobId}/tasks`,mt);
-  if(!fbReady){if(!jobs[inputState.jobId].memberTasks)jobs[inputState.jobId].memberTasks={};jobs[inputState.jobId].memberTasks[mid]=mt;jobs[inputState.jobId].tasks=mt;}
+  const mid=getInputWorkerId();if(!mid){showToast('作業者を選んでください');return;}
+  const mt=(j.memberTasks&&j.memberTasks[mid])||[];
+  const newTask={id:uid(),name:'',actual:0,lossH:0,status:'planned'};
+  const updated=[...mt,newTask];
+  await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,updated);
+  if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
   renderInputTasks();
 }
 async function updateTaskName(tid,name){
   const j=jobs[inputState.jobId];if(!j)return;
-  const mid=session.memberId;if(!mid)return;
-  const mt=(j.memberTasks&&j.memberTasks[mid])||j.tasks||[];
+  const mid=getInputWorkerId();if(!mid)return;
+  const mt=(j.memberTasks&&j.memberTasks[mid])||[];
   const updated=mt.map(t=>t.id===tid?{...t,name}:t);
   await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,updated);
-  await dbSet(`jobs/${inputState.jobId}/tasks`,updated);
-  if(!fbReady){jobs[inputState.jobId].memberTasks[mid]=updated;jobs[inputState.jobId].tasks=updated;}
+  if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
 }
 function renderLossChips(){
   const el=document.getElementById('lossChips');if(!el)return;
@@ -1091,11 +1100,11 @@ async function saveInput(){
   if(hours<=0){showToast('作業時間を入力してください');return;}
   const ot=parseFloat(document.getElementById('inputOT').value)||0;
   const memo=document.getElementById('inputMemo').value.trim();
-  const mid=session.memberId;
-  if(!mid){showToast('作業者を選択してください');return;}
+  const mid=getInputWorkerId();
+  if(!mid){showToast('作業者を選んでください');return;}
   const m=getMember(mid);
   const j=jobs[inputState.jobId];
-  if(!j||!mid)return;
+  if(!j)return;
   const lossFlag=inputState.losses.length>0;
   // 1. 進捗データ更新
   const mt=(j.memberTasks&&j.memberTasks[mid])||j.tasks||[];
@@ -1106,25 +1115,23 @@ async function saveInput(){
     return{...t,actual:newActual,lossH:newLoss,status:newActual>0&&t.status==='planned'?'ongoing':t.status};
   });
   await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,updated);
-  await dbSet(`jobs/${inputState.jobId}/tasks`,updated);
-  if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;j.tasks=updated;}
+  if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
   const taskName=mt.find(t=>t.id===inputState.taskId)?.name||'作業';
   const jobLabel=`${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）`;
   // 2. 日報ログ（progress）
-  const nippoLog={memberId:mid,memberName:m?.name||'',date:todayStr,type:'progress',
+  const nippoLog={memberId:mid,memberName:m?.name||'',date:todayJST(),type:'progress',
     jobId:inputState.jobId,jobName:jobLabel,taskName,hours,loss:lossFlag,lossCauses:inputState.losses,
     overtime:0,memo,savedAt:Date.now()};
   await dbPush('nippoLogs',nippoLog);
   // 3. 残業
   if(ot>0){
-    const otLog={memberId:mid,memberName:m?.name||'',date:todayStr,type:'overtime',hours:0,overtime:ot,memo:'',savedAt:Date.now()};
+    const otLog={memberId:mid,memberName:m?.name||'',date:todayJST(),type:'overtime',hours:0,overtime:ot,memo:'',savedAt:Date.now()};
     await dbPush('nippoLogs',otLog);
   }
   // 4. ロスデータ（QC用）
   if(lossFlag){
-    const qcThemes=[...new Set(inputState.losses.map(k=>{const r=LOSS_REASONS.find(r=>r.key===k);return r?k:null;}).filter(Boolean))];
     const wLog={memberId:mid,memberName:m?.name||'',jobId:inputState.jobId,vehicleLabel:jobLabel,
-      date:todayStr,causes:inputState.losses,lossCause:inputState.losses.join('・'),
+      date:todayJST(),causes:inputState.losses,lossCause:inputState.losses.join('・'),
       lossHours:hours,taskName,memo,savedAt:Date.now()};
     await dbPush('workLogs',wLog);
   }
@@ -1166,10 +1173,10 @@ async function saveZCode(){
   if(!selectedZCode){showToast('Zコードを選んでください');return;}
   const hours=parseFloat(document.getElementById('zHour').value)||0;
   if(hours<=0){showToast('時間を入力してください');return;}
-  const mid=session.memberId;
-  if(!mid){showToast('作業者を選択してください');return;}
+  const mid=getInputWorkerId();
+  if(!mid){showToast('作業者を選んでください');return;}
   const m=getMember(mid);
-  const log={memberId:mid,memberName:m?.name||'',date:todayStr,type:'indirect',
+  const log={memberId:mid,memberName:m?.name||'',date:todayJST(),type:'indirect',
     indirectType:selectedZCode,hours,overtime:0,memo:'',savedAt:Date.now()};
   await dbPush('nippoLogs',log);
   showToast(`✅ ${selectedZCode} ${hours}h 記録しました`);
@@ -1428,7 +1435,7 @@ async function saveQcLog(){
   const result=document.getElementById('qcResult').value.trim();
   if(!problem){showToast('問題を入力してください');return;}
   const mid=session.memberId;const m=getMember(mid);
-  const log={memberId:mid||'boss',memberName:m?.name||'管理者',date:todayStr,problem,cause,action,result,jobId:document.getElementById('qcJobSelect').value,savedAt:Date.now()};
+  const log={memberId:mid||'boss',memberName:m?.name||'管理者',date:todayJST(),problem,cause,action,result,jobId:document.getElementById('qcJobSelect').value,savedAt:Date.now()};
   await dbPush('qcLogs',log);
   ['qcProblem','qcCause','qcAction','qcResult'].forEach(id=>{document.getElementById(id).value='';});
   showToast('✅ QCログを保存しました');
