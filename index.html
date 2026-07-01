@@ -594,8 +594,7 @@ const FIREBASE_CONFIG={apiKey:"AIzaSyALzcHgWi33tip-QiMYfjeJCJgxEt8KI-4",authDoma
 const WD=['日','月','火','水','木','金','土'];
 const today=new Date();
 function todayJST(){
-  const jst=new Date(Date.now()+9*60*60*1000);
-  return jst.toISOString().split('T')[0];
+  return new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Tokyo'});
 }
 // 後方互換のため残す
 function getJSTDateStr(d){
@@ -711,7 +710,6 @@ function actualH(j){
   let t=0;
   const mids=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);
   mids.forEach(mid=>{const mt=(j.memberTasks&&j.memberTasks[mid])||[];t+=mt.reduce((a,t2)=>a+(parseFloat(t2.actual)||0),0);});
-  if(!t&&j.tasks)t=j.tasks.reduce((a,t2)=>a+(parseFloat(t2.actual)||0),0);
   return Math.round(t*100)/100;
 }
 function lossH(j){
@@ -731,7 +729,7 @@ function onDataChange(){
   if(id==='homeScreen')renderDashboard();
   else if(id==='workerHomeScreen')renderWorkerHome();
   else if(id==='progressScreen')renderProgress();
-  else if(id==='inputScreen')renderInputScreen();
+  else if(id==='inputScreen'){if(isBoss())inputWorkerId=null;renderInputScreen();}
   else if(id==='analysisScreen')renderAnalysis();
   else if(id==='qcScreen')renderQcScreen();
 }
@@ -772,7 +770,7 @@ function showScreen(id){
   if(id==='homeScreen')renderDashboard();
   else if(id==='workerHomeScreen')renderWorkerHome();
   else if(id==='progressScreen'){renderProgress();renderProgressHdrRight();}
-  else if(id==='inputScreen')renderInputScreen();
+  else if(id==='inputScreen'){if(isBoss())inputWorkerId=null;renderInputScreen();}
   else if(id==='analysisScreen'){switchAnalysisTab('overview',document.getElementById('aNoverview'));}
   else if(id==='qcScreen'){switchQcTab('auto',document.getElementById('qNavAuto'));}
   else if(id==='settingsScreen')renderSettings();
@@ -788,7 +786,7 @@ function renderDashboard(){
 }
 function renderDashTodaySummary(){
   const el=document.getElementById('dashTodaySummary');if(!el)return;
-  const logs=nippoArr().filter(l=>l.date===todayStr);
+  const logs=nippoArr().filter(l=>l.date===todayJST());
   const directH=Math.round(logs.filter(l=>l.type==='progress').reduce((a,l)=>a+(l.hours||0),0)*100)/100;
   const indirectH=Math.round(logs.filter(l=>l.type==='indirect').reduce((a,l)=>a+(l.hours||0),0)*100)/100;
   const otH=Math.round(logs.filter(l=>l.type==='overtime').reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
@@ -817,9 +815,9 @@ function renderDashAlerts(){
   const near=all.filter(j=>j.end&&daysLeft(j.end)>=0&&daysLeft(j.end)<=3);
   const over=all.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   let h='';
-  if(overdue.length)h+=`<div style="background:var(--red-l);border:1px solid rgba(220,38,38,.2);border-radius:12px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px">⚠️ 納期超過 ${overdue.length}件</div>${overdue.map(j=>`<div style="font-size:12px;color:var(--text2)">${j.name}（${j.orderNo||'—'}）</div>`).join('')}</div>`;
-  if(near.length)h+=`<div style="background:var(--amber-l);border:1px solid rgba(217,119,6,.2);border-radius:12px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:6px">🕒 納期間近 ${near.length}件</div>${near.map(j=>`<div style="font-size:12px;color:var(--text2)">${j.name} — あと${daysLeft(j.end)}日</div>`).join('')}</div>`;
-  if(over.length)h+=`<div style="background:var(--red-l);border:1px solid rgba(220,38,38,.15);border-radius:12px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px">📊 工数超過 ${over.length}件</div>${over.map(j=>{const diff=Math.round((actualH(j)-totalH(j))*100)/100;return`<div style="font-size:12px;color:var(--text2)">${j.name} +${diff}h超過</div>`;}).join('')}</div>`;
+  if(overdue.length)h+=`<div style="background:var(--red-l);border:1px solid rgba(220,38,38,.2);border-radius:12px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px">⚠️ 納期超過 ${overdue.length}件</div>${overdue.map(j=>`<div style="font-size:12px;color:var(--text2)">${esc(j.name)}（${esc(j.orderNo)||'—'}）</div>`).join('')}</div>`;
+  if(near.length)h+=`<div style="background:var(--amber-l);border:1px solid rgba(217,119,6,.2);border-radius:12px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:6px">🕒 納期間近 ${near.length}件</div>${near.map(j=>`<div style="font-size:12px;color:var(--text2)">${esc(j.name)} — あと${daysLeft(j.end)}日</div>`).join('')}</div>`;
+  if(over.length)h+=`<div style="background:var(--red-l);border:1px solid rgba(220,38,38,.15);border-radius:12px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px">📊 工数超過 ${over.length}件</div>${over.map(j=>{const diff=Math.round((actualH(j)-totalH(j))*100)/100;return`<div style="font-size:12px;color:var(--text2)">${esc(j.name)} +${diff}h超過</div>`;}).join('')}</div>`;
   el.innerHTML=h;
 }
 function renderDashJobList(){
@@ -886,7 +884,7 @@ function renderWorkerHome(){
   // 今日の状況
   const el=document.getElementById('workerTodaySummary');
   if(el){
-    const logs=nippoArr().filter(l=>l.memberId===mid&&l.date===todayStr);
+    const logs=nippoArr().filter(l=>l.memberId===mid&&l.date===todayJST());
     const dH=Math.round(logs.filter(l=>l.type==='progress').reduce((a,l)=>a+(l.hours||0),0)*100)/100;
     const iH=Math.round(logs.filter(l=>l.type==='indirect').reduce((a,l)=>a+(l.hours||0),0)*100)/100;
     const otH=Math.round(logs.filter(l=>l.type==='overtime').reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
@@ -940,13 +938,13 @@ function renderProgressCard(j){
   const memberNames=mids.map(id=>getMember(id)?.name||'').filter(Boolean).join('・')||'未割当';
   // 工程一覧
   const mid=isBoss()?mids[0]:session.memberId;
-  const tasks=mid?(((j.memberTasks&&j.memberTasks[mid])||j.tasks)||[]):j.tasks||[];
+  const tasks=mid?((j.memberTasks&&j.memberTasks[mid])||[]):[];
   const taskHtml=tasks.length?tasks.map(t=>{
     const a=parseFloat(t.actual)||0;
     const lH=parseFloat(t.lossH)||0;
     return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
       <div style="width:8px;height:8px;border-radius:50%;background:${t.status==='done'?'var(--green)':t.status==='ongoing'?'var(--amber)':'var(--border2)'};flex-shrink:0"></div>
-      <div style="flex:1;font-size:12px;color:var(--text2)">${t.name||'作業'}</div>
+      <div style="flex:1;font-size:12px;color:var(--text2)">${esc(t.name||'作業')}</div>
       <div style="font-size:12px;font-weight:700;color:var(--text);font-family:'Inter',sans-serif">${a}h</div>
       ${lH>0?`<span class="badge badge-red" style="font-size:9px">ロス ${lH}h</span>`:''}
       <span style="font-size:10px;color:var(--dim)">${t.status==='done'?'完了':t.status==='ongoing'?'進行中':'未着手'}</span>
@@ -954,9 +952,9 @@ function renderProgressCard(j){
   return`<div class="job-card status-${j.status||'planned'}" style="padding-left:18px">
     <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px">
       <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:700;color:var(--text)">${j.name}</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:3px">${j.orderNo||'—'} ${j.carType?'/ '+j.carType:''} / ${j.userName||''}</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:2px">担当: ${memberNames}${dl!==null?` / 完成${fmt(j.end)}（${dl<0?Math.abs(dl)+'日超':'あと'+dl+'日'}）`:''}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">${esc(j.name)}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:3px">${esc(j.orderNo)||'—'} ${j.carType?'/ '+esc(j.carType):''} / ${esc(j.userName)||''}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px">担当: ${esc(memberNames)}${dl!==null?` / 完成${fmt(j.end)}（${dl<0?Math.abs(dl)+'日超':'あと'+dl+'日'}）`:''}</div>
       </div>
       <span class="badge ${STATUS_BADGE[j.status]||'badge-blue'}">${STATUS_LABEL[j.status]||j.status}</span>
     </div>
@@ -1077,7 +1075,7 @@ function renderLossChips(){
   const el=document.getElementById('lossChips');if(!el)return;
   el.innerHTML=LOSS_REASONS.map(r=>{
     const on=inputState.losses.includes(r.key);
-    return`<div class="loss-chip${on?' on':''}" onclick="toggleLoss('${r.key}')" style="${on?`border-color:${r.color};background:${r.color}15;color:${r.color}`:''}"><span>${r.icon}</span><span>${r.key}</span></div>`;
+    return`<div class="loss-chip${on?' on':''}" onclick="toggleLoss('${r.key}')" style="${on?`border-color:${r.color};background:${r.color}15;color:${r.color}`:''}"><span>${r.icon}</span><span>${esc(r.key)}</span></div>`;
   }).join('');
 }
 function toggleLoss(key){
@@ -1107,7 +1105,7 @@ async function saveInput(){
   if(!j)return;
   const lossFlag=inputState.losses.length>0;
   // 1. 進捗データ更新
-  const mt=(j.memberTasks&&j.memberTasks[mid])||j.tasks||[];
+  const mt=(j.memberTasks&&j.memberTasks[mid])||[];
   const updated=mt.map(t=>{
     if(t.id!==inputState.taskId)return t;
     const newActual=Math.round(((parseFloat(t.actual)||0)+hours)*100)/100;
@@ -1136,7 +1134,17 @@ async function saveInput(){
     await dbPush('workLogs',wLog);
   }
   // fbReady時はFirebase、非fbReady時はdbPush内部のsaveLocalで自動保存済み
-  showToast(`✅ ${hours}h 保存しました${lossFlag?' 🔴ロスも記録':''}`);
+  if(lossFlag){
+    showToast('✅ 保存しました 🔴ロスもQC候補に反映');
+    // QC誘導バナーを一時表示
+    const banner=document.createElement('div');
+    banner.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--amber);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:998;white-space:nowrap';
+    banner.innerHTML=`<span style="font-size:13px;color:var(--text)">🔴 QC候補に反映しました</span><button onclick="showScreen('qcScreen');this.parentElement.remove()" style="font-size:12px;padding:5px 12px;border-radius:8px;border:none;background:var(--blue);color:#fff;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:700">QC候補を見る</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>`;
+    document.body.appendChild(banner);
+    setTimeout(()=>{if(banner.parentElement)banner.remove();},5000);
+  } else {
+    showToast(`✅ ${hours}h 保存しました`);
+  }
   // リセット
   inputState.taskId=null;inputState.losses=[];
   document.getElementById('inputMemo').value='';
@@ -1144,6 +1152,7 @@ async function saveInput(){
   document.getElementById('inputHour').value='1';
   document.querySelectorAll('#inputHourBtns .h-btn').forEach(b=>b.classList.remove('on'));
   renderInputTasks();renderLossChips();
+  onDataChange();
 }
 
 // ===== Z CODE =====
@@ -1226,7 +1235,7 @@ function renderAnalysisProcess(){
   jobsArr().forEach(j=>{
     const mids=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);
     mids.forEach(mid=>{const mt=(j.memberTasks&&j.memberTasks[mid])||[];mt.forEach(t=>{if(!t.name)return;if(!taskMap[t.name])taskMap[t.name]={name:t.name,total:0,loss:0,count:0};taskMap[t.name].total+=parseFloat(t.actual)||0;taskMap[t.name].loss+=parseFloat(t.lossH)||0;taskMap[t.name].count++;});});
-    if(j.tasks)(j.tasks||[]).forEach(t=>{if(!t.name)return;if(!taskMap[t.name])taskMap[t.name]={name:t.name,total:0,loss:0,count:0};taskMap[t.name].total+=parseFloat(t.actual)||0;taskMap[t.name].loss+=parseFloat(t.lossH)||0;taskMap[t.name].count++;});
+    // j.tasksは共通テンプレ専用のため実績集計には使用しない
   });
   const sorted=Object.values(taskMap).sort((a,b)=>b.total-a.total).slice(0,10);
   const max=sorted[0]?.total||1;
