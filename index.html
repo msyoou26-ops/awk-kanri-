@@ -375,7 +375,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--accent)" id="nippoTotalH">0h</div><div style="font-size:10px;color:var(--dim);margin-top:3px">合計時間</div></div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--green)" id="nippoDirectH">0h</div><div style="font-size:10px;color:var(--dim);margin-top:3px">直接作業</div></div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--accent2)" id="nippoIndirectH">0h</div><div style="font-size:10px;color:var(--dim);margin-top:3px">間接作業</div></div>
-        <div style="background:var(--surface);border:1px solid rgba(240,64,64,.3);border-radius:12px;padding:14px 10px;text-align:center;grid-column:span 3"><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--red)" id="nippoOvertimeH">0h</div><div style="font-size:10px;color:var(--dim);margin-top:3px">残業時間（定時 8:00〜17:00 以降）</div></div>
+        <div style="background:var(--surface);border:1px solid rgba(240,64,64,.3);border-radius:12px;padding:14px 10px;text-align:center;grid-column:span 3"><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--red)" id="nippoOvertimeH">0h</div><div style="font-size:10px;color:var(--dim);margin-top:3px">残業時間</div></div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--green);margin-bottom:10px;border-left:3px solid var(--green);padding-left:8px">✅ 直接作業（架装）</div>
@@ -397,17 +397,12 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         <div id="directArea">
           <div style="padding:12px 14px;background:rgba(30,201,122,.07);border:1px solid rgba(30,201,122,.25);border-radius:12px;margin-bottom:4px">
             <div style="font-size:11px;color:var(--dim);margin-bottom:4px">直接作業時間は進捗管理の入力から自動集計されます</div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;align-items:center">
               <div style="flex:1">
-                <div style="font-size:10px;color:var(--dim)">今日の進捗入力合計</div>
+                <div style="font-size:10px;color:var(--dim)">今日の直接作業合計</div>
                 <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green)" id="nippoAutoDirectH">0h</div>
               </div>
-              <div style="flex:1">
-                <div style="font-size:10px;color:var(--dim)">残り直接作業時間</div>
-                <div style="font-family:'Bebas Neue',sans-serif;font-size:28px" id="nippoRemainingH">—</div>
-              </div>
             </div>
-            <div style="font-size:10px;color:var(--dim);margin-top:6px">※ 定時8h（＋残業）− Zコード合計 = 残り時間</div>
           </div>
           <div id="nippoJobList" style="display:none"></div>
         </div>
@@ -424,7 +419,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
             <div style="font-size:13px;color:var(--dim)">時間</div>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">残業時間（定時 8:00〜17:00 / 任意入力）</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">残業時間（任意入力）</div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
           <div style="display:flex;align-items:center;border:1.5px solid rgba(240,64,64,.35);border-radius:10px;overflow:hidden;flex:1">
             <button onclick="changeOvertime(-0.5)" style="background:var(--surface2);border:none;color:var(--red);font-size:22px;font-weight:700;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
@@ -1072,12 +1067,13 @@ function renderNippoToday(){
   const directByJob={};
   directLogs.forEach(l=>{
     const key=l.jobId||'other';
-    if(!directByJob[key]){directByJob[key]={jobName:l.jobName||'—',total:0,tasks:[],ids:[]};}
+    if(!directByJob[key]){directByJob[key]={jobName:l.jobName||'—',total:0,loss:0,tasks:[],ids:[]};}
     directByJob[key].total=Math.round((directByJob[key].total+(l.hours||0))*100)/100;
-    if(l.taskName)directByJob[key].tasks.push(`${l.taskName}:${l.hours}h`);
+    if(l.loss)directByJob[key].loss=Math.round((directByJob[key].loss+(l.hours||0))*100)/100;
+    if(l.taskName)directByJob[key].tasks.push(`${l.taskName}:${l.hours}h${l.loss?' 🔴':''}`);
     directByJob[key].ids.push(l.id);
   });
-  document.getElementById('nippoDirect').innerHTML=Object.keys(directByJob).length?Object.values(directByJob).map(g=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:10px"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);min-width:40px">${g.total}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${g.jobName}</div>${g.tasks.length?`<div style="font-size:10px;color:var(--dim);margin-top:2px">${g.tasks.join('　')}</div>`:''}</div></div></div>`).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし（進捗管理で＋追加すると自動反映）</div>';
+  document.getElementById('nippoDirect').innerHTML=Object.keys(directByJob).length?Object.values(directByJob).map(g=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:10px"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);min-width:40px">${g.total}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${g.jobName}</div>${g.tasks.length?`<div style="font-size:10px;color:var(--dim);margin-top:2px">${g.tasks.join('　')}</div>`:''}</div></div>${g.loss>0?`<div style="margin-top:4px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(240,64,64,.1);border:1px solid rgba(240,64,64,.2);border-radius:8px;font-size:10px;color:var(--red);font-weight:700">🔴 ロス ${g.loss}h</div>`:''}</div>`).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし（進捗管理で＋追加すると自動反映）</div>';
   document.getElementById('nippoIndirect').innerHTML=indirectLogs.length?indirectLogs.map(l=>{const t2=INDIRECT_TYPES.find(t=>t.key===l.indirectType)||{key:'',icon:'📌',label:'その他'};return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent2);min-width:36px">${l.hours}h</span><div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${t2.icon} <span style="color:var(--accent2);font-weight:700;font-size:11px">${t2.key}</span> ${t2.label}</div>${l.memo?`<div style="font-size:11px;color:var(--dim);margin-top:2px">${l.memo}</div>`:''}</div><button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px">×</button></div>`;}).join(''):'<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">まだ記録なし</div>';
 }
 function initNippoJobList(){
@@ -1456,13 +1452,17 @@ function renderProgress(){
           <div style="flex:1;background:var(--surface);border-radius:8px;padding:8px 10px;text-align:center">
             <div style="font-size:10px;color:var(--dim);margin-bottom:2px">累計時間</div>
             <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:${a2>0?'var(--accent)':'var(--muted)'};line-height:1">${a2}h</div>
+            ${(parseFloat(t.lossH)||0)>0?`<div style="font-size:10px;padding:2px 6px;border-radius:8px;background:rgba(240,64,64,.15);color:var(--red);margin-top:3px;display:inline-block">🔴 ロス ${t.lossH}h</div>`:''}
           </div>
           <div style="flex:1;background:var(--surface);border-radius:8px;padding:8px 10px;text-align:center">
             <div style="font-size:10px;color:var(--green);margin-bottom:4px">＋ 今日の追加</div>
             <div style="display:flex;align-items:center;justify-content:center;gap:4px">
-              <input type="number" value="" placeholder="0" min="0" step="0.5" style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);background:transparent;border:none;outline:none;width:60px;text-align:center"
-                onchange="addTaskHours('${j.id}','${t.id}',this.value);this.value=''">
+              <input type="number" value="" placeholder="0" min="0" step="0.5" id="addH_${t.id}" style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);background:transparent;border:none;outline:none;width:60px;text-align:center">
               <span style="font-size:12px;color:var(--green)">h</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px">
+              <button id="lossBtn_${t.id}" onclick="toggleLossFlag('${t.id}')" style="font-size:10px;padding:3px 8px;border-radius:12px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s">🔴 ロス</button>
+              <button onclick="addTaskHours('${j.id}','${t.id}',document.getElementById('addH_${t.id}').value,isLoss('${t.id}'));document.getElementById('addH_${t.id}').value='';setLossFlag('${t.id}',false);" style="font-size:11px;padding:4px 10px;border-radius:8px;border:none;background:var(--green);color:#000;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif">追加</button>
             </div>
           </div>
           <div style="flex:1">
@@ -1480,7 +1480,12 @@ function renderProgress(){
       ${groupLabel?`<div style="display:inline-block;font-size:10px;font-weight:700;color:var(--accent2);background:rgba(59,127,245,.12);border:1px solid rgba(59,127,245,.3);padding:2px 8px;border-radius:8px;margin-bottom:6px">${groupLabel}　見積${totalH(j)}h中 ${Math.round((tp/totalH(j))*100)||0}%（${tp}h）</div>` : ''}
       <div class="pb-dates">着工 <span>${fmt(j.start)}</span> 
 → 完成 <span>${fmt(j.end)}</span>　担当: <span style="color:var(--text)">${(j.memberIds||[j.memberId].filter(Boolean)).map(id=>getMember(id)?.name||'').filter(Boolean).join('・')||'未割当'}</span></div>
-      ${tp>0?`<div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--dim)">工数使用率</span><span style="font-size:12px;font-weight:700"><span style="color:var(--text)">${ta}h</span><span style="color:var(--dim)"> / ${tp}h</span><span style="color:${diff>0?'var(--green)':diff<0?'var(--red)':'var(--dim)'}">　${ds}</span></span></div><div style="position:relative;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:${isOver?'4':'10'}px"><div style="position:absolute;left:0;top:0;height:100%;width:${barWidth}%;background:${barColor};border-radius:4px;transition:width .4s"></div></div>${isOver?`<div style="font-size:10px;color:var(--red);margin-bottom:10px">⚠️ 工数オーバー ${kousuPct}%使用</div>`:''}`:''}
+      ${(()=>{
+        const myMt=(isMyJob&&j.memberTasks&&j.memberTasks[myMid])||[];
+        const totalLoss=Math.round(myMt.reduce((a,t)=>a+(parseFloat(t.lossH)||0),0)*100)/100;
+        const lossStr=totalLoss>0?`<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(240,64,64,.1);border:1px solid rgba(240,64,64,.25);border-radius:8px;font-size:11px;color:var(--red);font-weight:700;margin-bottom:8px">🔴 ロス工数 ${totalLoss}h</div>`:'';
+        return tp>0?`<div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--dim)">工数使用率</span><span style="font-size:12px;font-weight:700"><span style="color:var(--text)">${ta}h</span><span style="color:var(--dim)"> / ${tp}h</span><span style="color:${diff>0?'var(--green)':diff<0?'var(--red)':'var(--dim)'}">　${ds}</span></span></div><div style="position:relative;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:${isOver?'4':'8'}px"><div style="position:absolute;left:0;top:0;height:100%;width:${barWidth}%;background:${barColor};border-radius:4px;transition:width .4s"></div></div>${isOver?`<div style="font-size:10px;color:var(--red);margin-bottom:6px">⚠️ 工数オーバー ${kousuPct}%使用</div>`:''}${lossStr}`:'';
+      })()}
       ${renderTaskSection(j,isMyJob,tr)}${renderJobActions(j)}</div>`;
   }
   c.innerHTML=h;
@@ -1515,15 +1520,17 @@ function renderOtherMemberTasks(j){
   return h+'</div>';
 }
 async function addTask(jid){const j=jobs[jid];if(!j)return;const mid=curMember||session.memberId;const mt=(j.memberTasks&&j.memberTasks[mid])||[];mt.push({id:uid(),name:'',actual:0,status:'planned'});await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);await dbSet(`jobs/${jid}/tasks`,mt);if(!fbReady){if(!jobs[jid].memberTasks)jobs[jid].memberTasks={};jobs[jid].memberTasks[mid]=mt;jobs[jid].tasks=mt;renderProgress();}}
-async function addTaskHours(jid,tid,addVal){
+async function addTaskHours(jid,tid,addVal,isLossFlag){
   const add=parseFloat(addVal)||0;if(add<=0)return;
   const j=jobs[jid];if(!j)return;
   const mid=curMember||session.memberId;
   const m=getMember(mid);
+  const lossFlag=!!isLossFlag;
   const mt=((j.memberTasks&&j.memberTasks[mid])||j.tasks||[]).map(t=>{
     if(t.id!==tid)return t;
     const newActual=Math.round(((parseFloat(t.actual)||0)+add)*100)/100;
-    return {...t,actual:newActual,status:newActual>0&&t.status==='planned'?'ongoing':t.status};
+    const newLossH=Math.round(((parseFloat(t.lossH)||0)+(lossFlag?add:0))*100)/100;
+    return {...t,actual:newActual,lossH:newLossH,status:newActual>0&&t.status==='planned'?'ongoing':t.status};
   });
   await dbSet(`jobs/${jid}/memberTasks/${mid}`,mt);
   await dbSet(`jobs/${jid}/tasks`,mt);
@@ -1532,10 +1539,10 @@ async function addTaskHours(jid,tid,addVal){
   const taskName=mt.find(t=>t.id===tid)?.name||'作業';
   const progressLog={memberId:mid,memberName:m?m.name:'',date:new Date().toISOString().split('T')[0],
     type:'progress',jobId:jid,jobName:j?`${j.orderNo?j.orderNo+' / ':''}${j.name}（${j.carType||''}）`:'',
-    taskName,hours:add,overtime:0,memo:'',savedAt:Date.now()};
+    taskName,hours:add,loss:lossFlag,overtime:0,memo:'',savedAt:Date.now()};
   await dbPush('nippoLogs',progressLog);
   if(!fbReady)nippoLogs[uid()]=progressLog;
-  showToast(`+${add}h 追加しました`);
+  showToast(lossFlag?`+${add}h 追加（🔴ロス）`:`+${add}h 追加しました`);
   updateRemainingTime();
   updateProgressBanner();
 }
@@ -1692,6 +1699,20 @@ function closeConfirmModal(){document.getElementById('confirmModal').classList.r
 document.getElementById('confirmModal').onclick=e=>{if(e.target===e.currentTarget)closeConfirmModal();};
 
 // ===== INIT =====
+
+// ===== ロスフラグ管理 =====
+const _lossFlags={};
+function toggleLossFlag(tid){
+  _lossFlags[tid]=!_lossFlags[tid];
+  const btn=document.getElementById('lossBtn_'+tid);
+  if(btn){
+    if(_lossFlags[tid]){btn.style.background='rgba(240,64,64,.2)';btn.style.borderColor='var(--red)';btn.style.color='var(--red)';}
+    else{btn.style.background='var(--surface2)';btn.style.borderColor='var(--border2)';btn.style.color='var(--muted)';}
+  }
+}
+function isLoss(tid){return !!_lossFlags[tid];}
+function setLossFlag(tid,val){_lossFlags[tid]=val;const btn=document.getElementById('lossBtn_'+tid);if(btn){btn.style.background='var(--surface2)';btn.style.borderColor='var(--border2)';btn.style.color='var(--muted)';}}
+
 initFirebase();
 const _origShowMemberTab=showMemberTab;
 window.showMemberTab=function(tab){_origShowMemberTab(tab);if(tab==='log')setTimeout(()=>{initCausePicker();setupVarianceCalc();},50);};
