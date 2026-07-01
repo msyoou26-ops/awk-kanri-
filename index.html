@@ -859,7 +859,14 @@ function jobMiniCard(j){
       ${dl!==null?`<div style="text-align:center;margin-left:auto"><div style="font-size:16px;font-weight:700;color:${dl<0?'var(--red)':dl<=3?'var(--amber)':'var(--text)'};font-family:'Inter',sans-serif">${dl<0?Math.abs(dl)+'日超':dl+'日'}</div><div style="font-size:9px;color:var(--dim)">${dl<0?'納期超':'残'}</div></div>`:''}
     </div>
     <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${barColor}"></div></div>
-    <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:right">${pct}%使用</div>
+    <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:right;margin-bottom:${isBoss()?'10':'0'}px">${pct}%使用</div>
+    ${isBoss()?`<div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+      <button class="btn" style="flex:1;font-size:11px;padding:7px" onclick="openJobModal('${j.id}')">編集</button>
+      <button class="btn" style="font-size:11px;padding:7px;color:var(--red);border-color:rgba(220,38,38,.3)" onclick="deleteJob('${j.id}')">削除</button>
+      ${j.status!=='done'
+        ?`<button class="btn-primary" style="flex:2;font-size:11px;padding:7px" onclick="markJobDone('${j.id}')">✅ 完成にする</button>`
+        :`<button class="btn" style="flex:2;font-size:11px;padding:7px;color:var(--green);border-color:var(--green)" onclick="undoJobDone('${j.id}')">↩ 完成取消</button>`}
+    </div>`:''}
   </div>`;
 }
 function renderDashLossRank(){
