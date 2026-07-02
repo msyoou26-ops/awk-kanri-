@@ -233,7 +233,12 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     <div class="hdr-title">作業入力</div>
     <div id="inputWorkerBadge" style="font-size:11px;color:rgba(255,255,255,.7)"></div>
   </div>
+  <div class="tab-bar" style="top:54px">
+    <button class="tab on" id="inputTabInput" onclick="switchInputTab('input',this)">入力</button>
+    <button class="tab" id="inputTabHistory" onclick="switchInputTab('history',this)">今日の履歴・修正</button>
+  </div>
   <div class="app-body" style="padding-top:12px">
+    <div id="inputTabInputPane">
     <div id="inputWorkerPanel" style="display:none">
       <div class="input-panel">
         <div class="input-panel-hdr"><span class="step-badge active">1</span><span style="font-size:13px;font-weight:700">作業者を選ぶ</span></div>
@@ -284,7 +289,10 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
           <button class="h-step-btn" style="width:36px;height:36px" onclick="changeInputOT(0.5)"><span class="mi sm">add</span></button>
         </div>
       </div>
-      <button class="btn-primary" onclick="saveInput()" style="margin-bottom:16px"><span class="mi sm">save</span>保存する</button>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn" style="flex:1;justify-content:center" onclick="saveMemoOnly()"><span class="mi sm">notes</span>メモだけ保存</button>
+        <button class="btn-primary" style="flex:2" onclick="saveInput()"><span class="mi sm">save</span>保存する</button>
+      </div>
     </div>
     <!-- Zコード一括登録 -->
     <div style="border-top:2px solid var(--border);padding-top:16px">
@@ -299,6 +307,15 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
       <div id="zBatchList"></div>
       <button class="btn" style="width:100%;margin-bottom:8px;font-size:12px" id="toggleZBtn" onclick="toggleAllZ()"><span class="mi sm">expand_more</span>すべてのZコードを表示</button>
       <button class="btn-primary" onclick="saveZBatch()" style="background:var(--navy)"><span class="mi sm">save</span>間接作業を一括保存</button>
+    </div>
+    </div><!-- inputTabInputPane end -->
+
+    <!-- 履歴・修正タブ -->
+    <div id="inputTabHistoryPane" style="display:none">
+      <div style="font-size:12px;color:var(--dim);padding:10px 12px;background:var(--amber-l);border-radius:10px;border-left:3px solid var(--amber);margin-bottom:14px">
+        今日入力した記録を確認・削除できます。削除後に正しい内容で再入力してください。
+      </div>
+      <div id="todayLogList"></div>
     </div>
   </div>
   <div class="bottom-nav">
@@ -425,7 +442,8 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
       <div style="display:flex;gap:8px;margin-top:8px"><input type="text" id="taskTplInput" placeholder="例: 電装配線" style="flex:1;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:10px;font-size:13px;outline:none"><button class="btn" onclick="addTemplate('taskTpl')">追加</button></div>
     </div>
     <div class="card">
-      <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px"><span class="mi sm">lock</span>パスワード変更</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span class="mi sm">lock</span>管理者パスワード変更</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:10px">管理者のみ変更できます</div>
       <div style="display:flex;gap:8px"><input type="password" id="newPass" placeholder="新しいパスワード" style="flex:1;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:10px;font-size:13px;outline:none"><button class="btn" onclick="changePassword()">変更</button></div>
     </div>
   </div>
@@ -616,7 +634,10 @@ function showScreen(id){
   else if(id==="inputScreen"){if(isBoss())inputWorkerId=null;renderInputScreen();}
   else if(id==="analysisScreen")switchAnalysisTab("overview",document.getElementById("aNoverview"));
   else if(id==="qcScreen")switchQcTab("auto",document.getElementById("qNavAuto"));
-  else if(id==="settingsScreen")renderSettings();
+  else if(id==="settingsScreen"){
+    if(!isBoss()){showToast("設定は管理者のみ利用できます");goHome();return;}
+    renderSettings();
+  }
 }
 
 // ホーム
@@ -810,6 +831,7 @@ function renderInputTasks(){
       <div style="width:6px;height:6px;border-radius:50%;background:${t.status==="done"?"var(--green)":t.status==="ongoing"?"var(--amber)":"var(--border2)"};flex-shrink:0"></div>
       <input type="text" value="${esc(t.name||"")}" placeholder="工程名" onclick="event.stopPropagation()" onchange="updateTaskName('${t.id}',this.value)" style="flex:1;font-size:13px;font-weight:600;color:${sel?"var(--orange)":"var(--text)"};background:transparent;border:none;outline:none;min-width:0">
       <div style="font-size:11px;color:var(--dim);flex-shrink:0">${a}h</div>
+      <button onclick="event.stopPropagation();cycleTaskStatus('${t.id}')" style="background:none;border:1px solid ${t.status==="done"?"var(--green)":t.status==="ongoing"?"var(--amber)":"var(--border2)"};border-radius:6px;padding:3px 7px;font-size:10px;font-weight:700;color:${t.status==="done"?"var(--green)":t.status==="ongoing"?"var(--amber)":"var(--muted)"};cursor:pointer;flex-shrink:0;font-family:'Noto Sans JP',sans-serif">${t.status==="done"?"完了":t.status==="ongoing"?"進行中":"未着手"}</button>
       ${sel?`<span class="mi sm" style="color:var(--orange)">check_circle</span>`:""}
     </div>`;}).join("");
 }
@@ -822,6 +844,23 @@ async function addNewTask(){
   await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,updated);
   if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
   renderInputTasks();
+}
+async function cycleTaskStatus(tid){
+  const j=jobs[inputState.jobId];if(!j)return;
+  const mid=getInputWorkerId();if(!mid)return;
+  const mt=(j.memberTasks&&j.memberTasks[mid])||[];
+  const updated=mt.map(t=>{
+    if(t.id!==tid)return t;
+    // planned → ongoing → done → planned の順に切り替え
+    const next={planned:"ongoing",ongoing:"done",done:"planned"}[t.status||"planned"]||"ongoing";
+    return{...t,status:next};
+  });
+  await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,updated);
+  if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
+  renderInputTasks();
+  const newStatus=updated.find(t=>t.id===tid)?.status;
+  const label={planned:"未着手",ongoing:"進行中",done:"完了"}[newStatus]||"";
+  showToast(`✅ ${label} に変更しました`);
 }
 async function updateTaskName(tid,name){
   const j=jobs[inputState.jobId];if(!j)return;
@@ -841,6 +880,22 @@ function toggleLoss(key){const i=inputState.losses.indexOf(key);if(i>=0)inputSta
 function setInputHour(h){inputState.hour=h;document.getElementById("inputHour").value=h;document.querySelectorAll("#inputScreen .h-btn").forEach(b=>b.classList.toggle("on",parseFloat(b.textContent)===h));}
 function changeInputHour(d){const el=document.getElementById("inputHour");const v=Math.max(0.5,Math.round(((parseFloat(el.value)||0)+d)*100)/100);el.value=v;inputState.hour=v;}
 function changeInputOT(d){const el=document.getElementById("inputOT");const v=Math.max(0,Math.round(((parseFloat(el.value)||0)+d)*100)/100);el.value=v;}
+async function saveMemoOnly(){
+  const memo=document.getElementById("inputMemo").value.trim();
+  if(!memo){showToast("メモを入力してください");return;}
+  const mid=getInputWorkerId();if(!mid){showToast("作業者を選んでください");return;}
+  const m=getMember(mid);
+  const ot=parseFloat(document.getElementById("inputOT").value)||0;
+  // メモ・残業のみ日報に保存
+  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"memo",
+    jobId:inputState.jobId||"",jobName:"",taskName:"",hours:0,loss:false,lossCauses:[],
+    overtime:ot,memo,savedAt:Date.now()});
+  if(ot>0)showToast(`✅ メモと残業${ot}h を保存しました`);
+  else showToast("✅ メモを保存しました");
+  document.getElementById("inputMemo").value="";
+  document.getElementById("inputOT").value="0";
+  onDataChange();
+}
 async function saveInput(){
   if(!inputState.jobId){showToast("案件を選んでください");return;}
   if(!inputState.taskId){showToast("工程を選んでください");return;}
@@ -1071,6 +1126,9 @@ async function saveMember(){
 async function deleteMember(mid){confirmAction("作業者を削除しますか？","この操作は元に戻せません。",async()=>{await dbRemove("members/"+mid);if(!fbReady){delete members[mid];renderMemberList();}showToast("削除しました");});}
 // 設定
 function renderSettings(){
+  // パスワード変更欄は管理者のみ表示
+  const passCard=document.querySelector("#settingsScreen .card:last-child");
+  if(passCard)passCard.style.display=isBoss()?"block":"none";
   ["jobName","carType","taskTpl"].forEach(key=>{const el=document.getElementById(key+"List");if(!el)return;const tpls=getTemplates(key);el.innerHTML=tpls.map(t=>`<span class="tag">${esc(t)}<button onclick="removeTemplate('${key}','${t}')"><span class="mi sm">close</span></button></span>`).join("")||"<span style='font-size:12px;color:var(--muted)'>まだありません</span>";});
 }
 async function addTemplate(key){const el=document.getElementById(key+"Input");if(!el)return;const v=el.value.trim();if(!v)return;const tpls=getTemplates(key);if(tpls.includes(v)){showToast("すでに登録されています");return;}tpls.push(v);const obj={};tpls.forEach((t,i)=>{obj[i]=t;});await dbSet("settings/templates/"+key,obj);if(!fbReady){if(!cloudTemplates[key])cloudTemplates[key]={};cloudTemplates[key][Object.keys(cloudTemplates[key]||{}).length]=v;}el.value="";renderSettings();showToast("✅ 追加しました");}
@@ -1080,6 +1138,70 @@ function changePassword(){const np=document.getElementById("newPass").value.trim
 function confirmAction(title,msg,cb){document.getElementById("confirmTitle").textContent=title;document.getElementById("confirmMsg").textContent=msg;document.getElementById("confirmOkBtn").onclick=()=>{closeConfirmModal();cb();};document.getElementById("confirmModal").classList.add("open");}
 function closeConfirmModal(){document.getElementById("confirmModal").classList.remove("open");}
 document.getElementById("confirmModal").onclick=e=>{if(e.target===document.getElementById("confirmModal"))closeConfirmModal();};
+
+
+// 入力タブ切り替え
+function switchInputTab(tab,el){
+  document.querySelectorAll("#inputScreen .tab").forEach(t=>t.classList.remove("on"));
+  el.classList.add("on");
+  document.getElementById("inputTabInputPane").style.display=tab==="input"?"block":"none";
+  document.getElementById("inputTabHistoryPane").style.display=tab==="history"?"block":"none";
+  if(tab==="history")renderTodayLogList();
+}
+
+// 今日の履歴表示
+function renderTodayLogList(){
+  const el=document.getElementById("todayLogList");if(!el)return;
+  const mid=getInputWorkerId();
+  const ts=todayJST();
+  const logs=nippoArr().filter(l=>l.date===ts&&(!mid||l.memberId===mid));
+  if(!logs.length){el.innerHTML="<div style='text-align:center;font-size:12px;color:var(--muted);padding:24px'>今日の記録がまだありません</div>";return;}
+  el.innerHTML=logs.map(l=>{
+    const typeLabel={progress:"直接作業",indirect:"間接作業",overtime:"残業",memo:"メモ"}[l.type]||l.type;
+    const typeBadge={progress:"badge-orange",indirect:"badge-navy",overtime:"badge-red",memo:"badge-green"}[l.type]||"badge-navy";
+    const detail=l.type==="progress"?`${esc(l.jobName||"—")} / ${esc(l.taskName||"—")} / ${l.hours}h${l.loss?" 🔴":""}`:
+      l.type==="indirect"?`${l.indirectType||""} ${l.hours}h`:
+      l.type==="overtime"?`残業 ${l.overtime}h`:
+      esc(l.memo||"");
+    return`<div class="card-flat" style="margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span class="badge ${typeBadge}" style="font-size:9px">${typeLabel}</span>
+          <span style="font-size:10px;color:var(--dim)">${new Date(l.savedAt||0).toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"})}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text)">${detail}</div>
+        ${l.memo&&l.type!=="memo"?`<div style="font-size:11px;color:var(--dim);margin-top:2px">📝 ${esc(l.memo)}</div>`:""}
+      </div>
+      <button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;flex-shrink:0;padding:4px;display:flex;align-items:center"><span class="mi sm">delete</span></button>
+    </div>`;
+  }).join("");
+}
+
+// 日報ログ削除
+async function deleteNippoLog(id){
+  confirmAction("この記録を削除しますか？","削除後、正しい内容で再入力してください。",async()=>{
+    // 進捗データも巻き戻す
+    const log=nippoLogs[id];
+    if(log&&log.type==="progress"&&log.jobId&&log.taskName){
+      const mid=log.memberId;const j=jobs[log.jobId];
+      if(j&&mid){
+        const mt=(j.memberTasks&&j.memberTasks[mid])||[];
+        const updated=mt.map(t=>{
+          if(t.name!==log.taskName)return t;
+          const newActual=Math.max(0,Math.round(((parseFloat(t.actual)||0)-(log.hours||0))*100)/100);
+          const newLoss=log.loss?Math.max(0,Math.round(((parseFloat(t.lossH)||0)-(log.hours||0))*100)/100):parseFloat(t.lossH)||0;
+          return{...t,actual:newActual,lossH:newLoss,status:newActual===0?"planned":t.status};
+        });
+        await dbSet(`jobs/${log.jobId}/memberTasks/${mid}`,updated);
+        if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
+      }
+    }
+    await dbRemove("nippoLogs/"+id);
+    if(!fbReady){delete nippoLogs[id];}
+    showToast("✅ 削除しました。正しい内容で再入力してください");
+    renderTodayLogList();onDataChange();
+  });
+}
 
 initFirebase();
 </script>
