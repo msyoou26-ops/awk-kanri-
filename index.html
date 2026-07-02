@@ -815,33 +815,135 @@ function renderBossJobList(){
   else if(jobFilter==="over")all=all.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   el.innerHTML=all.length?all.map(j=>bossJobCard(j)).join(""):"<div style='text-align:center;padding:20px;font-size:12px;color:var(--muted)'>案件がありません</div>";
 }
+// ドーナツチャートSVGを生成するヘルパー
+function donutSVG(pct,color,size,id){
+  const r=size/2-5,circ=2*Math.PI*r;
+  const offset=circ-(circ*Math.min(pct,100)/100);
+  return`<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg)">
+      <circle fill="none" stroke="rgba(255,255,255,.06)" stroke-width="5" cx="${size/2}" cy="${size/2}" r="${r}"/>
+      <circle fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round"
+        cx="${size/2}" cy="${size/2}" r="${r}"
+        id="${id}"
+        style="stroke-dasharray:${circ};stroke-dashoffset:${circ};transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+    </svg>
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:${size<52?9:10}px;font-weight:800;color:${color};line-height:1" id="${id}_lbl">0%</div>
+  </div>`;
+}
+
 function bossJobCard(j){
-  const tp=totalH(j),ta=actualH(j),lh=lossH(j),pct=tp>0?Math.min(Math.round(ta/tp*100),100):0;
+  const tp=totalH(j),ta=actualH(j),lh=lossH(j);
+  const pct=tp>0?Math.min(Math.round(ta/tp*100),100):0;          // 進捗率
+  const remainH=tp>0?Math.round((tp-ta)*100)/100:null;
+  const remainPct=tp>0?Math.max(0,Math.round((tp-ta)/tp*100)):null; // 残工数率
   const dl=j.end?daysLeft(j.end):null;
-  const barC=pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)";
-  const pid="bp"+Math.random().toString(36).slice(2,7);
+  // 日程進捗率: 着工日〜納期に対して今日がどこか
+  let schedPct=null;
+  if(j.start&&j.end){
+    const s=new Date(j.start).getTime(),e=new Date(j.end).getTime(),n=Date.now();
+    const total2=e-s;if(total2>0)schedPct=Math.max(0,Math.min(100,Math.round((n-s)/total2*100)));
+  }
   const curIdx=SF.indexOf(j.status||"planned");
   const next=curIdx>=0&&curIdx<SF.length-1?SF[curIdx+1]:null;
-  const slbl={s:"job-card s-"+( j.status||"planned")};
-  return`<div class="${slbl.s}" style="padding-left:17px;cursor:pointer" onclick="openJobDetail('${j.id}')">
+  const oid=Math.random().toString(36).slice(2,7);
+  // 色判定
+  const pctC=pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)";
+  const remC=remainH!==null&&remainH<0?"var(--red)":remainH!==null&&remainH<(tp*0.1)?"var(--amber)":"var(--green)";
+  const dlC=dl!==null&&dl<0?"var(--red)":dl!==null&&dl<=3?"var(--amber)":"var(--blue)";
+  const schedC=schedPct!==null&&pct<schedPct-10?"var(--red)":schedPct!==null&&pct<schedPct?"var(--amber)":"var(--green)";
+  // ステータスバー
+  const sfFlow=`<div style="display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;margin-bottom:10px">${SF.map((s,i)=>{const isDone=i<curIdx,isAct=i===curIdx;return`${i>0?`<div style="width:12px;height:1px;background:${isDone?"var(--green)":"rgba(68,136,255,.15)"};flex-shrink:0;margin-bottom:12px"></div>`:""}
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+      <div style="width:22px;height:22px;border-radius:50%;background:${isDone?"rgba(0,214,143,.18)":isAct?"rgba(255,107,0,.18)":"rgba(255,255,255,.04)"};border:1.5px solid ${isDone?"var(--green)":isAct?"var(--orange)":"rgba(68,136,255,.12)"};display:flex;align-items:center;justify-content:center;${isAct?"box-shadow:0 0 8px rgba(255,107,0,.3)":""}">
+        <span class="mi sm" style="font-size:11px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span>
+      </div>
+      <div style="font-size:6px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"};white-space:nowrap;${isAct?"font-weight:700":""}">${SL[s]}</div>
+    </div>`;}).join("")}</div>`;
+
+  return`<div class="job-card s-${j.status||"planned"}" style="padding:14px 14px 14px 17px;cursor:pointer" onclick="openJobDetail('${j.id}')">
+
+    <!-- ヘッダー: 案件名 + バッジ -->
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
-      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div><div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}</div></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}</div>
+      </div>
       <span class="badge ${SB[j.status]||"badge-navy"}" style="margin-left:8px;flex-shrink:0;font-size:9px">${SL[j.status]||j.status}</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(${dl!==null?4:3}${lh>0?"+1":""},1fr);gap:5px;margin-bottom:8px">
-      <div class="stat-cell" style="padding:6px 4px"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700">${ta}h</div><div style="font-size:8px;color:var(--dim)">実績</div></div>
-      <div class="stat-cell" style="padding:6px 4px"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--dim)">${tp}h</div><div style="font-size:8px;color:var(--dim)">見積</div></div>
-      <div style="background:${tp>0&&ta>tp?"rgba(255,59,59,.08)":"rgba(0,214,143,.06)"};border:1px solid ${tp>0&&ta>tp?"rgba(255,59,59,.15)":"rgba(0,214,143,.12)"};border-radius:8px;padding:6px 4px;text-align:center"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:${tp>0&&ta>tp?"var(--red)":"var(--green)"}">${tp>0?Math.abs(Math.round((tp-ta)*100)/100):"-"}h</div><div style="font-size:8px;color:var(--dim)">${tp>0&&ta>tp?"超過":"残り"}</div></div>
-      ${lh>0?`<div style="background:var(--red-l);border:1px solid rgba(255,59,59,.15);border-radius:8px;padding:6px 4px;text-align:center"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--red)">${lh}h</div><div style="font-size:8px;color:var(--dim)">ロス</div></div>`:""}
-      ${dl!==null?`<div class="stat-cell" style="padding:6px 4px"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:${dl<0?"var(--red)":dl<=3?"var(--amber)":"var(--text)"}">${dl<0?Math.abs(dl):dl}</div><div style="font-size:8px;color:var(--dim)">${dl<0?"日超":"日残"}</div></div>`:""}
+
+    <!-- ステータスフロー -->
+    ${sfFlow}
+
+    <!-- ドーナツ3個 + 数字エリア -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+
+      <!-- ドーナツゾーン -->
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        ${tp>0?`<div style="text-align:center">
+          ${donutSVG(pct,pctC,54,oid+"_p")}
+          <div style="font-size:7px;color:var(--dim);margin-top:2px">進捗率</div>
+        </div>`:""}
+        ${remainPct!==null?`<div style="text-align:center">
+          ${donutSVG(remainPct,remC,54,oid+"_r")}
+          <div style="font-size:7px;color:var(--dim);margin-top:2px">残工数率</div>
+        </div>`:""}
+        ${schedPct!==null?`<div style="text-align:center">
+          ${donutSVG(schedPct,schedC,54,oid+"_s")}
+          <div style="font-size:7px;color:var(--dim);margin-top:2px">日程</div>
+        </div>`:""}
+      </div>
+
+      <!-- 数字エリア -->
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:5px">
+        <div style="background:rgba(255,255,255,.03);border-radius:7px;padding:5px 7px">
+          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:var(--text);line-height:1">${ta}h</div>
+          <div style="font-size:8px;color:var(--dim);margin-top:2px">実績</div>
+        </div>
+        <div style="background:rgba(255,255,255,.03);border-radius:7px;padding:5px 7px">
+          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:var(--dim);line-height:1">${tp}h</div>
+          <div style="font-size:8px;color:var(--dim);margin-top:2px">見積</div>
+        </div>
+        <div style="background:${remainH!==null&&remainH<0?"rgba(255,59,59,.08)":"rgba(0,214,143,.06)"};border:1px solid ${remainH!==null&&remainH<0?"rgba(255,59,59,.15)":"rgba(0,214,143,.12)"};border-radius:7px;padding:5px 7px">
+          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${remainH!==null&&remainH<0?"var(--red)":"var(--green)"};line-height:1">${remainH!==null?Math.abs(remainH):"-"}h</div>
+          <div style="font-size:8px;color:var(--dim);margin-top:2px">${remainH!==null&&remainH<0?"超過":"残工数"}</div>
+        </div>
+        <div style="background:${lh>0?"rgba(255,59,59,.08)":"rgba(255,255,255,.03)"};border:${lh>0?"1px solid rgba(255,59,59,.15)":""};border-radius:7px;padding:5px 7px">
+          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${lh>0?"var(--red)":"var(--dim)"};line-height:1">${lh}h</div>
+          <div style="font-size:8px;color:var(--dim);margin-top:2px">ロス</div>
+        </div>
+        ${dl!==null?`<div style="grid-column:1/-1;background:${dl<0?"rgba(255,59,59,.08)":dl<=3?"rgba(255,184,0,.08)":"rgba(255,255,255,.03)"};border:${dl<0?"1px solid rgba(255,59,59,.15)":dl<=3?"1px solid rgba(255,184,0,.15)":""};border-radius:7px;padding:5px 7px;display:flex;align-items:center;gap:6px">
+          <span class="mi sm" style="font-size:14px;color:${dlC}">event</span>
+          <div><div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${dlC};line-height:1">${dl<0?"納期超過 "+Math.abs(dl)+"日":dl+"日"}</div><div style="font-size:8px;color:var(--dim);margin-top:1px">${dl<0?"超過":"納期まで"}</div></div>
+        </div>`:""}
+      </div>
     </div>
-    ${tp>0?`<div><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--dim);margin-bottom:3px"><span>進捗</span><span style="color:${barC}">${pct}%</span></div><div class="prog-bar"><div id="${pid}" style="height:100%;width:0%;background:${barC};border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1)"></div></div></div>`:""}
-    <div style="display:flex;gap:5px;margin-top:8px" onclick="event.stopPropagation()">
-      <button class="btn" style="font-size:10px;padding:5px 8px" onclick="openJobModal('${j.id}')"><span class="mi sm">edit</span></button>
-      <button class="btn" style="font-size:10px;padding:5px 8px;color:var(--red)" onclick="deleteJob('${j.id}')"><span class="mi sm">delete</span></button>
-      ${next?`<button class="btn-primary" style="flex:1;font-size:10px;padding:5px" onclick="advanceJobStatus('${j.id}')"><span class="mi sm" style="font-size:12px">${SI[next]}</span>${SL[next]}へ</button>`:`<button class="btn" style="flex:1;font-size:10px;padding:5px;color:var(--green);justify-content:center" onclick="undoJobDone('${j.id}')"><span class="mi sm">undo</span>取消</button>`}
+
+    <!-- ボタン行 -->
+    <div style="display:flex;gap:5px" onclick="event.stopPropagation()">
+      <button class="btn" style="padding:5px 7px;font-size:10px;justify-content:center;min-width:32px" onclick="openJobModal('${j.id}')"><span class="mi sm">edit</span></button>
+      <button class="btn" style="padding:5px 7px;font-size:10px;color:var(--red);justify-content:center;min-width:32px" onclick="deleteJob('${j.id}')"><span class="mi sm">delete</span></button>
+      ${next?`<button class="btn-primary" style="flex:1;font-size:11px;padding:8px;font-weight:700" onclick="advanceJobStatus('${j.id}')">
+        <span class="mi sm" style="font-size:13px">${SI[next]}</span>${SL[next]}へ →
+      </button>`:`<button class="btn" style="flex:1;font-size:11px;padding:8px;color:var(--green);justify-content:center" onclick="undoJobDone('${j.id}')">
+        <span class="mi sm">undo</span>完成を取消
+      </button>`}
     </div>
-  </div><script>setTimeout(()=>{const e=document.getElementById("${pid}");if(e)e.style.width="${pct}%";},120);<\/script>`;
+
+  </div>
+  <script>setTimeout(()=>{
+    const targets=[
+      {id:"${oid}_p",pct:${pct},c:"${pctC}"},
+      {id:"${oid}_r",pct:${remainPct!==null?remainPct:0},c:"${remC}"},
+      {id:"${oid}_s",pct:${schedPct!==null?schedPct:0},c:"${schedC}"},
+    ];
+    targets.forEach(({id,pct:p,c})=>{
+      const el=document.getElementById(id),lb=document.getElementById(id+"_lbl");
+      if(!el)return;
+      const r=el.r?.baseVal?.value||22,circ=2*Math.PI*r;
+      el.style.strokeDashoffset=circ-(circ*Math.min(p,100)/100);
+      if(lb){let cur=0;const t=setInterval(()=>{cur=Math.min(cur+2,p);lb.textContent=cur+"%";if(cur>=p)clearInterval(t);},18);}
+    });
+  },100);<\/script>`;
 }
 function renderBossSummary(){
   const el=document.getElementById("homeSummary");if(!el)return;
