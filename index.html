@@ -844,15 +844,20 @@ function bossJobCard(j){
     const total2=e-s;if(total2>0)schedPct=Math.max(0,Math.min(100,Math.round((n-s)/total2*100)));
   }
   const curIdx=SF.indexOf(j.status||"planned");
-  const next=curIdx>=0&&curIdx<SF.length-1?SF[curIdx+1]:null;
+  // 管理者が操作できるのは予定→施工中→完成の3段階
+  const SF3_BTN=["planned","ongoing","done"];
+  const curIdx3_BTN=SF3_BTN.indexOf(j.status||"planned");
+  const next=curIdx3_BTN>=0&&curIdx3_BTN<SF3_BTN.length-1?SF3_BTN[curIdx3_BTN+1]:null;
   const oid=Math.random().toString(36).slice(2,7);
   // 色判定
   const pctC=pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)";
   const remC=remainH!==null&&remainH<0?"var(--red)":remainH!==null&&remainH<(tp*0.1)?"var(--amber)":"var(--green)";
   const dlC=dl!==null&&dl<0?"var(--red)":dl!==null&&dl<=3?"var(--amber)":"var(--blue)";
   const schedC=schedPct!==null&&pct<schedPct-10?"var(--red)":schedPct!==null&&pct<schedPct?"var(--amber)":"var(--green)";
-  // ステータスバー
-  const sfFlow=`<div style="display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;margin-bottom:10px">${SF.map((s,i)=>{const isDone=i<curIdx,isAct=i===curIdx;return`${i>0?`<div style="width:12px;height:1px;background:${isDone?"var(--green)":"rgba(68,136,255,.15)"};flex-shrink:0;margin-bottom:12px"></div>`:""}
+  // ステータスバー（予定→施工中→完成の3段階のみ）
+  const SF3=["planned","ongoing","done"];
+  const curIdx3=SF3.indexOf(j.status||"planned");
+  const sfFlow=`<div style="display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;margin-bottom:10px">${SF3.map((s,i)=>{const isDone=i<curIdx3,isAct=i===curIdx3;return`${i>0?`<div style="width:20px;height:1px;background:${isDone?"var(--green)":"rgba(68,136,255,.15)"};flex-shrink:0;margin-bottom:12px"></div>`:""}
     <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
       <div style="width:22px;height:22px;border-radius:50%;background:${isDone?"rgba(0,214,143,.18)":isAct?"rgba(255,107,0,.18)":"rgba(255,255,255,.04)"};border:1.5px solid ${isDone?"var(--green)":isAct?"var(--orange)":"rgba(68,136,255,.12)"};display:flex;align-items:center;justify-content:center;${isAct?"box-shadow:0 0 8px rgba(255,107,0,.3)":""}">
         <span class="mi sm" style="font-size:11px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span>
@@ -1454,7 +1459,10 @@ function openJobDetail(jid){
   document.getElementById("jobDetailTitle").textContent=j.name;
   const tp=totalH(j),ta=actualH(j),lh=lossH(j),pct=tp>0?Math.round(ta/tp*100):0;
   const curIdx=SF.indexOf(j.status||"planned");
-  const next=curIdx>=0&&curIdx<SF.length-1?SF[curIdx+1]:null;
+  // 管理者が操作できるのは予定→施工中→完成の3段階
+  const SF3_BTN=["planned","ongoing","done"];
+  const curIdx3_BTN=SF3_BTN.indexOf(j.status||"planned");
+  const next=curIdx3_BTN>=0&&curIdx3_BTN<SF3_BTN.length-1?SF3_BTN[curIdx3_BTN+1]:null;
   const flowHtml=`<div class="status-flow" style="margin-bottom:12px">${SF.map((s,i)=>{const isDone=i<curIdx,isAct=i===curIdx;
     return`${i>0?`<div class="sf-conn ${isDone?"done":""}"></div>`:""}
     <div class="sf-step"><div class="sf-icon ${isDone?"done":isAct?"active":""}"><span class="mi sm" style="font-size:12px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span></div><div class="sf-lbl ${isDone?"done":isAct?"active":""}">${SL[s]}</div></div>`;
@@ -1656,6 +1664,10 @@ function closeCoOverlay(){
   if(v){v.classList.remove("go");void v.offsetWidth;}
   onDataChange();
 }
+// オーバーレイ背景タップで閉じる
+document.getElementById("coOverlay").addEventListener("click",function(e){
+  if(e.target===this)closeCoOverlay();
+});
 async function markJobDone(jid){await advanceJobStatus(jid);}
 async function undoJobDone(jid){await dbSet(`jobs/${jid}/status`,"ongoing");if(!fbReady){jobs[jid].status="ongoing";onDataChange();}showToast("↩ 完成を取り消しました");}
 async function deleteJob(jid){confirmAction("案件を削除しますか？","この操作は元に戻せません。",async()=>{await dbRemove("jobs/"+jid);if(!fbReady){delete jobs[jid];onDataChange();}showToast("削除しました");});}
