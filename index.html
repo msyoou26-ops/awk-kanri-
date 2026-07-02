@@ -12,50 +12,66 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <style>
 :root{
+  --bg:#040810;--bg2:#060c18;--bg3:#081020;
   --navy:#0a1628;--navy2:#0f2044;--navy3:#162850;
-  --orange:#e85d04;--orange-l:rgba(232,93,4,.12);--orange-glow:rgba(232,93,4,.25);
-  --bg:#070e1c;
-  --glass:rgba(255,255,255,.06);--glass2:rgba(255,255,255,.04);--glass3:rgba(255,255,255,.09);
-  --glass-border:rgba(255,255,255,.1);--glass-border2:rgba(255,255,255,.15);
-  --text:#f0f4ff;--text2:#b8c4d8;--dim:#7080a0;--muted:#3a4a66;
-  --green:#10b981;--green-l:rgba(16,185,129,.12);
-  --red:#ef4444;--red-l:rgba(239,68,68,.12);
-  --amber:#f59e0b;--amber-l:rgba(245,158,11,.12);
-  --blue:#3b82f6;--blue-l:rgba(59,130,246,.12);
+  --orange:#ff6b00;--orange2:#e85d04;--orange-l:rgba(255,107,0,.1);--orange-glow:rgba(255,107,0,.35);--orange-border:rgba(255,107,0,.3);
+  --glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.03);--glass3:rgba(255,255,255,.07);
+  --glass-border:rgba(255,255,255,.08);--glass-border2:rgba(255,255,255,.12);
+  --steel:rgba(160,200,255,.06);--steel-border:rgba(160,200,255,.1);
+  --text:#e8f0ff;--text2:#9ab0cc;--dim:#506070;--muted:#2a3848;
+  --green:#00d68f;--green-l:rgba(0,214,143,.1);--green-glow:rgba(0,214,143,.3);
+  --red:#ff3b3b;--red-l:rgba(255,59,59,.1);
+  --amber:#ffb800;--amber-l:rgba(255,184,0,.1);
+  --blue:#4488ff;--blue-l:rgba(68,136,255,.1);
   --safe-b:env(safe-area-inset-bottom,0px);
-  --radius:16px;--radius-sm:12px;
+  --radius:14px;--radius-sm:10px;
+  --hex-size:40px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none;-webkit-font-smoothing:antialiased}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(30,60,120,.6) 0%,transparent 70%),radial-gradient(ellipse 60% 40% at 100% 100%,rgba(15,40,80,.4) 0%,transparent 60%);pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%,rgba(255,107,0,.06) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 40% at 100% 100%,rgba(0,80,160,.15) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 30% at 0% 50%,rgba(0,40,100,.1) 0%,transparent 60%),
+    linear-gradient(180deg,#040810 0%,#060c18 50%,#040810 100%);
+  pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(68,136,255,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(68,136,255,.03) 1px,transparent 1px),
+    linear-gradient(rgba(68,136,255,.015) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(68,136,255,.015) 1px,transparent 1px);
+  background-size:80px 80px,80px 80px,20px 20px,20px 20px;
+  pointer-events:none;z-index:0;opacity:.6}
 input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 .mi{font-family:'Material Symbols Outlined';font-weight:300;font-style:normal;font-size:22px;line-height:1;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none}
 .mi.fill{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
 .mi.sm{font-size:16px}.mi.md{font-size:20px}.mi.lg{font-size:28px}
 .screen{display:none;min-height:100vh;flex-direction:column;padding-bottom:calc(68px + var(--safe-b));position:relative;z-index:1}
 .screen.active{display:flex}
-.hdr{background:rgba(10,22,40,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--glass-border);padding:0 18px;height:56px;display:flex;align-items:center;gap:10px;flex-shrink:0;position:sticky;top:0;z-index:50}
-.hdr-logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:800;color:#fff;letter-spacing:4px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.7) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr{background:rgba(4,8,16,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid rgba(255,107,0,.15);padding:0 18px;height:56px;display:flex;align-items:center;gap:10px;flex-shrink:0;position:sticky;top:0;z-index:50;box-shadow:0 1px 0 rgba(255,107,0,.08),0 4px 20px rgba(0,0,0,.5)}
+.hdr-logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:900;letter-spacing:5px;background:linear-gradient(135deg,#ff6b00 0%,#ffaa44 50%,#ff6b00 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 0 30px rgba(255,107,0,.5)}
 .hdr-title{font-size:15px;font-weight:600;color:var(--text);flex:1}
 .hdr-sub{font-size:11px;color:var(--dim);flex:1}
 .back-btn{background:none;border:none;color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:4px}
 .hdr-btn{background:var(--glass);border:1px solid var(--glass-border);color:var(--text2);padding:6px 12px;border-radius:10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans JP',sans-serif;display:flex;align-items:center;gap:4px;transition:all .2s}
 .hdr-btn:active{background:var(--glass2)}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(68px + var(--safe-b));background:rgba(8,16,32,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--glass-border);display:flex;z-index:50;padding-bottom:var(--safe-b)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(68px + var(--safe-b));background:rgba(4,8,16,.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,107,0,.12);display:flex;z-index:50;padding-bottom:var(--safe-b);box-shadow:0 -1px 0 rgba(255,107,0,.06),0 -8px 32px rgba(0,0,0,.6)}
 .bnav{flex:1;background:none;border:none;color:var(--dim);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;cursor:pointer;transition:all .2s;font-family:'Noto Sans JP',sans-serif;font-weight:500;padding:0}
 .bnav .mi{font-size:22px;transition:all .2s}
 .bnav.on{color:var(--orange)}
 .bnav.on .mi{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
 .app-body{flex:1;overflow-y:auto;padding:16px 14px 8px;-webkit-overflow-scrolling:touch}
 /* GLASS CARDS */
-.card{background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--glass-border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 4px 24px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)}
+.card{background:rgba(8,16,30,.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(68,136,255,.1);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 8px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05),0 0 0 1px rgba(255,107,0,.03)}
 .card-flat{background:var(--glass2);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px}
 .sec-lbl{font-size:10px;font-weight:700;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px}
 /* BUTTONS */
 .btn{background:var(--glass);border:1px solid var(--glass-border2);color:var(--text2);padding:10px 16px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;font-family:'Noto Sans JP',sans-serif;display:inline-flex;align-items:center;gap:6px;backdrop-filter:blur(8px)}
 .btn:active{background:var(--glass3);transform:scale(.97)}
-.btn-primary{background:linear-gradient(135deg,var(--orange) 0%,#ff7a00 100%);border:none;color:#fff;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:all .2s;font-family:'Noto Sans JP',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px var(--orange-glow),0 1px 0 rgba(255,255,255,.2) inset}
-.btn-primary:active{transform:scale(.97);box-shadow:0 2px 10px var(--orange-glow)}
+.btn-primary{background:linear-gradient(135deg,#ff6b00 0%,#ff9500 100%);border:1px solid rgba(255,150,0,.4);color:#fff;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:all .2s;font-family:'Noto Sans JP',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 24px rgba(255,107,0,.4),0 1px 0 rgba(255,255,255,.15) inset,0 0 0 1px rgba(255,107,0,.2)}
+.btn-primary:active{transform:scale(.97);box-shadow:0 2px 12px rgba(255,107,0,.3)}
 .btn-navy{background:linear-gradient(135deg,var(--navy2) 0%,var(--navy3) 100%);border:1px solid var(--glass-border2);color:#fff;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 12px rgba(0,0,0,.3)}
 .btn-ghost{background:none;border:none;color:var(--dim);padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;display:inline-flex;align-items:center;gap:4px;transition:color .15s}
 .btn-ghost:active{color:var(--text2)}
@@ -93,12 +109,16 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 .modal-hdr h2{font-size:16px;font-weight:700;color:var(--text)}
 .modal-close{background:var(--glass);border:1px solid var(--glass-border);color:var(--dim);width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 /* JOB CARD */
-.job-card{background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px 14px 14px 18px;margin-bottom:10px;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.06)}
-.job-card::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:2px}
-.job-card.status-ongoing::before{background:linear-gradient(180deg,var(--orange),#ff7a00);box-shadow:0 0 8px var(--orange-glow)}
-.job-card.status-done::before{background:linear-gradient(180deg,var(--green),#34d399)}
-.job-card.status-overdue::before{background:linear-gradient(180deg,var(--red),#f87171)}
-.job-card.status-planned::before{background:var(--muted)}
+.job-card{background:rgba(6,12,24,.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(68,136,255,.08);border-radius:var(--radius);padding:14px 14px 14px 18px;margin-bottom:10px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);transition:border-color .3s,box-shadow .3s}
+.job-card:active{transform:scale(.99)}
+.job-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px}
+.job-card.status-ongoing::before{background:linear-gradient(180deg,#ff6b00,#ff9500);box-shadow:0 0 12px rgba(255,107,0,.6),0 0 4px rgba(255,107,0,.9)}
+.job-card.status-inspection::before{background:linear-gradient(180deg,#ffb800,#ff8800);box-shadow:0 0 10px rgba(255,184,0,.5)}
+.job-card.status-shipping_prep::before{background:linear-gradient(180deg,#4488ff,#2266dd);box-shadow:0 0 10px rgba(68,136,255,.5)}
+.job-card.status-shipping::before{background:linear-gradient(180deg,#4488ff,#00d68f);box-shadow:0 0 10px rgba(68,136,255,.5)}
+.job-card.status-done::before{background:linear-gradient(180deg,#00d68f,#00b870);box-shadow:0 0 12px rgba(0,214,143,.5)}
+.job-card.status-overdue::before{background:linear-gradient(180deg,#ff3b3b,#ff6666);box-shadow:0 0 10px rgba(255,59,59,.5)}
+.job-card.status-planned::before{background:var(--dim)}
 /* CHIP */
 .chip{display:inline-flex;align-items:center;padding:7px 12px;border-radius:20px;border:1px solid var(--glass-border2);background:var(--glass);cursor:pointer;transition:all .2s;font-size:12px;font-weight:500;color:var(--text2);gap:4px}
 .chip.on{border-color:var(--orange);background:var(--orange-l);color:var(--orange)}
@@ -107,20 +127,27 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 ::-webkit-scrollbar{height:3px;width:3px}
 ::-webkit-scrollbar-thumb{background:var(--glass-border2);border-radius:3px}
 /* LOGIN */
-.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 20px;background:transparent}
-.login-box{background:rgba(255,255,255,.04);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid var(--glass-border2);border-radius:24px;padding:36px 28px;width:100%;max-width:360px;box-shadow:0 32px 80px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1)}
-.login-logo{font-family:'Inter',sans-serif;font-size:48px;font-weight:800;letter-spacing:6px;margin-bottom:4px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.6) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.login-tagline{font-size:11px;color:var(--dim);letter-spacing:1.5px;margin-bottom:28px}
-.login-tabs{display:flex;background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:12px;padding:3px;margin-bottom:20px;gap:3px}
-.ltab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;color:var(--dim);background:none;border:none;border-radius:10px;transition:all .2s;font-family:'Noto Sans JP',sans-serif}
-.ltab.on{background:linear-gradient(135deg,var(--navy2),var(--navy3));color:#fff;font-weight:700;box-shadow:0 2px 12px rgba(0,0,0,.3)}
-.login-btn{background:linear-gradient(135deg,var(--orange),#ff7a00);color:#fff;border:none;width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;font-family:'Noto Sans JP',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 20px var(--orange-glow)}
+.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 20px;background:transparent;position:relative;overflow:hidden}
+.login-wrap::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 60% 40% at 50% 50%,rgba(255,107,0,.06) 0%,transparent 70%),
+  repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(68,136,255,.04) 39px,rgba(68,136,255,.04) 40px),
+  repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(68,136,255,.04) 39px,rgba(68,136,255,.04) 40px);pointer-events:none}
+.login-box{background:rgba(6,10,20,.85);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border:1px solid rgba(255,107,0,.2);border-radius:20px;padding:32px 24px;width:100%;max-width:340px;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 60px rgba(255,107,0,.05),inset 0 1px 0 rgba(255,107,0,.1)}
+.login-logo{font-family:'Inter',sans-serif;font-size:52px;font-weight:900;letter-spacing:8px;margin-bottom:2px;background:linear-gradient(135deg,#ff6b00 0%,#ffaa44 50%,#ff6b00 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 20px rgba(255,107,0,.4))}
+.login-tagline{font-size:10px;color:rgba(255,107,0,.6);letter-spacing:2px;margin-bottom:24px;text-transform:uppercase}
+.login-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,107,0,.3),transparent);margin-bottom:20px}
+.login-tabs{display:flex;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:3px;margin-bottom:18px;gap:3px}
+.ltab{flex:1;padding:9px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;color:var(--dim);background:none;border:none;border-radius:8px;transition:all .2s;font-family:'Noto Sans JP',sans-serif}
+.ltab.on{background:linear-gradient(135deg,rgba(255,107,0,.25),rgba(255,107,0,.1));color:var(--orange);font-weight:700;border:1px solid rgba(255,107,0,.3)}
+.login-btn{background:linear-gradient(135deg,#ff6b00,#ff9500);color:#fff;border:1px solid rgba(255,150,0,.4);width:100%;padding:13px;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px;font-family:'Noto Sans JP',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 24px rgba(255,107,0,.35),inset 0 1px 0 rgba(255,255,255,.15);letter-spacing:.5px}
 .login-btn:active{transform:scale(.97)}
 .login-err{color:var(--red);font-size:12px;margin-top:8px;min-height:18px;text-align:center}
+@keyframes bootLine{from{width:0;opacity:0}to{width:100%;opacity:1}}
+.boot-line{height:1px;background:linear-gradient(90deg,transparent,var(--orange),transparent);animation:bootLine .8s ease both}
 /* HOME HERO */
-.home-hero{background:linear-gradient(135deg,rgba(15,32,68,.9) 0%,rgba(22,40,80,.8) 100%);backdrop-filter:blur(20px);border:1px solid var(--glass-border2);border-radius:20px;padding:22px;margin-bottom:14px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)}
-.home-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(232,93,4,.15) 0%,transparent 70%);pointer-events:none}
-.home-hero::after{content:'AWK';position:absolute;right:-8px;bottom:-18px;font-family:'Inter',sans-serif;font-size:72px;font-weight:800;color:rgba(255,255,255,.03);letter-spacing:4px;pointer-events:none}
+.home-hero{background:linear-gradient(135deg,rgba(8,16,32,.9) 0%,rgba(4,8,20,.95) 100%);backdrop-filter:blur(24px);border:1px solid rgba(255,107,0,.15);border-radius:18px;padding:20px;margin-bottom:12px;position:relative;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,107,0,.08),0 0 0 1px rgba(255,107,0,.04)}
+.home-hero::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(255,107,0,.1) 0%,transparent 70%);pointer-events:none}
+.home-hero::after{content:'AWK';position:absolute;right:-6px;bottom:-16px;font-family:'Inter',sans-serif;font-size:68px;font-weight:900;color:rgba(255,107,0,.04);letter-spacing:4px;pointer-events:none}
 .hero-stats{display:grid;grid-template-columns:repeat(4,1fr)}
 .hero-stat{text-align:center;padding:0 4px}
 .hero-stat+.hero-stat{border-left:1px solid rgba(255,255,255,.08)}
@@ -166,6 +193,75 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 /* TAG */
 .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text2);margin:2px}
 .tag button{background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;line-height:1;padding:0;display:flex}
+
+/* RING METER */
+.ring-wrap{position:relative;width:90px;height:90px;flex-shrink:0}
+.ring-svg{transform:rotate(-90deg);width:90px;height:90px}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.06);stroke-width:8}
+.ring-fill{fill:none;stroke-width:8;stroke-linecap:round;stroke-dasharray:226;stroke-dashoffset:226;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)}
+.ring-fill.orange{stroke:url(#ringGrad)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-val{font-family:'Inter',sans-serif;font-size:20px;font-weight:800;color:#fff;line-height:1}
+.ring-lbl{font-size:8px;color:rgba(255,255,255,.5);margin-top:2px;letter-spacing:.5px}
+
+/* STATUS FLOW */
+.status-flow{display:flex;align-items:center;gap:0;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.status-flow::-webkit-scrollbar{display:none}
+.status-step{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;position:relative}
+.status-step-icon{width:28px;height:28px;border-radius:50%;background:var(--glass2);border:1.5px solid var(--glass-border);display:flex;align-items:center;justify-content:center;transition:all .3s;position:relative;z-index:1}
+.status-step-icon.done-step{background:rgba(16,185,129,.2);border-color:var(--green);box-shadow:0 0 10px rgba(16,185,129,.3)}
+.status-step-icon.active-step{background:rgba(232,93,4,.2);border-color:var(--orange);box-shadow:0 0 14px var(--orange-glow)}
+.status-step-lbl{font-size:8px;color:var(--dim);white-space:nowrap;transition:color .3s}
+.status-step-lbl.active-lbl{color:var(--orange);font-weight:700}
+.status-step-lbl.done-lbl{color:var(--green)}
+.status-connector{width:20px;height:1.5px;background:var(--glass-border);flex-shrink:0;margin-bottom:16px;transition:background .3s}
+.status-connector.done-conn{background:var(--green);box-shadow:0 0 6px rgba(16,185,129,.4)}
+
+/* CARD ANIMATION */
+@keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.job-card{animation:cardIn .3s ease both}
+@keyframes glowPulse{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.06)}50%{box-shadow:0 4px 20px rgba(0,0,0,.25),0 0 20px rgba(232,93,4,.1),inset 0 1px 0 rgba(255,255,255,.06)}}
+.job-card.status-ongoing{animation:cardIn .3s ease both,glowPulse 3s ease-in-out 1s infinite}
+
+/* PROG BAR ANIMATED */
+.prog-fill{animation:none}
+@keyframes progIn{from{width:0}to{width:var(--target-w)}}
+.prog-animated{animation:progIn 1s cubic-bezier(.4,0,.2,1) both}
+
+/* COMPLETION OVERLAY */
+.completion-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(16px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s}
+.completion-overlay.show{opacity:1;pointer-events:auto}
+/* 工場シャッター */
+.factory-scene{width:100%;height:100%;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.shutter{position:absolute;top:0;left:0;right:0;background:repeating-linear-gradient(180deg,rgba(40,60,100,.9) 0px,rgba(30,50,90,.9) 8px,rgba(20,35,70,.9) 9px,rgba(30,50,90,.9) 10px);height:0;z-index:10;transition:height .6s cubic-bezier(.4,0,.2,1);border-bottom:2px solid rgba(255,107,0,.4);box-shadow:0 4px 20px rgba(255,107,0,.3)}
+.shutter.open{height:calc(100% - 120px)}
+.road{position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(180deg,#1a2030 0%,#0a1020 100%);border-top:2px solid rgba(255,107,0,.3)}
+.road::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:80%;height:4px;background:repeating-linear-gradient(90deg,rgba(255,184,0,.6) 0px,rgba(255,184,0,.6) 30px,transparent 30px,transparent 60px)}
+/* 車両アニメーション */
+.vehicle{position:absolute;bottom:28px;left:-140px;z-index:20;transition:none}
+.vehicle.driving{animation:driveOut 2s cubic-bezier(.4,0,.8,1) forwards}
+@keyframes driveOut{0%{left:-140px;opacity:1}20%{left:10%;opacity:1}80%{left:85%;opacity:1}95%{left:105%;opacity:.5}100%{left:110%;opacity:0}}
+/* 車体 */
+.car-body{width:120px;height:55px;position:relative}
+.car-roof{position:absolute;top:0;left:18px;width:80px;height:28px;background:linear-gradient(135deg,#1e3050,#2a4070);border-radius:8px 8px 0 0;border:1px solid rgba(68,136,255,.3)}
+.car-base{position:absolute;bottom:0;left:0;width:120px;height:32px;background:linear-gradient(180deg,#1a2840,#0f1e30);border-radius:4px;border:1px solid rgba(68,136,255,.2)}
+.car-window{position:absolute;top:4px;left:8px;width:60px;height:18px;background:rgba(100,180,255,.15);border-radius:4px;border:1px solid rgba(100,180,255,.3)}
+.car-light-f{position:absolute;right:-4px;top:8px;width:8px;height:14px;background:linear-gradient(180deg,#fffacc,#ffcc00);border-radius:2px;box-shadow:0 0 12px 4px rgba(255,220,0,.6)}
+.car-light-r{position:absolute;left:-4px;top:10px;width:6px;height:10px;background:#ff3333;border-radius:2px;box-shadow:0 0 8px 2px rgba(255,50,50,.5)}
+.car-wheel{position:absolute;bottom:-8px;width:22px;height:22px;border-radius:50%;background:radial-gradient(#1a1a2e,#2a2a4e);border:3px solid rgba(68,136,255,.4)}
+.car-wheel.front{right:8px}
+.car-wheel.rear{left:8px}
+/* 光・煙エフェクト */
+@keyframes exhaustPuff{0%{opacity:.6;transform:scale(.5) translateX(0)}100%{opacity:0;transform:scale(2) translateX(-30px)}}
+.exhaust{position:absolute;bottom:32px;left:-20px;width:20px;height:20px;border-radius:50%;background:rgba(160,180,200,.2);animation:exhaustPuff 1s ease-out infinite}
+@keyframes speedLine{0%{opacity:.8;transform:translateX(0)}100%{opacity:0;transform:translateX(-60px)}}
+.speed-line{position:absolute;height:1px;background:linear-gradient(90deg,transparent,rgba(255,107,0,.6),transparent);animation:speedLine .5s ease-out infinite}
+/* 完了カード */
+.completion-card{background:rgba(6,10,20,.95);border:1px solid rgba(0,214,143,.3);border-radius:20px 20px 0 0;padding:28px 24px;text-align:center;width:100%;max-width:480px;box-shadow:0 -8px 60px rgba(0,214,143,.15),inset 0 1px 0 rgba(0,214,143,.1)}
+@keyframes checkIn{from{transform:scale(0) rotate(-45deg);opacity:0}to{transform:scale(1) rotate(0deg);opacity:1}}
+.completion-check{animation:checkIn .6s cubic-bezier(.34,1.56,.64,1) .3s both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.completion-text{animation:fadeUp .5s ease .6s both}
 </style>
 </head>
 <body>
@@ -174,21 +270,36 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 <div id="loginScreen" class="screen active">
   <div class="login-wrap">
     <div class="login-box">
-      <div class="login-logo">AWK</div>
-      <div class="login-tagline">現場OS — 工数管理・改善分析</div>
+      <div style="text-align:center;margin-bottom:20px">
+        <div class="login-logo">AWK</div>
+        <div class="login-tagline">Factory OS — 現場工数管理システム</div>
+        <div class="boot-line" style="margin:0 auto 0;max-width:160px"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;font-size:10px;color:rgba(255,107,0,.6);letter-spacing:.5px">
+        <span class="mi sm" style="font-size:12px;color:var(--orange)">sensors</span>SYSTEM ONLINE
+      </div>
       <div class="login-tabs">
         <button class="ltab on" id="ltab-boss" onclick="switchLoginTab('boss')">管理者</button>
         <button class="ltab" id="ltab-worker" onclick="switchLoginTab('worker')">作業者</button>
       </div>
       <div id="boss-login">
-        <div class="field"><label>パスワード</label><input type="password" id="bossPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin('boss')"></div>
-        <button class="login-btn" onclick="doLogin('boss')"><span class="mi sm">login</span>ログイン</button>
+        <div class="field">
+          <label style="color:rgba(255,107,0,.7);font-size:10px;letter-spacing:1px">ACCESS CODE</label>
+          <input type="password" id="bossPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin('boss')" style="letter-spacing:4px;font-size:18px">
+        </div>
+        <button class="login-btn" onclick="doLogin('boss')"><span class="mi sm">login</span>システム起動</button>
       </div>
       <div id="worker-login" style="display:none">
-        <div class="field"><label>作業者を選択</label><select id="workerSelect"></select></div>
-        <button class="login-btn" onclick="doLogin('worker')"><span class="mi sm">login</span>ログイン</button>
+        <div class="field">
+          <label style="color:rgba(255,107,0,.7);font-size:10px;letter-spacing:1px">OPERATOR SELECT</label>
+          <select id="workerSelect"></select>
+        </div>
+        <button class="login-btn" onclick="doLogin('worker')"><span class="mi sm">login</span>作業開始</button>
       </div>
       <div class="login-err" id="loginErr"></div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:6px;font-size:9px;color:var(--dim);letter-spacing:.5px">
+        <span class="mi sm" style="font-size:11px">shield</span>SECURE FACTORY NETWORK v4.0
+      </div>
     </div>
   </div>
 </div>
@@ -203,22 +314,21 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   </div>
   <div class="app-body">
     <div id="homeHero"></div>
+    <div id="homeTodayCards"></div>
     <div id="homeAlerts"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div class="sec-lbl" style="margin-bottom:0">案件一覧</div>
+      <div class="sec-lbl" style="margin-bottom:0">進行中の案件</div>
       <button class="btn-navy" onclick="openJobModal(null)"><span class="mi sm">add</span>案件追加</button>
     </div>
     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;margin-bottom:10px">
-      <button class="tpl-chip on" id="jf-ongoing" onclick="setJobFilter('ongoing',this)">施工中</button>
+      <button class="tpl-chip on" id="jf-ongoing" onclick="setJobFilter('ongoing',this)">進行中</button>
       <button class="tpl-chip" id="jf-over" onclick="setJobFilter('over',this)">超過中</button>
       <button class="tpl-chip" id="jf-all" onclick="setJobFilter('all',this)">全件</button>
       <button class="tpl-chip" id="jf-done" onclick="setJobFilter('done',this)">完成</button>
     </div>
     <div id="homeJobList"></div>
-    <div class="sec-lbl" style="margin-top:4px">ロス TOP3</div>
-    <div id="homeLossRank"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;margin-top:4px">
-      <div class="sec-lbl" style="margin-bottom:0">作業者</div>
+      <div class="sec-lbl" style="margin-bottom:0">作業者 / 入力状況</div>
       <button class="btn-ghost" onclick="openMemberModal()"><span class="mi sm">person_add</span>追加</button>
     </div>
     <div id="memberList"></div>
@@ -528,8 +638,10 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 const FIREBASE_CONFIG={apiKey:"AIzaSyALzcHgWi33tip-QiMYfjeJCJgxEt8KI-4",authDomain:"awk-kanri.firebaseapp.com",databaseURL:"https://awk-kanri-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"awk-kanri",storageBucket:"awk-kanri.firebasestorage.app",messagingSenderId:"995372648364",appId:"1:995372648364:web:51084b71722ec46e331c09"};
 const WD=["日","月","火","水","木","金","土"];
 function todayJST(){return new Date().toLocaleDateString("sv-SE",{timeZone:"Asia/Tokyo"});}
-const STATUS_LABEL={ongoing:"施工中",done:"完成",overdue:"遅延",planned:"予定"};
-const STATUS_BADGE={ongoing:"badge-orange",done:"badge-green",overdue:"badge-red",planned:"badge-navy"};
+const STATUS_LABEL={planned:"予定",ongoing:"施工中",inspection:"検査中",shipping_prep:"出荷準備中",shipping:"出荷中",done:"出荷完了",overdue:"遅延"};
+const STATUS_BADGE={planned:"badge-navy",ongoing:"badge-orange",inspection:"badge-amber",shipping_prep:"badge-blue",shipping:"badge-blue",done:"badge-green",overdue:"badge-red"};
+const STATUS_FLOW=["planned","ongoing","inspection","shipping_prep","shipping","done"];
+const STATUS_ICON={planned:"schedule",ongoing:"build",inspection:"fact_check",shipping_prep:"inventory",shipping:"local_shipping",done:"verified",overdue:"warning"};
 const INDIRECT_TYPES=[
   {key:"Z101",label:"休憩・朝礼・夕礼・清掃"},{key:"Z102",label:"会社行事・式典・健診"},
   {key:"Z201",label:"作業指導教育（教える側）"},{key:"Z202",label:"作業教育受講（教わる側）"},
@@ -671,98 +783,191 @@ function showScreen(id){
 }
 
 // ホーム
-function renderHome(){renderHomeHero();renderHomeAlerts();renderHomeJobList();renderHomeLossRank();renderMemberList();}
+function renderHome(){renderHomeHero();renderHomeTodayCards();renderHomeAlerts();renderHomeJobList();renderMemberList();}
+
 function renderHomeHero(){
   const el=document.getElementById("homeHero");if(!el)return;
   const d=new Date(),ts=todayJST();
-  const logs=nippoArr().filter(l=>l.date===ts);
-  const dH=Math.round(logs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
-  const iH=Math.round(logs.filter(l=>l.type==="indirect").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
-  const all=jobsArr();
-  const overdue=all.filter(j=>j.end&&daysLeft(j.end)<0&&j.status!=="done").length;
-  const lossT=workLogsArr().filter(l=>l.date===ts).length;
-  const tot=Math.round((dH+iH)*100)/100,pct=tot>0?Math.round(dH/tot*100):0;
+  const todayLogs=nippoArr().filter(l=>l.date===ts);
+  const allMembers=membersArr();
+  // 入力済み作業者
+  const inputtedMids=new Set(todayLogs.filter(l=>l.type==="progress"||l.type==="indirect").map(l=>l.memberId));
+  const inputCount=allMembers.filter(m=>inputtedMids.has(m.id)).length;
+  const totalCount=allMembers.length;
+  const inputRate=totalCount>0?Math.round(inputCount/totalCount*100):0;
+  const circ=226,offset=circ-(circ*inputRate/100);
   el.innerHTML=`<div class="home-hero">
-    <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:12px">${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）</div>
-    <div class="hero-stats" style="margin-bottom:14px">
-      <div class="hero-stat"><div class="hero-val">${dH}h</div><div class="hero-lbl">直接作業</div></div>
-      <div class="hero-stat"><div class="hero-val">${iH}h</div><div class="hero-lbl">間接作業</div></div>
-      <div class="hero-stat"><div class="hero-val" style="color:${overdue>0?"#fca044":"#fff"}">${overdue}</div><div class="hero-lbl">遅延案件</div></div>
-      <div class="hero-stat"><div class="hero-val" style="color:${lossT>0?"#fca044":"#fff"}">${lossT}</div><div class="hero-lbl">ロス記録</div></div>
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="ring-wrap" style="width:100px;height:100px">
+        <svg class="ring-svg" viewBox="0 0 100 100" width="100" height="100" style="transform:rotate(-90deg)">
+          <defs><linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e85d04"/><stop offset="100%" stop-color="#ff9a3c"/></linearGradient></defs>
+          <circle fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9" cx="50" cy="50" r="40"/>
+          <circle fill="none" stroke="url(#rg)" stroke-width="9" stroke-linecap="round" cx="50" cy="50" r="40"
+            style="stroke-dasharray:251;stroke-dashoffset:${circ+25}" id="heroRing"/>
+        </svg>
+        <div class="ring-center">
+          <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:800;color:#fff;line-height:1" id="heroRingVal">0%</div>
+          <div style="font-size:8px;color:rgba(255,255,255,.5);margin-top:2px;letter-spacing:.5px">入力率</div>
+          <div style="font-size:8px;color:rgba(255,255,255,.35);margin-top:1px">目標100%</div>
+        </div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.5px;margin-bottom:10px">${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} · Today's Factory</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.9);font-weight:600;margin-bottom:4px">作業者 ${totalCount}名</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="font-size:11px;color:var(--green)"><span class="mi sm" style="font-size:13px;color:var(--green)">check_circle</span> 入力済み ${inputCount}名</div>
+          ${totalCount-inputCount>0?`<div style="font-size:11px;color:rgba(239,68,68,.9)"><span class="mi sm" style="font-size:13px;color:var(--red)">pending</span> 未入力 ${totalCount-inputCount}名</div>`:""}
+        </div>
+        ${allMembers.length?`<div style="display:flex;flex-wrap:wrap;gap:4px">${allMembers.map(m=>{const inp=inputtedMids.has(m.id);return`<div style="display:flex;align-items:center;gap:3px;padding:3px 7px;border-radius:10px;background:${inp?"rgba(16,185,129,.15)":"rgba(255,255,255,.05)"};border:1px solid ${inp?"rgba(16,185,129,.25)":"rgba(255,255,255,.08)"}"><span class="mi sm" style="font-size:11px;color:${inp?"var(--green)":"var(--dim)"}">${inp?"check":"radio_button_unchecked"}</span><span style="font-size:10px;font-weight:600;color:${inp?"var(--green)":"var(--dim)"}">${esc(m.name.split(" ")[0])}</span></div>`;}).join("")}</div>`:""}
+      </div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div style="font-size:10px;color:rgba(255,255,255,.7);min-width:28px">${pct}%</div>
-      <div style="flex:1;height:5px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--orange);border-radius:3px;transition:width .5s"></div></div>
-      <div style="font-size:10px;color:rgba(255,255,255,.5)">直接率</div>
+  </div>`;
+  // リングアニメーション
+  setTimeout(()=>{
+    const ring=document.getElementById("heroRing");
+    const valEl=document.getElementById("heroRingVal");
+    if(ring){
+      const circ2=251;
+      ring.style.transition="stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)";
+      ring.style.strokeDashoffset=circ2-(circ2*inputRate/100);
+    }
+    if(valEl){
+      let cur=0;const t=setInterval(()=>{cur=Math.min(cur+2,inputRate);valEl.textContent=cur+"%";if(cur>=inputRate)clearInterval(t);},20);
+    }
+  },150);
+}
+
+function renderHomeTodayCards(){
+  const el=document.getElementById("homeTodayCards");if(!el)return;
+  const ts=todayJST();
+  const todayLogs=nippoArr().filter(l=>l.date===ts);
+  const all=jobsArr();
+  const active=all.filter(j=>j.status!=="done");
+  const overdue=active.filter(j=>j.end&&daysLeft(j.end)<0).length;
+  const lossT=workLogsArr().filter(l=>l.date===ts).length;
+  const otH=Math.round(todayLogs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
+  const ongoingC=active.length;
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 8px;text-align:center">
+      <div style="font-family:'Inter',sans-serif;font-size:20px;font-weight:800;color:#fff;line-height:1">${ongoingC}</div>
+      <div style="font-size:8px;color:rgba(255,255,255,.45);margin-top:4px;letter-spacing:.3px">案件数</div>
+    </div>
+    <div style="background:${overdue>0?"rgba(239,68,68,.12)":"rgba(255,255,255,.05)"};border:1px solid ${overdue>0?"rgba(239,68,68,.25)":"rgba(255,255,255,.08)"};border-radius:12px;padding:10px 8px;text-align:center">
+      <div style="font-family:'Inter',sans-serif;font-size:20px;font-weight:800;color:${overdue>0?"var(--red)":"#fff"};line-height:1">${overdue}</div>
+      <div style="font-size:8px;color:rgba(255,255,255,.45);margin-top:4px;letter-spacing:.3px">遅延</div>
+    </div>
+    <div style="background:${lossT>0?"rgba(245,158,11,.12)":"rgba(255,255,255,.05)"};border:1px solid ${lossT>0?"rgba(245,158,11,.25)":"rgba(255,255,255,.08)"};border-radius:12px;padding:10px 8px;text-align:center">
+      <div style="font-family:'Inter',sans-serif;font-size:20px;font-weight:800;color:${lossT>0?"var(--amber)":"#fff"};line-height:1">${lossT}</div>
+      <div style="font-size:8px;color:rgba(255,255,255,.45);margin-top:4px;letter-spacing:.3px">ロス</div>
+    </div>
+    <div style="background:${otH>0?"rgba(232,93,4,.12)":"rgba(255,255,255,.05)"};border:1px solid ${otH>0?"rgba(232,93,4,.25)":"rgba(255,255,255,.08)"};border-radius:12px;padding:10px 8px;text-align:center">
+      <div style="font-family:'Inter',sans-serif;font-size:20px;font-weight:800;color:${otH>0?"var(--orange)":"#fff"};line-height:1">${otH}h</div>
+      <div style="font-size:8px;color:rgba(255,255,255,.45);margin-top:4px;letter-spacing:.3px">残業</div>
     </div>
   </div>`;
 }
+
 function renderHomeAlerts(){
   const el=document.getElementById("homeAlerts");if(!el)return;
-  const all=jobsArr().filter(j=>j.status!=="done");
-  const overdue=all.filter(j=>j.end&&daysLeft(j.end)<0);
-  const near=all.filter(j=>j.end&&daysLeft(j.end)>=0&&daysLeft(j.end)<=3);
-  const over=all.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
+  const ts=todayJST();
+  const allMembers=membersArr();
+  const todayLogs=nippoArr().filter(l=>l.date===ts);
+  const inputtedMids=new Set(todayLogs.filter(l=>l.type==="progress"||l.type==="indirect").map(l=>l.memberId));
+  const notInputted=allMembers.filter(m=>!inputtedMids.has(m.id));
+  const active=jobsArr().filter(j=>j.status!=="done");
+  const overdue=active.filter(j=>j.end&&daysLeft(j.end)<0);
+  const near=active.filter(j=>j.end&&daysLeft(j.end)>=0&&daysLeft(j.end)<=3);
+  const over=active.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
+  const lossHeavy=active.filter(j=>lossH(j)>0).sort((a,b)=>lossH(b)-lossH(a)).slice(0,2);
   let h="";
-  if(overdue.length)h+=`<div class="alert alert-red"><span class="mi sm" style="color:var(--red);flex-shrink:0">warning</span><div><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:3px">納期超過 ${overdue.length}件</div>${overdue.map(j=>`<div style="font-size:11px;color:var(--text2)">${esc(j.name)}</div>`).join("")}</div></div>`;
-  if(near.length)h+=`<div class="alert alert-amber"><span class="mi sm" style="color:var(--amber);flex-shrink:0">schedule</span><div><div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:3px">納期間近 ${near.length}件</div>${near.map(j=>`<div style="font-size:11px;color:var(--text2)">${esc(j.name)} — あと${daysLeft(j.end)}日</div>`).join("")}</div></div>`;
-  if(over.length)h+=`<div class="alert alert-red"><span class="mi sm" style="color:var(--red);flex-shrink:0">trending_up</span><div><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:3px">工数超過 ${over.length}件</div>${over.map(j=>`<div style="font-size:11px;color:var(--text2)">${esc(j.name)} +${Math.round((actualH(j)-totalH(j))*100)/100}h</div>`).join("")}</div></div>`;
+  if(notInputted.length)h+=`<div class="alert alert-amber" style="margin-bottom:8px"><span class="mi sm" style="color:var(--amber);flex-shrink:0">person_off</span><div><div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:3px">未入力 ${notInputted.length}名</div>${notInputted.map(m=>`<div style="font-size:10px;color:var(--text2)">${esc(m.name)}</div>`).join("")}</div></div>`;
+  if(overdue.length)h+=`<div class="alert alert-red" style="margin-bottom:8px"><span class="mi sm" style="color:var(--red);flex-shrink:0">event_busy</span><div><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:3px">納期超過 ${overdue.length}件</div>${overdue.map(j=>`<div style="font-size:10px;color:var(--text2)">${esc(j.name)} ${j.end?Math.abs(daysLeft(j.end))+"日超過":""}</div>`).join("")}</div></div>`;
+  if(near.length)h+=`<div class="alert alert-amber" style="margin-bottom:8px"><span class="mi sm" style="color:var(--amber);flex-shrink:0">schedule</span><div><div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:3px">納期間近 ${near.length}件</div>${near.map(j=>`<div style="font-size:10px;color:var(--text2)">${esc(j.name)} — あと${daysLeft(j.end)}日</div>`).join("")}</div></div>`;
+  if(over.length)h+=`<div class="alert alert-red" style="margin-bottom:8px"><span class="mi sm" style="color:var(--red);flex-shrink:0">trending_up</span><div><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:3px">工数超過 ${over.length}件</div>${over.map(j=>`<div style="font-size:10px;color:var(--text2)">${esc(j.name)} +${Math.round((actualH(j)-totalH(j))*100)/100}h</div>`).join("")}</div></div>`;
+  if(lossHeavy.length)h+=`<div class="alert" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);margin-bottom:8px"><span class="mi sm" style="color:var(--red);flex-shrink:0">report</span><div><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:3px">ロス注意案件</div>${lossHeavy.map(j=>`<div style="font-size:10px;color:var(--text2)">${esc(j.name)} ロス${lossH(j)}h</div>`).join("")}</div></div>`;
   el.innerHTML=h;
 }
+
 function setJobFilter(f,el){jobFilter=f;document.querySelectorAll(".tpl-chip").forEach(c=>c.classList.remove("on"));el.classList.add("on");renderHomeJobList();}
 function renderHomeJobList(){
   const el=document.getElementById("homeJobList");if(!el)return;
   let all=jobsArr();
-  if(jobFilter==="ongoing")all=all.filter(j=>j.status==="ongoing");
+  if(jobFilter==="ongoing")all=all.filter(j=>j.status!=="done");
   else if(jobFilter==="done")all=all.filter(j=>j.status==="done");
   else if(jobFilter==="over")all=all.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   el.innerHTML=all.length?all.map(j=>jobCard(j,true)).join(""):"<div style='text-align:center;padding:24px;font-size:12px;color:var(--muted)'>案件がありません</div>";
 }
-function renderHomeLossRank(){
-  const el=document.getElementById("homeLossRank");if(!el)return;
-  const cnt={},hrs={};
-  workLogsArr().forEach(l=>(l.causes||[]).forEach(c=>{cnt[c]=(cnt[c]||0)+1;hrs[c]=Math.round(((hrs[c]||0)+(l.lossHours||0))*100)/100;}));
-  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  if(!top.length){el.innerHTML="<div class='card-flat' style='text-align:center;font-size:12px;color:var(--muted);padding:14px'>まだロスデータがありません</div>";return;}
-  el.innerHTML=`<div class="card-flat">${top.map(([k,v],i)=>{const info=LOSS_REASONS.find(r=>r.key===k)||{color:"#667085"};return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i<top.length-1?"border-bottom:1px solid var(--border)":""}"><div style="font-size:16px;font-weight:700;color:var(--muted);min-width:18px;font-family:'Inter',sans-serif">${i+1}</div><div style="flex:1;font-size:12px;font-weight:600;color:var(--text)">${esc(k)}</div><div style="font-size:13px;font-weight:700;color:${info.color};font-family:'Inter',sans-serif">${v}件</div></div>`;}).join("")}</div>`;
-}
+
 function renderMemberList(){
   const el=document.getElementById("memberList");if(!el)return;
   const arr=membersArr();
-  el.innerHTML=arr.map(m=>{const on=getJobsForMember(m.id).filter(j=>j.status==="ongoing").length;
+  const ts=todayJST();
+  const inputtedMids=new Set(nippoArr().filter(l=>l.date===ts&&(l.type==="progress"||l.type==="indirect")).map(l=>l.memberId));
+  el.innerHTML=arr.map(m=>{
+    const on=getJobsForMember(m.id).filter(j=>j.status!=="done").length;
+    const inp=inputtedMids.has(m.id);
     return`<div class="card-flat" style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${esc(m.name.slice(0,2))}</div>
-      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">${esc(m.name)}</div><div style="font-size:11px;color:var(--dim)">${esc(m.role||"作業者")} / 施工中${on}件</div></div>
+      <div style="position:relative">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--navy2),var(--navy3));border:2px solid ${inp?"var(--green)":"rgba(255,255,255,.1)"};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${esc(m.name.slice(0,2))}</div>
+        <div style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:${inp?"var(--green)":"var(--red)"};border:2px solid var(--bg);display:flex;align-items:center;justify-content:center"><span class="mi sm" style="font-size:8px;color:#fff">${inp?"check":"close"}</span></div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700">${esc(m.name)}</div>
+        <div style="font-size:10px;color:var(--dim)">${esc(m.role||"作業者")} · 担当${on}件 · ${inp?"<span style=color:var(--green)>入力済み</span>":"<span style=color:var(--red)>未入力</span>"}</div>
+      </div>
       <button class="btn-ghost" onclick="openMemberModal('${m.id}')"><span class="mi sm">edit</span></button>
       <button class="btn-ghost" style="color:var(--red)" onclick="deleteMember('${m.id}')"><span class="mi sm">delete</span></button>
-    </div>`;}).join("")+`<button class="btn" style="width:100%;margin-top:4px" onclick="openMemberModal()"><span class="mi sm">person_add</span>作業者を追加</button>`;
+    </div>`;}).join("")+`<button class="btn" style="width:100%;margin-top:4px;justify-content:center" onclick="openMemberModal()"><span class="mi sm">person_add</span>作業者を追加</button>`;
+}
+
+// ステータスフロー
+function buildStatusFlow(currentStatus){
+  const curIdx=STATUS_FLOW.indexOf(currentStatus);
+  return`<div class="status-flow">${STATUS_FLOW.map((s,i)=>{
+    const isDone=i<curIdx;const isActive=i===curIdx;
+    return`${i>0?`<div class="status-connector ${isDone?"done-conn":""}"></div>`:""}
+    <div class="status-step">
+      <div class="status-step-icon ${isDone?"done-step":isActive?"active-step":""}"><span class="mi sm" style="font-size:12px;color:${isDone?"var(--green)":isActive?"var(--orange)":"var(--dim)"}">${STATUS_ICON[s]||"circle"}</span></div>
+      <div class="status-step-lbl ${isDone?"done-lbl":isActive?"active-lbl":""}">${STATUS_LABEL[s]}</div>
+    </div>`;}).join("")}</div>`;
 }
 // 案件カード
 function jobCard(j,showActions){
   const tp=totalH(j),ta=actualH(j),lh=lossH(j);
   const pct=tp>0?Math.min(Math.round(ta/tp*100),100):0;
-  const barC=pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)";
+  const barC=pct>=100?"var(--red)":pct>=80?"var(--amber)":"linear-gradient(90deg,var(--orange),#ff9a3c)";
   const dl=j.end?daysLeft(j.end):null;
+  const pid="p"+Math.random().toString(36).slice(2,7);
+  const curIdx=STATUS_FLOW.indexOf(j.status||"planned");
+  const nextStatus=curIdx>=0&&curIdx<STATUS_FLOW.length-1?STATUS_FLOW[curIdx+1]:null;
   return`<div class="job-card status-${j.status||"planned"}" onclick="openJobDetail('${j.id}')">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
-      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div><div style="font-size:11px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.carType?" / "+esc(j.carType):""}</div></div>
-      <span class="badge ${STATUS_BADGE[j.status]||"badge-navy"}" style="margin-left:8px;flex-shrink:0">${STATUS_LABEL[j.status]||j.status}</span>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}</div>
+      </div>
+      <span class="badge ${STATUS_BADGE[j.status]||"badge-navy"}" style="margin-left:8px;flex-shrink:0;gap:4px"><span class="mi sm" style="font-size:10px">${STATUS_ICON[j.status]||"circle"}</span>${STATUS_LABEL[j.status]||j.status}</span>
     </div>
-    <div style="display:flex;gap:10px;margin-bottom:8px">
-      <div style="text-align:center"><div style="font-size:15px;font-weight:700;font-family:'Inter',sans-serif">${ta}h</div><div style="font-size:9px;color:var(--dim)">実績</div></div>
-      <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:var(--muted);font-family:'Inter',sans-serif">${tp}h</div><div style="font-size:9px;color:var(--dim)">見積</div></div>
-      <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:${tp>0&&ta>tp?"var(--red)":"var(--green)"};font-family:'Inter',sans-serif">${tp>0?Math.abs(Math.round((tp-ta)*100)/100):"-"}h</div><div style="font-size:9px;color:var(--dim)">${tp>0&&ta>tp?"超過":"残り"}</div></div>
-      ${lh>0?`<div style="text-align:center"><div style="font-size:15px;font-weight:700;color:var(--red);font-family:'Inter',sans-serif">${lh}h</div><div style="font-size:9px;color:var(--dim)">ロス</div></div>`:""}
-      ${dl!==null?`<div style="text-align:center;margin-left:auto"><div style="font-size:15px;font-weight:700;color:${dl<0?"var(--red)":dl<=3?"var(--amber)":"var(--text)"};font-family:'Inter',sans-serif">${dl<0?Math.abs(dl)+"超":dl+"日"}</div><div style="font-size:9px;color:var(--dim)">${dl<0?"日超":"残"}</div></div>`:""}
+    ${buildStatusFlow(j.status||"planned")}
+    <div style="display:grid;grid-template-columns:repeat(${dl!==null?4:3}${lh>0?"+1":""},1fr);gap:6px;margin-bottom:10px">
+      <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:7px;text-align:center"><div style="font-size:15px;font-weight:700;font-family:'Inter',sans-serif">${ta}h</div><div style="font-size:9px;color:var(--dim);margin-top:2px">実績</div></div>
+      <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:7px;text-align:center"><div style="font-size:15px;font-weight:700;color:var(--dim);font-family:'Inter',sans-serif">${tp}h</div><div style="font-size:9px;color:var(--dim);margin-top:2px">見積</div></div>
+      <div style="background:${tp>0&&ta>tp?"var(--red-l)":"rgba(16,185,129,.06)"};border:1px solid ${tp>0&&ta>tp?"rgba(239,68,68,.2)":"rgba(16,185,129,.15)"};border-radius:8px;padding:7px;text-align:center"><div style="font-size:15px;font-weight:700;color:${tp>0&&ta>tp?"var(--red)":"var(--green)"};font-family:'Inter',sans-serif">${tp>0?Math.abs(Math.round((tp-ta)*100)/100):"-"}h</div><div style="font-size:9px;color:var(--dim);margin-top:2px">${tp>0&&ta>tp?"超過":"残り"}</div></div>
+      ${lh>0?`<div style="background:var(--red-l);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:7px;text-align:center"><div style="font-size:15px;font-weight:700;color:var(--red);font-family:'Inter',sans-serif">${lh}h</div><div style="font-size:9px;color:var(--dim);margin-top:2px">ロス</div></div>`:""}
+      ${dl!==null?`<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:7px;text-align:center"><div style="font-size:15px;font-weight:700;color:${dl<0?"var(--red)":dl<=3?"var(--amber)":"#fff"};font-family:'Inter',sans-serif">${dl<0?Math.abs(dl):dl}</div><div style="font-size:9px;color:var(--dim);margin-top:2px">${dl<0?"日超過":"日残"}</div></div>`:""}
     </div>
-    ${tp>0?`<div class="prog-bar" style="margin-bottom:${showActions&&isBoss()?"10":"4"}px"><div class="prog-fill" style="width:${pct}%;background:${barC}"></div></div>`:""}
-    ${showActions&&isBoss()?`<div style="display:flex;gap:6px" onclick="event.stopPropagation()">
-      <button class="btn" style="flex:1;font-size:11px;padding:7px" onclick="openJobModal('${j.id}')"><span class="mi sm">edit</span>編集</button>
-      <button class="btn" style="font-size:11px;padding:7px;color:var(--red);border-color:rgba(180,35,24,.2)" onclick="deleteJob('${j.id}')"><span class="mi sm">delete</span></button>
-      ${j.status!=="done"?`<button class="btn-primary" style="flex:2;font-size:11px;padding:7px" onclick="markJobDone('${j.id}')"><span class="mi sm">check_circle</span>完成</button>`:`<button class="btn" style="flex:2;font-size:11px;padding:7px;color:var(--green);border-color:rgba(2,122,72,.25)" onclick="undoJobDone('${j.id}')"><span class="mi sm">undo</span>取消</button>`}
+    ${tp>0?`<div style="margin-bottom:${showActions&&isBoss()?"10":"4"}px">
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-bottom:4px"><span>進捗</span><span style="color:var(--orange);font-weight:700;font-family:'Inter',sans-serif">${pct}%</span></div>
+      <div class="prog-bar"><div id="${pid}" style="height:100%;width:0%;background:${barC};border-radius:2px;box-shadow:${pct>=80?"0 0 8px var(--orange-glow)":"none"};transition:width 1s cubic-bezier(.4,0,.2,1)"></div></div>
     </div>`:""}
-  </div>`;
+    ${showActions&&isBoss()?`<div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+      <button class="btn" style="flex:1;font-size:11px;padding:7px;justify-content:center" onclick="openJobModal('${j.id}')"><span class="mi sm">edit</span></button>
+      <button class="btn" style="font-size:11px;padding:7px;color:var(--red);border-color:rgba(239,68,68,.2);justify-content:center" onclick="deleteJob('${j.id}')"><span class="mi sm">delete</span></button>
+      ${nextStatus?`<button class="btn-primary" style="flex:2;font-size:11px;padding:7px" onclick="advanceJobStatus('${j.id}')"><span class="mi sm">${STATUS_ICON[nextStatus]||"arrow_forward"}</span>${STATUS_LABEL[nextStatus]||"次へ"}へ</button>`:`<button class="btn" style="flex:2;font-size:11px;padding:7px;color:var(--green);border-color:rgba(16,185,129,.25);justify-content:center" onclick="undoJobDone('${j.id}')"><span class="mi sm">undo</span>取消</button>`}
+    </div>`:""}
+  </div><script>setTimeout(()=>{const e=document.getElementById("${pid}");if(e)e.style.width="${pct}%";},100);<\/script>`;
 }
+
 // 作業者ホーム
 function renderWorkerHome(){
   const mid=session.memberId;if(!mid)return;
@@ -1140,7 +1345,82 @@ async function saveJob(){
   if(!fbReady)jobs[id]={...data,id};
   closeJobModal();showToast(editJobId?"✅ 更新しました":"✅ 案件を追加しました");if(!fbReady){renderHome();renderProgress();}
 }
-async function markJobDone(jid){await dbSet(`jobs/${jid}/status`,"done");if(!fbReady){jobs[jid].status="done";renderHome();renderProgress();}showToast("🎉 完成にしました！");}
+async function advanceJobStatus(jid){
+  const j=jobs[jid];if(!j)return;
+  const curIdx=STATUS_FLOW.indexOf(j.status||"planned");
+  if(curIdx<0||curIdx>=STATUS_FLOW.length-1)return;
+  const nextStatus=STATUS_FLOW[curIdx+1];
+  await dbSet(`jobs/${jid}/status`,nextStatus);
+  if(!fbReady){jobs[jid].status=nextStatus;renderHome();renderProgress();}
+  if(nextStatus==="done"){showCompletionOverlay(j.name);}
+  else{showToast(`→ ${STATUS_LABEL[nextStatus]} に更新しました`);}
+}
+function showCompletionOverlay(name){
+  let overlay=document.getElementById("completionOverlay");
+  if(overlay)overlay.remove();
+  overlay=document.createElement("div");
+  overlay.id="completionOverlay";
+  overlay.className="completion-overlay";
+  overlay.innerHTML=`<div class="factory-scene">
+    <!-- シャッター -->
+    <div class="shutter" id="shutter"></div>
+    <!-- 道路と車両 -->
+    <div class="road">
+      <!-- 速度線 -->
+      <div class="speed-line" style="top:40%;left:30%;width:40px;animation-delay:.1s"></div>
+      <div class="speed-line" style="top:55%;left:20%;width:60px;animation-delay:.3s"></div>
+      <div class="speed-line" style="top:30%;left:40%;width:30px;animation-delay:.5s"></div>
+      <!-- 車両 -->
+      <div class="vehicle" id="vehicle">
+        <div class="exhaust"></div>
+        <div class="exhaust" style="animation-delay:.3s;bottom:36px"></div>
+        <div class="car-body">
+          <div class="car-roof"></div>
+          <div class="car-base"></div>
+          <div class="car-window"></div>
+          <div class="car-light-f"></div>
+          <div class="car-light-r"></div>
+          <div class="car-wheel front"></div>
+          <div class="car-wheel rear"></div>
+        </div>
+      </div>
+    </div>
+    <!-- 完了カード -->
+    <div class="completion-card">
+      <div class="completion-check" style="width:56px;height:56px;border-radius:50%;background:rgba(0,214,143,.12);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 0 24px rgba(0,214,143,.3)">
+        <span class="mi lg" style="color:var(--green);font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">local_shipping</span>
+      </div>
+      <div class="completion-text">
+        <div style="font-size:10px;color:var(--green);letter-spacing:2px;font-weight:700;margin-bottom:8px">SHIPPING COMPLETE</div>
+        <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px" id="compName"></div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:18px;line-height:1.6">出荷完了 — お客様のもとへ向かっています</div>
+        <button onclick="document.getElementById('completionOverlay').classList.remove('show')" style="background:rgba(0,214,143,.12);border:1px solid rgba(0,214,143,.3);color:var(--green);padding:10px 28px;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:600">確認</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.onclick=e=>{if(e.target===overlay)overlay.classList.remove("show");};
+  document.getElementById("compName").textContent=name;
+  // アニメーション実行
+  setTimeout(()=>{
+    overlay.classList.add("show");
+    setTimeout(()=>{
+      // シャッター開く
+      const sh=document.getElementById("shutter");
+      if(sh)sh.classList.add("open");
+      setTimeout(()=>{
+        // 車両発進
+        const v=document.getElementById("vehicle");
+        if(v)v.classList.add("driving");
+      },700);
+    },200);
+  },50);
+}
+async function markJobDone(jid){
+  await dbSet(`jobs/${jid}/status`,"done");
+  if(!fbReady){jobs[jid].status="done";renderHome();renderProgress();}
+  const j=jobs[jid];showCompletionOverlay(j?.name||"案件");
+}
 async function undoJobDone(jid){await dbSet(`jobs/${jid}/status`,"ongoing");if(!fbReady){jobs[jid].status="ongoing";renderHome();renderProgress();}showToast("↩ 完成を取り消しました");}
 async function deleteJob(jid){confirmAction("案件を削除しますか？","この操作は元に戻せません。",async()=>{await dbRemove("jobs/"+jid);if(!fbReady){delete jobs[jid];renderHome();}showToast("削除しました");});}
 // 作業者CRUD
