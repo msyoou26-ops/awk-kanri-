@@ -270,7 +270,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
       <button class="chip on" id="jf-ongoing" onclick="setJobFilter('ongoing',this)" style="font-size:10px;padding:5px 10px">進行中</button>
       <button class="chip" id="jf-over" onclick="setJobFilter('over',this)" style="font-size:10px;padding:5px 10px">超過中</button>
       <button class="chip" id="jf-all" onclick="setJobFilter('all',this)" style="font-size:10px;padding:5px 10px">全件</button>
-      <button class="chip" id="jf-done" onclick="setJobFilter('done',this)" style="font-size:10px;padding:5px 10px">完成</button>
+      <button class="chip" id="jf-done" onclick="setJobFilter('done',this)" style="font-size:10px;padding:5px 10px"><span class="mi sm" style="font-size:12px">undo</span>完成・取消</button>
     </div>
     <div id="homeJobList"></div>
     <div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin:12px 0 8px">今日のサマリー</div>
@@ -813,7 +813,8 @@ function renderBossJobList(){
   if(jobFilter==="ongoing")all=all.filter(j=>j.status!=="done");
   else if(jobFilter==="done")all=all.filter(j=>j.status==="done");
   else if(jobFilter==="over")all=all.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
-  el.innerHTML=all.length?all.map(j=>bossJobCard(j)).join(""):"<div style='text-align:center;padding:20px;font-size:12px;color:var(--muted)'>案件がありません</div>";
+  const doneHint=jobFilter==="done"?`<div style="display:flex;align-items:center;gap:7px;padding:9px 12px;margin-bottom:8px;background:rgba(255,184,0,.07);border:1px solid rgba(255,184,0,.18);border-radius:9px;font-size:11px;color:var(--amber)"><span class="mi sm" style="font-size:14px;color:var(--amber)">info</span>間違えて完成にした場合は「施工中に戻す」ボタンで取り消せます</div>`:"";
+  el.innerHTML=doneHint+(all.length?all.map(j=>bossJobCard(j)).join(""):"<div style='text-align:center;padding:20px;font-size:12px;color:var(--muted)'>案件がありません</div>");
 }
 // ドーナツチャートSVGを生成するヘルパー
 function donutSVG(pct,color,size,id){
@@ -930,7 +931,7 @@ function bossJobCard(j){
       ${next?`<button class="btn-primary" style="flex:1;font-size:11px;padding:8px;font-weight:700" onclick="advanceJobStatus('${j.id}')">
         <span class="mi sm" style="font-size:13px">${SI[next]}</span>${SL[next]}へ →
       </button>`:`<button class="btn" style="flex:1;font-size:11px;padding:8px;color:var(--green);justify-content:center" onclick="undoJobDone('${j.id}')">
-        <span class="mi sm">undo</span>完成を取消
+        <span class="mi sm">undo</span>施工中に戻す
       </button>`}
     </div>
 
@@ -1479,7 +1480,7 @@ function openJobDetail(jid){
     ${tp>0?`<div class="prog-bar" style="margin-bottom:3px"><div style="height:100%;width:${Math.min(pct,100)}%;background:${pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)"};border-radius:2px"></div></div><div style="text-align:right;font-size:9px;color:var(--dim);margin-bottom:10px">${pct}%</div>`:""}
     ${isBoss()?`<div style="display:flex;gap:7px">
       <button class="btn" style="flex:1;justify-content:center" onclick="openJobModal('${jid}');closeModal('jobDetailModal')"><span class="mi sm">edit</span>編集</button>
-      ${next?`<button class="btn-primary" style="flex:1" onclick="advanceJobStatus('${jid}');closeModal('jobDetailModal')"><span class="mi sm" style="font-size:13px">${SI[next]}</span>${SL[next]}へ</button>`:`<button class="btn" style="flex:1;color:var(--green);justify-content:center" onclick="undoJobDone('${jid}');closeModal('jobDetailModal')"><span class="mi sm">undo</span>取消</button>`}
+      ${next?`<button class="btn-primary" style="flex:1" onclick="advanceJobStatus('${jid}');closeModal('jobDetailModal')"><span class="mi sm" style="font-size:13px">${SI[next]}</span>${SL[next]}へ</button>`:`<button class="btn" style="flex:1;color:var(--amber);border-color:rgba(255,184,0,.3);justify-content:center" onclick="undoJobDone('${jid}');closeModal('jobDetailModal')"><span class="mi sm">undo</span>施工中に戻す</button>`}
     </div>`:""}`;
   openModal("jobDetailModal");
   document.getElementById("jobDetailModal").onclick=e=>{if(e.target===document.getElementById("jobDetailModal"))closeModal("jobDetailModal");};
@@ -1669,7 +1670,16 @@ document.getElementById("coOverlay").addEventListener("click",function(e){
   if(e.target===this)closeCoOverlay();
 });
 async function markJobDone(jid){await advanceJobStatus(jid);}
-async function undoJobDone(jid){await dbSet(`jobs/${jid}/status`,"ongoing");if(!fbReady){jobs[jid].status="ongoing";onDataChange();}showToast("↩ 完成を取り消しました");}
+async function undoJobDone(jid){
+  await dbSet(`jobs/${jid}/status`,"ongoing");
+  if(!fbReady){jobs[jid].status="ongoing";}
+  // フィルターを「進行中」に切り替えて取り消した案件が見えるようにする
+  jobFilter="ongoing";
+  document.querySelectorAll(".chip[id^='jf-']").forEach(c=>c.classList.remove("on"));
+  const ongoing=document.getElementById("jf-ongoing");if(ongoing)ongoing.classList.add("on");
+  onDataChange();
+  showToast("↩ 施工中に戻しました");
+}
 async function deleteJob(jid){confirmAction("案件を削除しますか？","この操作は元に戻せません。",async()=>{await dbRemove("jobs/"+jid);if(!fbReady){delete jobs[jid];onDataChange();}showToast("削除しました");});}
 
 // ===== 作業者CRUD =====
