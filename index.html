@@ -988,18 +988,46 @@ function renderBossTimeline(){
 function renderMemberList(){
   const el=document.getElementById("memberList");if(!el)return;
   const ts=todayJST();
-  const inMids=new Set(nippoArr().filter(l=>l.date===ts&&(l.type==="progress"||l.type==="indirect")).map(l=>l.memberId));
+  const allLogs=nippoArr().filter(l=>l.date===ts);
+  const inMids=new Set(allLogs.filter(l=>l.type==="progress"||l.type==="indirect").map(l=>l.memberId));
   el.innerHTML=membersArr().map(m=>{
     const on=getJobsForMember(m.id).filter(j=>j.status!=="done").length;
     const inp=inMids.has(m.id);
-    return`<div class="card-sm" style="display:flex;align-items:center;gap:10px">
-      <div style="position:relative">
-        <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--navy2),var(--navy3));border:2px solid ${inp?"var(--green)":"rgba(255,255,255,.08)"};color:var(--text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${esc(m.name.slice(0,2))}</div>
-        <div style="position:absolute;bottom:-1px;right:-1px;width:12px;height:12px;border-radius:50%;background:${inp?"var(--green)":"var(--red)"};border:2px solid var(--bg)"></div>
+    const mLogs=allLogs.filter(l=>l.memberId===m.id);
+    // 残業時間
+    const otH=Math.round(mLogs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
+    // 今日の直接工数
+    const dH=Math.round(mLogs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
+    // 担当案件の進捗率（平均）
+    const myJobs=getJobsForMember(m.id).filter(j=>j.status!=="done");
+    const avgPct=myJobs.length?Math.round(myJobs.reduce((a,j)=>{const tp=totalH(j),ta=actualH(j);return a+(tp>0?Math.min(ta/tp*100,100):0);},0)/myJobs.length):null;
+    return`<div class="card-sm" style="margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${on>0?"8":"0"}px">
+        <div style="position:relative">
+          <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--navy2),var(--navy3));border:2px solid ${inp?"var(--green)":"rgba(255,255,255,.08)"};color:var(--text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${esc(m.name.slice(0,2))}</div>
+          <div style="position:absolute;bottom:-1px;right:-1px;width:12px;height:12px;border-radius:50%;background:${inp?"var(--green)":"var(--red)"};border:2px solid var(--bg)"></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600">${esc(m.name)}</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:1px">${esc(m.role||"作業者")} · 担当${on}件 · ${inp?`<span style="color:var(--green)">入力済</span>`:`<span style="color:var(--red)">未入力</span>`}</div>
+        </div>
+        <button class="btn-ghost" onclick="openMemberModal('${m.id}')"><span class="mi sm">edit</span></button>
+        <button class="btn-ghost" style="color:var(--red)" onclick="deleteMember('${m.id}')"><span class="mi sm">delete</span></button>
       </div>
-      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">${esc(m.name)}</div><div style="font-size:10px;color:var(--dim)">${esc(m.role||"作業者")} · ${on}件 · ${inp?`<span style="color:var(--green)">入力済</span>`:`<span style="color:var(--red)">未入力</span>`}</div></div>
-      <button class="btn-ghost" onclick="openMemberModal('${m.id}')"><span class="mi sm">edit</span></button>
-      <button class="btn-ghost" style="color:var(--red)" onclick="deleteMember('${m.id}')"><span class="mi sm">delete</span></button>
+      ${on>0||dH>0||otH>0?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+        <div style="background:rgba(255,107,0,.06);border:1px solid rgba(255,107,0,.12);border-radius:7px;padding:6px;text-align:center">
+          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:var(--orange);line-height:1">${dH}h</div>
+          <div style="font-size:8px;color:var(--dim);margin-top:2px">今日の直接</div>
+        </div>
+        <div style="background:${otH>0?"rgba(255,59,59,.08)":"rgba(255,255,255,.03)"};border:1px solid ${otH>0?"rgba(255,59,59,.2)":"rgba(68,136,255,.08)"};border-radius:7px;padding:6px;text-align:center">
+          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${otH>0?"var(--red)":"var(--dim)"};line-height:1">${otH}h</div>
+          <div style="font-size:8px;color:var(--dim);margin-top:2px">残業</div>
+        </div>
+        <div style="background:${avgPct!==null&&avgPct>=80?"rgba(255,59,59,.06)":avgPct!==null&&avgPct>=60?"rgba(255,184,0,.06)":"rgba(0,214,143,.04)"};border:1px solid ${avgPct!==null&&avgPct>=80?"rgba(255,59,59,.15)":avgPct!==null&&avgPct>=60?"rgba(255,184,0,.15)":"rgba(0,214,143,.1)"};border-radius:7px;padding:6px;text-align:center">
+          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${avgPct!==null&&avgPct>=80?"var(--red)":avgPct!==null&&avgPct>=60?"var(--amber)":"var(--green)"};line-height:1">${avgPct!==null?avgPct+"%":"—"}</div>
+          <div style="font-size:8px;color:var(--dim);margin-top:2px">案件進捗</div>
+        </div>
+      </div>`:""}
     </div>`;}).join("")+`<button class="btn" style="width:100%;justify-content:center;margin-top:6px" onclick="openMemberModal()"><span class="mi sm">person_add</span>作業者を追加</button>`;
 }
 
@@ -1239,20 +1267,30 @@ function buildInputUI(mid){
     <div class="in-panel-hdr"><span class="step-num" style="background:var(--amber);border-color:var(--amber);color:#fff">4</span><span style="font-size:13px;font-weight:700">ロス理由</span><span style="font-size:10px;color:var(--dim);margin-left:4px">任意</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:5px" id="lossChips"></div>
   </div>
-  <div class="in-panel">
-    <div class="in-panel-hdr"><span class="step-num" style="background:var(--dim);border-color:var(--dim)">5</span><span style="font-size:13px;font-weight:700">メモ・残業</span><span style="font-size:10px;color:var(--dim);margin-left:4px">任意</span></div>
-    <textarea id="inputMemo" placeholder="特記事項があれば" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--gb2);color:var(--text);padding:9px;border-radius:9px;font-size:12px;outline:none;min-height:50px;resize:none;margin-bottom:10px;box-sizing:border-box;font-family:'Noto Sans JP',sans-serif"></textarea>
-    <div style="display:flex;align-items:center;gap:7px">
-      <span style="font-size:11px;color:var(--dim);flex-shrink:0">残業時間</span>
-      <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(-0.5)"><span class="mi sm">remove</span></button>
-      <input class="h-val" id="inputOT" type="number" min="0" step="0.5" value="0" inputmode="decimal" style="font-size:16px;padding:7px">
-      <span style="font-size:11px;color:var(--dim)">h</span>
-      <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(0.5)"><span class="mi sm">add</span></button>
+  <!-- 残業クイック入力（目立つ位置に） -->
+  <div style="background:rgba(255,59,59,.06);border:1px solid rgba(255,59,59,.15);border-radius:var(--r2);padding:12px 14px;margin-bottom:8px">
+    <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:5px"><span class="mi sm" style="font-size:14px">schedule</span>今日の残業時間を登録</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <button class="h-step-btn" style="width:36px;height:36px;border-color:rgba(255,59,59,.2)" onclick="changeInputOT(-0.5)"><span class="mi sm">remove</span></button>
+      <input class="h-val" id="inputOT" type="number" min="0" step="0.5" value="0" inputmode="decimal" style="font-size:20px;padding:8px;border-color:rgba(255,59,59,.2)">
+      <span style="font-size:13px;color:var(--dim)">h</span>
+      <button class="h-step-btn" style="width:36px;height:36px;border-color:rgba(255,59,59,.2)" onclick="changeInputOT(0.5)"><span class="mi sm">add</span></button>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="chip" onclick="quickSetOT(0.5)" style="font-size:10px;padding:5px 9px">0.5h</button>
+      <button class="chip" onclick="quickSetOT(1)" style="font-size:10px;padding:5px 9px">1h</button>
+      <button class="chip" onclick="quickSetOT(1.5)" style="font-size:10px;padding:5px 9px">1.5h</button>
+      <button class="chip" onclick="quickSetOT(2)" style="font-size:10px;padding:5px 9px">2h</button>
+      <button class="chip" onclick="quickSetOT(3)" style="font-size:10px;padding:5px 9px">3h</button>
     </div>
   </div>
+  <div class="in-panel">
+    <div class="in-panel-hdr"><span class="step-num" style="background:var(--dim);border-color:var(--dim)">5</span><span style="font-size:13px;font-weight:700">メモ</span><span style="font-size:10px;color:var(--dim);margin-left:4px">任意</span></div>
+    <textarea id="inputMemo" placeholder="特記事項があれば" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--gb2);color:var(--text);padding:9px;border-radius:9px;font-size:12px;outline:none;min-height:50px;resize:none;box-sizing:border-box;font-family:'Noto Sans JP',sans-serif"></textarea>
+  </div>
   <div style="display:flex;gap:7px;margin-bottom:16px;width:100%">
-    <button class="btn" style="flex:1;justify-content:center" onclick="saveMemoOnly()"><span class="mi sm">notes</span>メモだけ保存</button>
-    <button class="btn-primary" style="flex:2" onclick="saveInput()"><span class="mi sm">save</span>保存する</button>
+    <button class="btn" style="flex:1;justify-content:center" onclick="saveOTOnly()"><span class="mi sm">schedule</span>残業を保存</button>
+    <button class="btn-primary" style="flex:2" onclick="saveInput()"><span class="mi sm">save</span>作業を保存</button>
   </div>
   <div style="border-top:1px solid rgba(68,136,255,.1);padding-top:14px">
     <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="mi sm" style="color:var(--dim)">swap_horiz</span>間接作業（Zコード）</div>
@@ -1371,6 +1409,17 @@ async function saveInput(){
   document.getElementById("inputMemo").value="";document.getElementById("inputOT").value="0";document.getElementById("inputHour").value="1";
   document.querySelectorAll(".h-btn").forEach(b=>b.classList.remove("on"));
   renderInputTasks();renderLossChips();onDataChange();
+}
+function quickSetOT(h){const el=document.getElementById("inputOT");if(el){el.value=h;}}
+async function saveOTOnly(){
+  const ot=parseFloat(document.getElementById("inputOT").value)||0;
+  if(ot<=0){showToast("残業時間を入力してください");return;}
+  const mid=getIWId();if(!mid){showToast("作業者を選んでください");return;}
+  const m=getMember(mid);
+  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"overtime",hours:0,overtime:ot,memo:"",savedAt:Date.now()});
+  document.getElementById("inputOT").value="0";
+  showToast(`✅ 残業 ${ot}h を登録しました`);
+  onDataChange();
 }
 async function saveMemoOnly(){
   const memo=document.getElementById("inputMemo").value.trim();
