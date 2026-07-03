@@ -727,7 +727,11 @@ function showWorkerScreen(id){
   document.querySelectorAll(`#${id} .bnav`).forEach((b,i)=>b.classList.toggle("on",i===navMap[id]));
   if(id==="workerHomeScreen")renderWorkerHome();
   else if(id==="workerInputScreen")renderWorkerInput();
-  else if(id==="workerHistoryScreen")renderWorkerHistory();
+  else if(id==="workerHistoryScreen"){
+    // Firebase読み込み完了後に確実に描画されるよう遅延も追加
+    renderWorkerHistory();
+    setTimeout(renderWorkerHistory,800);
+  }
   else if(id==="workerJobScreen")renderWorkerJobDetail();
 }
 // ===== 管理者ホーム =====
@@ -1483,17 +1487,32 @@ function renderBossInputHistory(){
 }
 function renderWorkerHistory(){
   const mid=session.memberId;
-  // 作業者の入力タブ履歴 / 履歴専用画面 どちらにも描画
+  // 入力タブ内の履歴エリア
   const el1=document.getElementById("workerInputHistory");
+  // 専用履歴画面
   const el2=document.getElementById("workerHistoryList");
-  if(!el1&&!el2)return;
+  // midがなければセッション切れ
+  if(!mid){
+    const msg="<div style='text-align:center;font-size:12px;color:var(--muted);padding:20px'>ログインし直してください</div>";
+    if(el1)el1.innerHTML=msg;
+    if(el2)el2.innerHTML=msg;
+    return;
+  }
   const logs=nippoArr().filter(l=>l.memberId===mid).slice(0,30);
   if(el1)renderHistoryList(logs,el1);
   if(el2)renderHistoryList(logs,el2);
+  // どちらも見つからない場合はworkerHistoryScreenのapp-bodyに直接描画
+  if(!el1&&!el2){
+    const body=document.querySelector("#workerHistoryScreen .app-body");
+    if(body){
+      const div=document.createElement("div");div.id="workerHistoryList";body.appendChild(div);
+      renderHistoryList(logs,div);
+    }
+  }
 }
 function renderHistoryList(logs,el){
   const TC={progress:{c:"var(--orange)",l:"直接"},indirect:{c:"var(--blue)",l:"間接"},overtime:{c:"var(--red)",l:"残業"},memo:{c:"var(--green)",l:"メモ"}};
-  if(!logs.length){el.innerHTML=`<div style="text-align:center;font-size:12px;color:var(--muted);padding:20px">記録がありません</div>`;return;}
+  if(!logs.length){el.innerHTML=`<div style="text-align:center;font-size:13px;color:var(--text2);padding:32px 20px;background:rgba(255,255,255,.03);border:1px solid var(--gb);border-radius:12px;margin:10px 0"><span class="mi" style="font-size:32px;display:block;margin-bottom:8px;color:var(--dim)">history</span>まだ記録がありません<br><span style="font-size:11px;color:var(--dim)">入力すると履歴がここに表示されます</span></div>`;return;}
   el.innerHTML=`<div style="font-size:10px;color:rgba(255,107,0,.6);margin-bottom:8px">削除すると実績も巻き戻されます</div>`+logs.map(l=>{
     const t=TC[l.type]||{c:"var(--dim)",l:l.type};
     const tm=l.savedAt?new Date(l.savedAt).toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}):"--:--";
