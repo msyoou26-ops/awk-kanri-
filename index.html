@@ -1188,7 +1188,14 @@ function switchBITab(tab,el){
 }
 function switchWITab(tab,el){
   ["input","history"].forEach(t=>{document.getElementById("wiTab"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("on",t===tab);document.getElementById("wi"+t.charAt(0).toUpperCase()+t.slice(1)+"Pane").style.display=t===tab?"block":"none";});
-  if(tab==="history")renderWorkerHistory();
+  if(tab==="history"){
+    // 履歴ペインに要素がない場合は動的に生成
+    const pane=document.getElementById("wiHistoryPane");
+    if(pane&&!document.getElementById("workerInputHistory")){
+      const div=document.createElement("div");div.id="workerInputHistory";pane.appendChild(div);
+    }
+    renderWorkerHistory();
+  }
 }
 function buildWorkerSelectUI(){
   return`<div class="in-panel">
@@ -1644,7 +1651,9 @@ async function advanceJobStatus(jid){
   if(curIdx<0||curIdx>=SF.length-1)return;
   const next=SF[curIdx+1];
   await dbSet(`jobs/${jid}/status`,next);
-  if(!fbReady){jobs[jid].status=next;onDataChange();}
+  // fbReady・非fbReady両方でローカルを即更新して画面反映
+  jobs[jid]={...jobs[jid],status:next};
+  onDataChange();
   if(next==="done")showCompletionOverlay(j.name);
   else showToast(`→ ${SL[next]} に更新しました`);
 }
@@ -1672,7 +1681,7 @@ document.getElementById("coOverlay").addEventListener("click",function(e){
 async function markJobDone(jid){await advanceJobStatus(jid);}
 async function undoJobDone(jid){
   await dbSet(`jobs/${jid}/status`,"ongoing");
-  if(!fbReady){jobs[jid].status="ongoing";}
+  jobs[jid]={...jobs[jid],status:"ongoing"};
   // フィルターを「進行中」に切り替えて取り消した案件が見えるようにする
   jobFilter="ongoing";
   document.querySelectorAll(".chip[id^='jf-']").forEach(c=>c.classList.remove("on"));
