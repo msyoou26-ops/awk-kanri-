@@ -260,6 +260,8 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   </div>
   <div class="app-body">
     <div id="homeHero"></div>
+    <div id="homeAIComment"></div>
+    <div id="homeMVP"></div>
     <div id="homeKPI"></div>
     <div id="homeAlerts"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -623,6 +625,8 @@ let fbReady=false;
 let bossPassword=localStorage.getItem("awk_boss_pass")||"AWK-boss";
 let editJobId=null,editMemberId=null;
 let jobFilter="ongoing";
+let lossViewMode="count";
+let expandedMemberId=null;
 // 入力状態
 let inputState={jobId:null,taskId:null,hour:1,ot:0,losses:[],memo:""};
 let inputWorkerId=null,showAllZ=false,zBatchState={};
@@ -740,7 +744,7 @@ function showWorkerScreen(id){
 }
 // ===== 管理者ホーム =====
 function renderBossHome(){
-  renderBossHero();renderBossKPI();renderBossAlerts();renderBossJobList();renderBossSummary();renderBossTimeline();renderMemberList();
+  renderBossHero();renderHomeAIComment();renderHomeMVP();renderBossKPI();renderBossAlerts();renderBossJobList();renderBossSummary();renderBossTimeline();renderMemberList();
 }
 function renderBossHero(){
   const el=document.getElementById("homeHero");if(!el)return;
@@ -783,6 +787,62 @@ function renderBossHero(){
     if(r)r.style.strokeDashoffset=offset;
     if(v){let c=0;const t=setInterval(()=>{c=Math.min(c+2,rate);v.textContent=c+"%";if(c>=rate)clearInterval(t);},18);}
   },150);
+}
+function renderHomeAIComment(){
+  const el=document.getElementById("homeAIComment");if(!el)return;
+  const ts=todayJST(),ym=thisMonthJST();
+  const allM=membersArr();
+  const logs=nippoArr().filter(l=>l.date===ts);
+  const inMids=new Set(logs.filter(l=>l.type==="progress"||l.type==="indirect").map(l=>l.memberId));
+  const notIn=allM.filter(m=>!inMids.has(m.id));
+  const rate=allM.length?Math.round(inMids.size/allM.length*100):0;
+  const monthLogs=nippoArr().filter(l=>l.date&&l.date.startsWith(ym)&&l.type==="progress");
+  const actMonth=Math.round(monthLogs.reduce((a,l)=>a+(l.hours||0),0)*100)/100;
+  const activeJobs=jobsArr().filter(j=>j.status!=="done");
+  const planMonth=Math.round(activeJobs.reduce((a,j)=>a+totalH(j),0)*100)/100;
+  const diff=Math.round((planMonth-actMonth)*100)/100;
+  const lines=[];
+  lines.push(`本日入力率 ${rate}%`);
+  if(notIn.length===1)lines.push(`${notIn[0].name}さんのみ未入力です`);
+  else if(notIn.length>1)lines.push(`${notIn.map(m=>m.name).join("・")}さんが未入力です`);
+  else if(allM.length)lines.push("全員入力済みです");
+  if(planMonth>0){
+    if(diff>0)lines.push(`進行中案件は見積より ${diff}時間 余裕があります`);
+    else if(diff<0)lines.push(`進行中案件は見積を ${Math.abs(diff)}時間 超過しています`);
+  }
+  el.innerHTML=`<div style="background:rgba(68,136,255,.06);border:1px solid rgba(68,136,255,.15);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;gap:8px;align-items:flex-start">
+    <span class="mi sm" style="color:var(--blue);margin-top:1px">tips_and_updates</span>
+    <div style="font-size:11px;color:var(--text2);line-height:1.7">${lines.map(l=>esc(l)).join("　·　")}</div>
+  </div>`;
+}
+function renderHomeMVP(){
+  const el=document.getElementById("homeMVP");if(!el)return;
+  const ts=todayJST();
+  const logs=nippoArr().filter(l=>l.date===ts);
+  const allM=membersArr();
+  if(!allM.length){el.innerHTML="";return;}
+  let best=null,bestScore=-1;
+  allM.forEach(m=>{
+    const mLogs=logs.filter(l=>l.memberId===m.id);
+    if(!mLogs.length)return;
+    const dH=Math.round(mLogs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
+    const lossCnt=mLogs.filter(l=>l.loss).length;
+    const inputCnt=mLogs.filter(l=>l.type==="progress"||l.type==="indirect").length;
+    const score=dH*10-lossCnt*5+(inputCnt>0?2:0);
+    if(score>bestScore){bestScore=score;best={m,dH,lossCnt,inputCnt};}
+  });
+  if(!best||best.dH<=0){el.innerHTML="";return;}
+  el.innerHTML=`<div style="background:linear-gradient(135deg,rgba(255,184,0,.12),rgba(255,107,0,.05));border:1px solid rgba(255,184,0,.25);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:22px;line-height:1">🏆</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:9px;color:var(--amber);font-weight:700;letter-spacing:.6px;margin-bottom:2px">今日のMVP</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text)">${esc(best.m.name)}さん</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div style="text-align:center"><div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:var(--orange)">${best.dH}h</div><div style="font-size:7px;color:var(--dim)">直接工数</div></div>
+      <div style="text-align:center"><div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${best.lossCnt>0?"var(--red)":"var(--green)"}">${best.lossCnt}</div><div style="font-size:7px;color:var(--dim)">ロス件数</div></div>
+    </div>
+  </div>`;
 }
 function renderBossKPI(){
   const el=document.getElementById("homeKPI");if(!el)return;
@@ -999,45 +1059,42 @@ function renderMemberList(){
   const allLogs=nippoArr().filter(l=>l.date===ts);
   const inMids=new Set(allLogs.filter(l=>l.type==="progress"||l.type==="indirect").map(l=>l.memberId));
   el.innerHTML=membersArr().map(m=>{
-    const on=getJobsForMember(m.id).filter(j=>j.status!=="done").length;
     const inp=inMids.has(m.id);
     const mLogs=allLogs.filter(l=>l.memberId===m.id);
-    // 残業時間
-    const otH=Math.round(mLogs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
-    // 今日の直接工数
     const dH=Math.round(mLogs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
-    // 担当案件の進捗率（平均）
     const myJobs=getJobsForMember(m.id).filter(j=>j.status!=="done");
     const avgPct=myJobs.length?Math.round(myJobs.reduce((a,j)=>{const tp=totalH(j),ta=actualH(j);return a+(tp>0?Math.min(ta/tp*100,100):0);},0)/myJobs.length):null;
-    return`<div class="card-sm" style="margin-bottom:6px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${on>0?"8":"0"}px">
+    const isOpen=expandedMemberId===m.id;
+    // 詳細情報（タップで開く）
+    const otH=Math.round(mLogs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
+    const on=myJobs.length;
+    return`<div class="card-sm" style="margin-bottom:6px;cursor:pointer" onclick="toggleMemberDetail('${m.id}')">
+      <div style="display:flex;align-items:center;gap:10px">
         <div style="position:relative">
-          <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--navy2),var(--navy3));border:2px solid ${inp?"var(--green)":"rgba(255,255,255,.08)"};color:var(--text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${esc(m.name.slice(0,2))}</div>
-          <div style="position:absolute;bottom:-1px;right:-1px;width:12px;height:12px;border-radius:50%;background:${inp?"var(--green)":"var(--red)"};border:2px solid var(--bg)"></div>
+          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--navy2),var(--navy3));border:2px solid ${inp?"var(--green)":"rgba(255,255,255,.08)"};color:var(--text);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${esc(m.name.slice(0,2))}</div>
+          <div style="position:absolute;bottom:-1px;right:-1px;width:11px;height:11px;border-radius:50%;background:${inp?"var(--green)":"var(--red)"};border:2px solid var(--bg)"></div>
         </div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600">${esc(m.name)}</div>
-          <div style="font-size:10px;color:var(--dim);margin-top:1px">${esc(m.role||"作業者")} · 担当${on}件 · ${inp?`<span style="color:var(--green)">入力済</span>`:`<span style="color:var(--red)">未入力</span>`}</div>
         </div>
+        <div style="text-align:center;flex-shrink:0;padding:0 8px">
+          <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:800;color:var(--orange)">${dH}h</div>
+          <div style="font-size:7px;color:var(--dim)">直接工数</div>
+        </div>
+        <div style="text-align:center;flex-shrink:0;padding:0 8px">
+          <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:800;color:${avgPct!==null&&avgPct>=80?"var(--red)":avgPct!==null&&avgPct>=60?"var(--amber)":"var(--green)"}">${avgPct!==null?avgPct+"%":"—"}</div>
+          <div style="font-size:7px;color:var(--dim)">案件進捗</div>
+        </div>
+        <span class="mi sm" style="color:var(--dim);transition:transform .2s;transform:rotate(${isOpen?"180":"0"}deg)">expand_more</span>
+      </div>
+      ${isOpen?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(68,136,255,.08);display:flex;align-items:center;gap:10px" onclick="event.stopPropagation()">
+        <div style="flex:1;font-size:10px;color:var(--dim)">${esc(m.role||"作業者")} · 担当${on}件 · 残業${otH}h · ${inp?`<span style="color:var(--green)">入力済</span>`:`<span style="color:var(--red)">未入力</span>`}</div>
         <button class="btn-ghost" onclick="openMemberModal('${m.id}')"><span class="mi sm">edit</span></button>
         <button class="btn-ghost" style="color:var(--red)" onclick="deleteMember('${m.id}')"><span class="mi sm">delete</span></button>
-      </div>
-      ${on>0||dH>0||otH>0?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-        <div style="background:rgba(255,107,0,.06);border:1px solid rgba(255,107,0,.12);border-radius:7px;padding:6px;text-align:center">
-          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:var(--orange);line-height:1">${dH}h</div>
-          <div style="font-size:8px;color:var(--dim);margin-top:2px">今日の直接</div>
-        </div>
-        <div style="background:${otH>0?"rgba(255,59,59,.08)":"rgba(255,255,255,.03)"};border:1px solid ${otH>0?"rgba(255,59,59,.2)":"rgba(68,136,255,.08)"};border-radius:7px;padding:6px;text-align:center">
-          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${otH>0?"var(--red)":"var(--dim)"};line-height:1">${otH}h</div>
-          <div style="font-size:8px;color:var(--dim);margin-top:2px">残業</div>
-        </div>
-        <div style="background:${avgPct!==null&&avgPct>=80?"rgba(255,59,59,.06)":avgPct!==null&&avgPct>=60?"rgba(255,184,0,.06)":"rgba(0,214,143,.04)"};border:1px solid ${avgPct!==null&&avgPct>=80?"rgba(255,59,59,.15)":avgPct!==null&&avgPct>=60?"rgba(255,184,0,.15)":"rgba(0,214,143,.1)"};border-radius:7px;padding:6px;text-align:center">
-          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${avgPct!==null&&avgPct>=80?"var(--red)":avgPct!==null&&avgPct>=60?"var(--amber)":"var(--green)"};line-height:1">${avgPct!==null?avgPct+"%":"—"}</div>
-          <div style="font-size:8px;color:var(--dim);margin-top:2px">案件進捗</div>
-        </div>
       </div>`:""}
     </div>`;}).join("")+`<button class="btn" style="width:100%;justify-content:center;margin-top:6px" onclick="openMemberModal()"><span class="mi sm">person_add</span>作業者を追加</button>`;
 }
+function toggleMemberDetail(mid){expandedMemberId=expandedMemberId===mid?null:mid;renderMemberList();}
 
 // ===== 作業者ホーム =====
 function renderWorkerHome(){
@@ -1755,22 +1812,31 @@ function openJobDetail(jid){
     return`${i>0?`<div class="sf-conn ${isDone?"done":""}"></div>`:""}
     <div class="sf-step"><div class="sf-icon ${isDone?"done":isAct?"active":""}"><span class="mi sm" style="font-size:12px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span></div><div class="sf-lbl ${isDone?"done":isAct?"active":""}">${SL[s]}</div></div>`;
   }).join("")}</div>`;
+  const gaugeC=pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)";
   document.getElementById("jobDetailContent").innerHTML=`
     <div style="font-size:10px;color:var(--dim);margin-bottom:12px">${esc(j.orderNo||"—")} / ${esc(j.carType||"—")} / ${esc(j.userName||"")}</div>
     ${flowHtml}
-    <div class="stat-grid stat-grid-4" style="margin-bottom:10px">
-      <div class="stat-cell"><div class="stat-val" style="font-size:16px">${ta}h</div><div class="stat-lbl">実績</div></div>
-      <div class="stat-cell"><div class="stat-val" style="font-size:16px;color:var(--dim)">${tp}h</div><div class="stat-lbl">見積</div></div>
-      <div class="stat-cell" style="${tp>0&&ta>tp?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="font-size:16px;color:${tp>0&&ta>tp?"var(--red)":"var(--green)"}">${tp>0?Math.abs(Math.round((tp-ta)*100)/100):"-"}h</div><div class="stat-lbl">${tp>0&&ta>tp?"超過":"残り"}</div></div>
-      <div class="stat-cell" style="${lh>0?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="font-size:16px;color:${lh>0?"var(--red)":"var(--dim)"}">${lh}h</div><div class="stat-lbl">ロス</div></div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+      ${tp>0?`<div style="text-align:center;flex-shrink:0">${donutSVG(pct,gaugeC,72,"jdRing")}<div style="font-size:8px;color:var(--dim);margin-top:3px">進捗率</div></div>`:""}
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div class="stat-cell"><div class="stat-val" style="font-size:15px">${ta}h</div><div class="stat-lbl">実績</div></div>
+        <div class="stat-cell"><div class="stat-val" style="font-size:15px;color:var(--dim)">${tp}h</div><div class="stat-lbl">見積</div></div>
+        <div class="stat-cell" style="${tp>0&&ta>tp?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="font-size:15px;color:${tp>0&&ta>tp?"var(--red)":"var(--green)"}">${tp>0?Math.abs(Math.round((tp-ta)*100)/100):"-"}h</div><div class="stat-lbl">${tp>0&&ta>tp?"超過":"残り"}</div></div>
+        <div class="stat-cell" style="${lh>0?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="font-size:15px;color:${lh>0?"var(--red)":"var(--dim)"}">${lh}h</div><div class="stat-lbl">ロス</div></div>
+      </div>
     </div>
-    ${tp>0?`<div class="prog-bar" style="margin-bottom:3px"><div style="height:100%;width:${Math.min(pct,100)}%;background:${pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)"};border-radius:2px"></div></div><div style="text-align:right;font-size:9px;color:var(--dim);margin-bottom:10px">${pct}%</div>`:""}
     ${isBoss()?`<div style="display:flex;gap:7px">
       <button class="btn" style="flex:1;justify-content:center" onclick="openJobModal('${jid}');closeModal('jobDetailModal')"><span class="mi sm">edit</span>編集</button>
       ${next?`<button class="btn-primary" style="flex:1" onclick="advanceJobStatus('${jid}');closeModal('jobDetailModal')"><span class="mi sm" style="font-size:13px">${SI[next]}</span>${SL[next]}へ</button>`:`<button class="btn" style="flex:1;color:var(--amber);border-color:rgba(255,184,0,.3);justify-content:center" onclick="undoJobDone('${jid}');closeModal('jobDetailModal')"><span class="mi sm">undo</span>施工中に戻す</button>`}
     </div>`:""}`;
   openModal("jobDetailModal");
   document.getElementById("jobDetailModal").onclick=e=>{if(e.target===document.getElementById("jobDetailModal"))closeModal("jobDetailModal");};
+  if(tp>0)setTimeout(()=>{
+    const r=document.getElementById("jdRing"),lb=document.getElementById("jdRing_lbl");
+    if(!r)return;const rad=r.r?.baseVal?.value||31,circ=2*Math.PI*rad;
+    r.style.strokeDashoffset=circ-(circ*Math.min(pct,100)/100);
+    if(lb){let c=0;const t=setInterval(()=>{c=Math.min(c+2,pct);lb.textContent=c+"%";if(c>=pct)clearInterval(t);},18);}
+  },100);
 }
 
 // ===== 分析 =====
@@ -1791,24 +1857,42 @@ function renderAnalysisOverview(){
   const overJ=done.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   const overR=done.length?Math.round(overJ.length/done.length*100):0;
   const avgD=done.length?Math.round((done.reduce((a,j)=>a+actualH(j),0)-done.reduce((a,j)=>a+totalH(j),0))/done.length*10)/10:0;
-  el.innerHTML=`<div class="card" style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">全体サマリー</div><div class="stat-grid stat-grid-4">
-    <div class="stat-cell"><div class="stat-val" style="color:var(--orange)">${done.length}</div><div class="stat-lbl">完成案件</div></div>
-    <div class="stat-cell"><div class="stat-val" style="color:var(--blue)">${ongoing.length}</div><div class="stat-lbl">進行中</div></div>
-    <div class="stat-cell" style="${overR>50?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="color:${overR>50?"var(--red)":"var(--text)"}">${overR}%</div><div class="stat-lbl">工数超過率</div></div>
-    <div class="stat-cell" style="${avgD>0?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="color:${avgD>0?"var(--red)":"var(--green)"}">${avgD>0?"+":""}${avgD}h</div><div class="stat-lbl">平均超過/件</div></div>
-  </div></div>
+  el.innerHTML=`<div class="card" style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:12px">全体サマリー</div>
+    <div style="display:flex;align-items:center;justify-content:space-around;gap:8px;margin-bottom:10px">
+      <div style="text-align:center">${donutSVG(overR,overR>50?"var(--red)":"var(--green)",64,"ovRing1")}<div style="font-size:8px;color:var(--dim);margin-top:4px">工数超過率</div></div>
+      <div style="text-align:center">
+        <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:800;color:var(--orange)">${done.length}</div>
+        <div style="font-size:8px;color:var(--dim);margin-top:2px">完成案件</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:800;color:var(--blue)">${ongoing.length}</div>
+        <div style="font-size:8px;color:var(--dim);margin-top:2px">進行中</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'Inter',sans-serif;font-size:18px;font-weight:800;color:${avgD>0?"var(--red)":"var(--green)"}">${avgD>0?"+":""}${avgD}h</div>
+        <div style="font-size:8px;color:var(--dim);margin-top:2px">平均超過/件</div>
+      </div>
+    </div>
+  </div>
   <div class="card"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">案件別 見積 vs 実績</div>${done.length?done.map(j=>{const tp=totalH(j),ta=actualH(j),diff=Math.round((ta-tp)*100)/100,pct=tp>0?Math.round(ta/tp*100):0;
     return`<div style="padding:8px 0;border-bottom:1px solid rgba(68,136,255,.06)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div><span class="badge ${diff>0?"badge-red":"badge-green"}" style="margin-left:8px;flex-shrink:0">${diff>0?"+":""}${diff}h</span></div><div style="display:flex;gap:8px;font-size:9px;color:var(--dim);margin-bottom:4px"><span>見積${tp}h</span><span>実績${ta}h</span><span>${pct}%</span></div><div class="prog-bar" style="height:3px"><div class="prog-fill" style="width:${Math.min(pct,100)}%;background:${pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)"}"></div></div></div>`;
   }).join(""):"<div style='font-size:12px;color:var(--muted);text-align:center;padding:16px'>完成案件がありません</div>"}</div>`;
+  if(done.length)setTimeout(()=>{
+    const r=document.getElementById("ovRing1"),lb=document.getElementById("ovRing1_lbl");
+    if(!r)return;const rad=r.r?.baseVal?.value||27,circ=2*Math.PI*rad;
+    r.style.strokeDashoffset=circ-(circ*Math.min(overR,100)/100);
+    if(lb){let c=0;const t=setInterval(()=>{c=Math.min(c+2,overR);lb.textContent=c+"%";if(c>=overR)clearInterval(t);},18);}
+  },100);
 }
 function renderAnalysisProcess(){
   const el=document.getElementById("analysisProcessTab");if(!el)return;
   const tm={};
   jobsArr().forEach(j=>{const mids=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);mids.forEach(mid=>{((j.memberTasks&&j.memberTasks[mid])||[]).forEach(t=>{if(!t.name)return;if(!tm[t.name])tm[t.name]={name:t.name,total:0,loss:0,count:0};tm[t.name].total+=parseFloat(t.actual)||0;tm[t.name].loss+=parseFloat(t.lossH)||0;tm[t.name].count++;});});});
   const sorted=Object.values(tm).sort((a,b)=>b.total-a.total).slice(0,10);const max=sorted[0]?.total||1;
-  el.innerHTML=`<div class="card"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">工程別 累計工数 TOP10</div>${sorted.length?sorted.map((t,i)=>{const w=Math.round(t.total/max*100);const lP=t.total>0?Math.round(t.loss/t.total*100):0;
-    return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="display:flex;align-items:center;gap:5px"><span style="font-size:10px;font-weight:700;color:var(--dim);min-width:14px;font-family:'Inter',sans-serif">${i+1}</span><div style="font-size:12px;font-weight:600">${esc(t.name)}</div></div><div style="display:flex;align-items:center;gap:6px">${t.loss>0?`<span style="font-size:9px;color:var(--red)">${Math.round(t.loss*10)/10}h↑</span>`:""}<span style="font-size:12px;font-weight:700;font-family:'Inter',sans-serif">${Math.round(t.total*10)/10}h</span></div></div>
-    <div style="height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden"><div style="height:100%;width:${w}%;background:var(--orange);border-radius:4px;opacity:.8"></div></div>
+  const medals=["🥇","🥈","🥉"];
+  el.innerHTML=`<div class="card"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">工程別 累計工数 TOP10</div>${sorted.length?sorted.map((t,i)=>{const w=Math.round(t.total/max*100);const lP=t.total>0?Math.round(t.loss/t.total*100):0;const isTop3=i<3;
+    return`<div style="margin-bottom:12px;${isTop3?"padding:8px;border-radius:9px;background:rgba(255,184,0,.05);border:1px solid rgba(255,184,0,.15)":""}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="display:flex;align-items:center;gap:6px">${isTop3?`<span style="font-size:16px">${medals[i]}</span>`:`<span style="font-size:10px;font-weight:700;color:var(--dim);min-width:14px;font-family:'Inter',sans-serif">${i+1}</span>`}<div style="font-size:${isTop3?"13px":"12px"};font-weight:${isTop3?"700":"600"}">${esc(t.name)}</div></div><div style="display:flex;align-items:center;gap:6px">${t.loss>0?`<span style="font-size:9px;color:var(--red)">${Math.round(t.loss*10)/10}h↑</span>`:""}<span style="font-size:${isTop3?"13px":"12px"};font-weight:700;font-family:'Inter',sans-serif">${Math.round(t.total*10)/10}h</span></div></div>
+    <div style="height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden"><div style="height:100%;width:${w}%;background:${isTop3?"linear-gradient(90deg,#ff6b00,#ffaa44)":"var(--orange)"};border-radius:4px;opacity:.85"></div></div>
     <div style="font-size:9px;color:var(--dim);margin-top:2px">${t.count}件${t.loss>0?` / ロス率 ${lP}%`:" / ロスなし"}</div></div>`;}).join(""):"<div style='text-align:center;font-size:12px;color:var(--muted);padding:16px'>データがありません</div>"}</div>`;
 }
 function renderAnalysisAccuracy(){
@@ -1834,28 +1918,74 @@ function renderAnalysisAccuracy(){
       <div style="display:flex;justify-content:space-between;font-size:9px"><span style="color:${usePct>100?"var(--red)":"var(--green)"}">工数使用率 ${usePct}%</span><span style="color:var(--dim)">${avgA>avgP?"超過 +"+(Math.round((avgA-avgP)*10)/10)+"h":"余り "+(Math.round((avgP-avgA)*10)/10)+"h"}</span></div>`:""}
     </div>`;}).join("")}</div>`;
 }
+function pieSVG(segments,size){
+  // segments: [{value,color,label}]
+  const total=segments.reduce((a,s)=>a+s.value,0)||1;
+  let start=0;const r=size/2,cx=r,cy=r;
+  const paths=segments.map(s=>{
+    const frac=s.value/total;const end=start+frac*360;
+    const large=frac>0.5?1:0;
+    const x1=cx+r*Math.sin(start*Math.PI/180),y1=cy-r*Math.cos(start*Math.PI/180);
+    const x2=cx+r*Math.sin(end*Math.PI/180),y2=cy-r*Math.cos(end*Math.PI/180);
+    const d=frac>=0.999?`M${cx},${cy-r} A${r},${r} 0 1,1 ${cx-0.01},${cy-r} Z`:`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`;
+    start=end;
+    return`<path d="${d}" fill="${s.color}" opacity=".88"/>`;
+  }).join("");
+  return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}</svg>`;
+}
 function renderAnalysisLoss(){
   const el=document.getElementById("analysisLossTab");if(!el)return;
   const cnt={},hrs={};
   wlArr().forEach(l=>(l.causes||[]).forEach(c=>{cnt[c]=(cnt[c]||0)+1;hrs[c]=Math.round(((hrs[c]||0)+(l.lossHours||0))*100)/100;}));
-  const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);const maxV=sorted[0]?cnt[sorted[0][0]]:1;const maxH=Math.max(...Object.values(hrs),0.1);
-  el.innerHTML=`<div class="card"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">ロス原因ランキング</div>${sorted.length?sorted.map(([k,v],i)=>{const info=LR.find(r=>r.key===k)||{color:"#667085"};const h=hrs[k]||0;
-    return`<div style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:5px"><span style="font-size:12px;font-weight:700;color:var(--dim);min-width:16px;font-family:'Inter',sans-serif">${i+1}</span><div style="flex:1;font-size:12px;font-weight:600">${esc(k)}</div><span style="font-size:10px;font-weight:700;color:${info.color}">${v}件 / ${h}h</span></div>
-    <div style="display:grid;gap:3px">
-      <div style="display:flex;align-items:center;gap:5px"><div style="font-size:8px;color:var(--dim);min-width:24px">件数</div><div style="flex:1;height:7px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.round(v/maxV*100)}%;background:${info.color};border-radius:4px;opacity:.75"></div></div><div style="font-size:10px;font-weight:700;color:${info.color};min-width:20px;text-align:right">${v}</div></div>
-      <div style="display:flex;align-items:center;gap:5px"><div style="font-size:8px;color:var(--dim);min-width:24px">時間</div><div style="flex:1;height:7px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.round(h/maxH*100)}%;background:var(--red);border-radius:4px;opacity:.7"></div></div><div style="font-size:10px;font-weight:700;color:var(--red);min-width:20px;text-align:right">${h}h</div></div>
-    </div></div>`;}).join(""):"<div style='text-align:center;font-size:12px;color:var(--muted);padding:16px'>ロスデータがありません</div>"}</div>`;
+  const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const dataMap=lossViewMode==="count"?cnt:hrs;
+  const segs=sorted.map(([k])=>{const info=LR.find(r=>r.key===k)||{color:"#667085"};return{value:dataMap[k]||0,color:info.color,label:k};}).filter(s=>s.value>0);
+  const total=segs.reduce((a,s)=>a+s.value,0);
+  const maxV=sorted[0]?dataMap[sorted[0][0]]:1;
+  el.innerHTML=`<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px">ロス原因ランキング</div>
+      <div style="display:flex;gap:4px">
+        <button class="chip${lossViewMode==="count"?" on":""}" onclick="setLossViewMode('count')" style="font-size:10px;padding:4px 9px">件数</button>
+        <button class="chip${lossViewMode==="hours"?" on":""}" onclick="setLossViewMode('hours')" style="font-size:10px;padding:4px 9px">時間</button>
+      </div>
+    </div>
+    ${segs.length?`<div style="display:flex;align-items:center;gap:16px;margin-bottom:14px">
+      ${pieSVG(segs,96)}
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">${segs.slice(0,6).map(s=>`<div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--text2)"><div style="width:7px;height:7px;border-radius:2px;background:${s.color};flex-shrink:0"></div><div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.label)}</div><span style="font-weight:700;color:${s.color}">${total>0?Math.round(s.value/total*100):0}%</span></div>`).join("")}</div>
+    </div>`:""}
+    ${sorted.length?sorted.map(([k,v],i)=>{const info=LR.find(r=>r.key===k)||{color:"#667085"};const val=dataMap[k]||0;const unit=lossViewMode==="count"?"件":"h";
+    return`<div style="display:flex;align-items:center;gap:7px;margin-bottom:8px"><span style="font-size:11px;font-weight:700;color:var(--dim);min-width:14px;font-family:'Inter',sans-serif">${i+1}</span><div style="flex:1;font-size:11px">${esc(k)}</div><div style="flex:1;height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.round(val/maxV*100)}%;background:${info.color};border-radius:3px;opacity:.8"></div></div><span style="font-size:10px;font-weight:700;color:${info.color};min-width:28px;text-align:right">${val}${unit}</span></div>`;}).join(""):"<div style='text-align:center;font-size:12px;color:var(--muted);padding:16px'>ロスデータがありません</div>"}
+  </div>`;
 }
+function setLossViewMode(m){lossViewMode=m;renderAnalysisLoss();}
 function runAnalysisAI(){
   const el=document.getElementById("analysisAiResult");
   const done=jobsArr().filter(j=>j.status==="done"),ongoing=jobsArr().filter(j=>j.status!=="done");
   const overJ=done.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   const cnt={};wlArr().forEach(l=>(l.causes||[]).forEach(c=>{cnt[c]=(cnt[c]||0)+1;}));
-  const top3=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k}(${v}件)`).join("、");
-  el.innerHTML=`<div style="background:rgba(68,136,255,.06);border:1px solid rgba(68,136,255,.15);border-radius:12px;padding:14px;font-size:12px;line-height:1.9;color:var(--text2)">
-    <strong style="color:var(--blue)">【AI分析 — 準備中】</strong><br><br>
-    現在のデータ：<br>・完成案件: ${done.length}件 / 進行中: ${ongoing.length}件<br>・工数超過: ${overJ.length}件（${done.length?Math.round(overJ.length/done.length*100):0}%）<br>・ロスTOP3: ${top3||"データなし"}<br><br>
-    <span style="color:var(--dim);font-size:11px">※ AI分析機能はGAS連携後に有効になります</span>
+  const topEntries=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const top3=topEntries.map(([k,v])=>`${k}(${v}件)`).join("、");
+  const overR=done.length?Math.round(overJ.length/done.length*100):0;
+  const mainCause=topEntries[0]?topEntries[0][0]:null;
+  const sugg=mainCause?QS[mainCause]:null;
+  el.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">
+    <div style="background:rgba(255,59,59,.06);border:1px solid rgba(255,59,59,.18);border-radius:12px;padding:12px 14px">
+      <div style="font-size:10px;font-weight:700;color:var(--red);letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px"><span class="mi sm" style="font-size:14px">search</span>原因分析</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">工数超過率は${overR}%、ロス原因の上位は${top3||"データなし"}です。${mainCause?`特に「${mainCause}」が最多で、${sugg?sugg.cause:"要調査"}が背景にあると考えられます。`:""}</div>
+    </div>
+    <div style="background:rgba(68,136,255,.06);border:1px solid rgba(68,136,255,.18);border-radius:12px;padding:12px 14px">
+      <div style="font-size:10px;font-weight:700;color:var(--blue);letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px"><span class="mi sm" style="font-size:14px">lightbulb</span>改善提案</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">${sugg?sugg.action:"ロスデータが蓄積され次第、具体的な改善提案を表示します。"}</div>
+    </div>
+    <div style="background:rgba(0,214,143,.06);border:1px solid rgba(0,214,143,.18);border-radius:12px;padding:12px 14px">
+      <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px"><span class="mi sm" style="font-size:14px">verified</span>QC候補</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">${mainCause?`「${mainCause}」に関する事例をQCログの自動生成タブで確認できます。`:"QC候補が発生するとここに表示されます。"}</div>
+    </div>
+    <div style="background:rgba(255,184,0,.06);border:1px solid rgba(255,184,0,.18);border-radius:12px;padding:12px 14px">
+      <div style="font-size:10px;font-weight:700;color:var(--amber);letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px"><span class="mi sm" style="font-size:14px">shield</span>次回防止策</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">完成案件${done.length}件・進行中${ongoing.length}件のデータをもとに、次回案件では見積段階で${overR>30?"バッファを多めに確保する":"現行の見積精度を維持する"}ことを推奨します。</div>
+    </div>
   </div>`;
 }
 
@@ -1871,12 +2001,30 @@ function renderQcAuto(){
   const el=document.getElementById("qcAutoList");if(!el)return;
   const logs=wlArr().slice(0,20);
   if(!logs.length){el.innerHTML="<div style='text-align:center;font-size:12px;color:var(--muted);padding:32px'>まだロスデータがありません<br><span style='font-size:11px'>作業入力時にロス理由を選ぶと自動生成されます</span></div>";return;}
-  el.innerHTML=logs.map(l=>{
-    const mainCause=l.causes&&l.causes[0];const suggest=QS[mainCause]||{cause:"詳細な原因調査が必要",action:"現場ヒアリングを実施"};
-    const causes=(l.causes||[]).map(k=>{const r=LR.find(r=>r.key===k)||{color:"#667085"};return`<span style="font-size:9px;padding:2px 6px;border-radius:5px;background:${r.color}18;color:${r.color};border:1px solid ${r.color}28">${esc(k)}</span>`;}).join("");
-    return`<div class="card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700">${esc(l.vehicleLabel||l.taskName||"—")}</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${causes}</div></div><div style="text-align:right;flex-shrink:0;margin-left:8px"><div style="font-size:9px;color:var(--dim)">${l.date}</div>${l.lossHours?`<div style="font-size:12px;font-weight:700;color:var(--red)">${l.lossHours}h</div>`:""}</div></div>
-    <div style="border-top:1px solid rgba(68,136,255,.08);padding-top:8px;display:grid;gap:5px">${[["問題","var(--red)",l.memo||"ロス発生: "+(l.causes||[]).join("・")],["推定原因","var(--amber)",suggest.cause],["対策案","var(--blue)",suggest.action],["確認結果","var(--green)","未確認"]].map(([lbl,color,val])=>`<div style="display:grid;grid-template-columns:46px 1fr;gap:5px;align-items:start"><div style="font-size:8px;font-weight:700;color:${color};padding:2px 5px;background:${color}12;border-radius:4px;text-align:center">${lbl}</div><div style="font-size:10px;color:${lbl==="確認結果"?"var(--muted)":"var(--text2)"}">${esc(val)}</div></div>`).join("")}</div></div>`;
+  el.innerHTML=logs.map((l,idx)=>{
+    const mainCause=l.causes&&l.causes[0];const info=LR.find(r=>r.key===mainCause)||{color:"#667085"};
+    return`<div onclick="openQcAutoDetail(${idx})" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid var(--gb);background:rgba(6,12,24,.7);margin-bottom:6px;cursor:pointer">
+      <div style="width:3px;height:30px;border-radius:2px;background:${info.color};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.vehicleLabel||l.taskName||"—")}</div>
+        <div style="font-size:9px;color:var(--dim);margin-top:2px">${l.date} · ${esc(mainCause||"—")}</div>
+      </div>
+      ${l.lossHours?`<div style="font-size:12px;font-weight:800;color:var(--red);font-family:'Inter',sans-serif;flex-shrink:0">${l.lossHours}h</div>`:""}
+      <span class="mi sm" style="color:var(--dim);flex-shrink:0">chevron_right</span>
+    </div>`;
   }).join("");
+}
+function openQcAutoDetail(idx){
+  const logs=wlArr().slice(0,20);const l=logs[idx];if(!l)return;
+  const mainCause=l.causes&&l.causes[0];const suggest=QS[mainCause]||{cause:"詳細な原因調査が必要",action:"現場ヒアリングを実施"};
+  const causes=(l.causes||[]).map(k=>{const r=LR.find(r=>r.key===k)||{color:"#667085"};return`<span style="font-size:9px;padding:2px 6px;border-radius:5px;background:${r.color}18;color:${r.color};border:1px solid ${r.color}28">${esc(k)}</span>`;}).join("");
+  document.getElementById("jobDetailTitle").textContent=l.vehicleLabel||l.taskName||"QC候補";
+  document.getElementById("jobDetailContent").innerHTML=`
+    <div style="font-size:10px;color:var(--dim);margin-bottom:8px">${l.date}${l.lossHours?` · ロス ${l.lossHours}h`:""}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">${causes}</div>
+    <div style="display:grid;gap:8px">${[["問題","var(--red)",l.memo||"ロス発生: "+(l.causes||[]).join("・")],["推定原因","var(--amber)",suggest.cause],["対策案","var(--blue)",suggest.action],["確認結果","var(--green)","未確認"]].map(([lbl,color,val])=>`<div><div style="font-size:9px;font-weight:700;color:${color};margin-bottom:2px">${lbl}</div><div style="font-size:12px;color:var(--text2);line-height:1.6">${esc(val)}</div></div>`).join("")}</div>`;
+  openModal("jobDetailModal");
+  document.getElementById("jobDetailModal").onclick=e=>{if(e.target===document.getElementById("jobDetailModal"))closeModal("jobDetailModal");};
 }
 function populateQcJobSelect(){const sel=document.getElementById("qcJobSelect");if(!sel)return;sel.innerHTML="<option value=''>選択なし</option>"+jobsArr().map(j=>`<option value="${j.id}">${esc(j.name)}${j.orderNo?" ("+esc(j.orderNo)+")":""}</option>`).join("");}
 async function saveQcLog(){
@@ -1891,9 +2039,17 @@ function runQcAI(){
 }
 function renderQcStat(){
   const el=document.getElementById("qcStatContent");if(!el)return;
-  const all=Object.values(qcLogs),wl=wlArr();const cnt={};wl.forEach(l=>(l.causes||[]).forEach(c=>{cnt[c]=(cnt[c]||0)+1;}));const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const all=Object.values(qcLogs),wl=wlArr();const cnt={};wl.forEach(l=>(l.causes||[]).forEach(c=>{cnt[c]=(cnt[c]||0)+1;}));
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const segs=top.map(([k,v])=>{const info=LR.find(r=>r.key===k)||{color:"#667085"};return{value:v,color:info.color,label:k};});
+  const total=segs.reduce((a,s)=>a+s.value,0);
   el.innerHTML=`<div class="card" style="margin-bottom:10px"><div class="stat-grid stat-grid-2"><div class="stat-cell"><div class="stat-val" style="color:var(--blue)">${all.length}</div><div class="stat-lbl">QCログ件数</div></div><div class="stat-cell"><div class="stat-val" style="color:var(--red)">${wl.length}</div><div class="stat-lbl">ロス記録件数</div></div></div></div>
-  <div class="card"><div style="font-size:9px;font-weight:700;color:var(--dim);margin-bottom:10px;letter-spacing:1px">ロス原因 TOP5</div>${top.length?top.map(([k,v],i)=>{const info=LR.find(r=>r.key===k)||{color:"#667085"};return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(68,136,255,.06)"><div style="font-size:13px;font-weight:700;color:var(--dim);min-width:18px;font-family:'Inter',sans-serif">${i+1}</div><div style="flex:1;font-size:12px">${esc(k)}</div><span class="badge badge-red">${v}件</span></div>`;}).join(""):"<div style='font-size:12px;color:var(--muted);text-align:center;padding:12px'>データなし</div>"}</div>`;
+  <div class="card"><div style="font-size:9px;font-weight:700;color:var(--dim);margin-bottom:10px;letter-spacing:1px">ロス原因割合</div>
+  ${segs.length?`<div style="display:flex;align-items:center;gap:16px">
+    ${pieSVG(segs,90)}
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px">${segs.map(s=>`<div style="display:flex;align-items:center;gap:6px;font-size:11px"><div style="width:8px;height:8px;border-radius:2px;background:${s.color};flex-shrink:0"></div><div style="flex:1;min-width:0;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.label)}</div><span style="font-weight:700;color:${s.color}">${total>0?Math.round(s.value/total*100):0}%</span></div>`).join("")}</div>
+  </div>`:"<div style='font-size:12px;color:var(--muted);text-align:center;padding:12px'>データなし</div>"}
+  </div>`;
 }
 
 // ===== 案件CRUD =====
