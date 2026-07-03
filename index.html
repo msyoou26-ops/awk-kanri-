@@ -1163,8 +1163,9 @@ function renderWorkerJobDetail(){
     const tasks=((j.memberTasks&&j.memberTasks[mid])||[]);
     const pid="wd"+Math.random().toString(36).slice(2,7);
     // ステータスフロー
-    const curIdx=SF.indexOf(j.status||"planned");
-    const flowHtml=`<div class="status-flow" style="margin-bottom:10px">${SF.map((s,i)=>{
+    const SF3W=["planned","ongoing","done"];
+    const curIdx=SF3W.indexOf(j.status||"planned");
+    const flowHtml=`<div class="status-flow" style="margin-bottom:10px">${SF3W.map((s,i)=>{
       const isDone=i<curIdx,isAct=i===curIdx;
       return`${i>0?`<div class="sf-conn ${isDone?"done":""}"></div>`:""}
       <div class="sf-step"><div class="sf-icon ${isDone?"done":isAct?"active":""}"><span class="mi sm" style="font-size:12px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span></div><div class="sf-lbl ${isDone?"done":isAct?"active":""}">${SL[s]}</div></div>`;
@@ -1215,12 +1216,16 @@ function switchBITab(tab,el){
   if(tab==="history")renderBossInputHistory();
 }
 function switchWITab(tab,el){
-  ["input","history"].forEach(t=>{document.getElementById("wiTab"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("on",t===tab);document.getElementById("wi"+t.charAt(0).toUpperCase()+t.slice(1)+"Pane").style.display=t===tab?"block":"none";});
+  ["input","history"].forEach(t=>{
+    document.getElementById("wiTab"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("on",t===tab);
+    document.getElementById("wi"+t.charAt(0).toUpperCase()+t.slice(1)+"Pane").style.display=t===tab?"block":"none";
+  });
   if(tab==="history"){
-    // 履歴ペインに要素がない場合は動的に生成
-    const pane=document.getElementById("wiHistoryPane");
-    if(pane&&!document.getElementById("workerInputHistory")){
-      const div=document.createElement("div");div.id="workerInputHistory";pane.appendChild(div);
+    // workerInputHistoryが存在しない場合は動的生成
+    let el2=document.getElementById("workerInputHistory");
+    if(!el2){
+      const pane=document.getElementById("wiHistoryPane");
+      if(pane){el2=document.createElement("div");el2.id="workerInputHistory";pane.appendChild(el2);}
     }
     renderWorkerHistory();
   }
@@ -1478,10 +1483,13 @@ function renderBossInputHistory(){
 }
 function renderWorkerHistory(){
   const mid=session.memberId;
-  const el=isBoss()?null:document.getElementById("workerInputHistory")||document.getElementById("workerHistoryList");
-  if(!el)return;
+  // 作業者の入力タブ履歴 / 履歴専用画面 どちらにも描画
+  const el1=document.getElementById("workerInputHistory");
+  const el2=document.getElementById("workerHistoryList");
+  if(!el1&&!el2)return;
   const logs=nippoArr().filter(l=>l.memberId===mid).slice(0,30);
-  renderHistoryList(logs,el);
+  if(el1)renderHistoryList(logs,el1);
+  if(el2)renderHistoryList(logs,el2);
 }
 function renderHistoryList(logs,el){
   const TC={progress:{c:"var(--orange)",l:"直接"},indirect:{c:"var(--blue)",l:"間接"},overtime:{c:"var(--red)",l:"残業"},memo:{c:"var(--green)",l:"メモ"}};
