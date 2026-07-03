@@ -421,11 +421,12 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
       </div>
       <span class="mi lg" style="color:var(--orange)">edit_note</span>
     </div>
-    <!-- 今日 / 今月 / 年間 タブ -->
+    <!-- 今日 / 今月 / 年間 / カレンダー タブ -->
     <div class="tab-bar" style="position:relative;top:auto;margin-bottom:10px">
       <button class="tab on" id="whTabToday" onclick="switchWHTab('today',this)">今日</button>
       <button class="tab" id="whTabMonth" onclick="switchWHTab('month',this)">今月</button>
       <button class="tab" id="whTabYear" onclick="switchWHTab('year',this)">年間</button>
+      <button class="tab" id="whTabCal" onclick="switchWHTab('cal',this)"><span class="mi sm" style="font-size:13px;vertical-align:-3px">calendar_month</span> 日程</button>
     </div>
     <div id="whTodayPane">
       <div id="whTodayCards"></div>
@@ -435,6 +436,9 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     </div>
     <div id="whYearPane" style="display:none">
       <div id="whYearCards"></div>
+    </div>
+    <div id="whCalPane" style="display:none">
+      <div id="whCalContent"></div>
     </div>
     <!-- 達成感メッセージ -->
     <div id="whAchieve"></div>
@@ -1044,14 +1048,17 @@ function renderWorkerHome(){
   renderWorkerJobList();
 }
 function switchWHTab(tab,el){
-  ["today","month","year"].forEach(t=>{
-    document.getElementById("whTab"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("on",t===tab);
-    document.getElementById("wh"+t.charAt(0).toUpperCase()+t.slice(1)+"Pane").style.display=t===tab?"block":"none";
+  ["today","month","year","cal"].forEach(t=>{
+    const tb=document.getElementById("whTab"+t.charAt(0).toUpperCase()+t.slice(1));
+    const pn=document.getElementById("wh"+t.charAt(0).toUpperCase()+t.slice(1)+"Pane");
+    if(tb)tb.classList.toggle("on",t===tab);
+    if(pn)pn.style.display=t===tab?"block":"none";
   });
   if(tab==="today")renderWHToday();
   else if(tab==="month")renderWHMonth();
   else if(tab==="year")renderWHYear();
-  renderWHAchieve(tab);
+  else if(tab==="cal")renderWHCal();
+  if(tab!=="cal")renderWHAchieve(tab);
 }
 function renderWHToday(){
   const el=document.getElementById("whTodayCards");if(!el)return;
@@ -1105,6 +1112,191 @@ function renderWHYear(){
     <div class="stat-cell" style="${remain>=0?"":"background:rgba(255,59,59,.06);border-color:rgba(255,59,59,.15)"}"><div class="stat-val" style="color:${remain>=0?"var(--green)":"var(--red)"};font-size:18px">${remain>=0?"+":""}${remain}h</div><div class="stat-lbl">${remain>=0?"余り工数":"超過"}</div></div>
   </div>`;
 }
+
+function renderWHCal(){
+  const el=document.getElementById("whCalContent");if(!el)return;
+  const mid=session.memberId;
+  const now=new Date();
+  const calState=window._whCalState||{year:now.getFullYear(),month:now.getMonth()};
+  window._whCalState=calState;
+  renderWHCalInner(el,mid,calState);
+}
+function renderWHCalInner(el,mid,st){
+  const {year,month}=st;
+  const allLogs=nippoArr().filter(l=>l.memberId===mid);
+  const myJobs=getJobsForMember(mid);
+  // 月名
+  const mNames=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  // 月の最初/最後
+  const firstDay=new Date(year,month,1);
+  const lastDay=new Date(year,month+1,0);
+  const startWd=firstDay.getDay(); // 0=日
+  const daysInMonth=lastDay.getDate();
+  // 日付ごとに入力があるか
+  const logDates={};
+  allLogs.forEach(l=>{
+    if(!l.date)return;
+    const d=new Date(l.date);
+    if(d.getFullYear()===year&&d.getMonth()===month){
+      const day=d.getDate();
+      if(!logDates[day])logDates[day]={direct:0,indirect:0,ot:0};
+      if(l.type==="progress")logDates[day].direct+=l.hours||0;
+      if(l.type==="indirect")logDates[day].indirect+=l.hours||0;
+      if(l.type==="overtime")logDates[day].ot+=l.overtime||0;
+    }
+  });
+  // 案件の着工日・納期を取得
+  const jobEvents=[];
+  myJobs.forEach(j=>{
+    if(j.start){
+      const s=new Date(j.start);
+      if(s.getFullYear()===year&&s.getMonth()===month)
+        jobEvents.push({day:s.getDate(),type:"start",name:j.name,status:j.status});
+    }
+    if(j.end){
+      const e=new Date(j.end);
+      if(e.getFullYear()===year&&e.getMonth()===month)
+        jobEvents.push({day:e.getDate(),type:"end",name:j.name,status:j.status});
+    }
+  });
+  // 施工中案件の期間をハイライト
+  const spanDays={};
+  myJobs.filter(j=>j.start&&j.end&&j.status!=="done").forEach(j=>{
+    let s=new Date(j.start),e=new Date(j.end);
+    for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
+      if(d.getFullYear()===year&&d.getMonth()===month)
+        spanDays[d.getDate()]=(spanDays[d.getDate()]||[]).concat(j);
+    }
+  });
+  const today=new Date();
+  const todayDay=today.getFullYear()===year&&today.getMonth()===month?today.getDate():null;
+  // カレンダーHTML
+  let cells="";
+  // 空白マス
+  for(let i=0;i<startWd;i++)cells+=`<div></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday=d===todayDay;
+    const hasLog=logDates[d];
+    const span=spanDays[d]||[];
+    const evs=jobEvents.filter(e=>e.day===d);
+    const dh=hasLog?Math.round(hasLog.direct*10)/10:0;
+    const oth=hasLog?Math.round(hasLog.ot*10)/10:0;
+    const isSpan=span.length>0;
+    cells+=`<div onclick="showWHCalDay(${year},${month+1},${d})"
+      style="min-height:52px;border-radius:8px;padding:4px;cursor:pointer;position:relative;
+      background:${isToday?"rgba(255,107,0,.15)":isSpan?"rgba(68,136,255,.07)":"rgba(255,255,255,.02)"};
+      border:1px solid ${isToday?"rgba(255,107,0,.4)":isSpan?"rgba(68,136,255,.15)":"rgba(68,136,255,.06)"};
+      transition:background .15s">
+      <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:${isToday?"800":"500"};color:${isToday?"var(--orange)":"var(--text2)"};margin-bottom:2px">${d}</div>
+      ${dh>0?`<div style="font-size:8px;font-weight:700;color:var(--orange);line-height:1.2">${dh}h</div>`:""}
+      ${oth>0?`<div style="font-size:8px;color:var(--red);line-height:1.2">残${oth}h</div>`:""}
+      ${evs.map(e=>`<div style="font-size:6px;padding:1px 3px;border-radius:2px;background:${e.type==="start"?"rgba(0,214,143,.2)":"rgba(255,59,59,.2)"};color:${e.type==="start"?"var(--green)":"var(--red)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${e.type==="start"?"▶":"⬛"}</div>`).join("")}
+      ${isSpan&&!dh?`<div style="position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:rgba(68,136,255,.4)"></div>`:""}
+    </div>`;
+  }
+  // 案件リスト（今月期間中）
+  const monthJobs=myJobs.filter(j=>{
+    if(!j.start&&!j.end)return false;
+    const s=j.start?new Date(j.start):null;
+    const e=j.end?new Date(j.end):null;
+    const mStart=new Date(year,month,1);
+    const mEnd=new Date(year,month+1,0);
+    return(!s||s<=mEnd)&&(!e||e>=mStart);
+  });
+  el.innerHTML=`
+    <!-- ナビ -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <button class="btn" style="padding:6px 10px" onclick="prevWHCalMonth()"><span class="mi sm">chevron_left</span></button>
+      <div style="font-size:14px;font-weight:700">${year}年 ${mNames[month]}</div>
+      <button class="btn" style="padding:6px 10px" onclick="nextWHCalMonth()"><span class="mi sm">chevron_right</span></button>
+    </div>
+    <!-- 曜日ヘッダー -->
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px">
+      ${["日","月","火","水","木","金","土"].map((w,i)=>`<div style="text-align:center;font-size:9px;font-weight:700;color:${i===0?"rgba(255,59,59,.6)":i===6?"rgba(68,136,255,.6)":"var(--dim)"};padding:3px 0">${w}</div>`).join("")}
+    </div>
+    <!-- カレンダーグリッド -->
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px">${cells}</div>
+    <!-- 凡例 -->
+    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:8px;height:8px;border-radius:2px;background:rgba(255,107,0,.15);border:1px solid rgba(255,107,0,.4)"></div>今日</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:8px;height:8px;border-radius:2px;background:rgba(68,136,255,.07);border:1px solid rgba(68,136,255,.15)"></div>架装期間中</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><span style="font-size:8px;color:var(--green)">▶</span>着工日</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><span style="font-size:8px;color:var(--red)">⬛</span>納期</div>
+    </div>
+    <!-- 今月の案件一覧 -->
+    ${monthJobs.length?`<div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">今月の架装案件</div>
+    ${monthJobs.map(j=>{
+      const dl=j.end?daysLeft(j.end):null;
+      return`<div style="background:rgba(6,12,24,.8);border:1px solid var(--gb);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+        <div style="width:4px;height:36px;border-radius:2px;background:${j.status==="done"?"var(--green)":dl!==null&&dl<0?"var(--red)":dl!==null&&dl<=3?"var(--amber)":"var(--orange)"};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div>
+          <div style="font-size:9px;color:var(--dim);margin-top:2px">${j.start||"—"} 〜 ${j.end||"—"}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <span class="badge ${SB[j.status]||"badge-navy"}" style="font-size:8px">${SL[j.status]||j.status}</span>
+          ${dl!==null?`<div style="font-size:9px;font-weight:700;color:${dl<0?"var(--red)":dl<=3?"var(--amber)":"var(--text2)"};margin-top:3px">${dl<0?"超過"+Math.abs(dl)+"日":"残"+dl+"日"}</div>`:""}
+        </div>
+      </div>`;
+    }).join("")}`:"<div style='font-size:12px;color:var(--muted);text-align:center;padding:12px'>今月の架装案件はありません</div>"}
+    <!-- 日別詳細モーダル -->
+    <div id="calDayModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);z-index:200;align-items:flex-end;justify-content:center">
+      <div style="background:linear-gradient(160deg,var(--navy2),var(--navy));border:1px solid var(--gb2);border-radius:20px 20px 0 0;padding:20px 16px;width:100%;max-width:480px;max-height:70vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div id="calDayTitle" style="font-size:15px;font-weight:700"></div>
+          <button onclick="document.getElementById('calDayModal').style.display='none'" style="background:var(--glass);border:1px solid var(--gb2);color:var(--dim);width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center"><span class="mi sm">close</span></button>
+        </div>
+        <div id="calDayContent"></div>
+      </div>
+    </div>
+  `;
+}
+function prevWHCalMonth(){const s=window._whCalState;s.month--;if(s.month<0){s.month=11;s.year--;}renderWHCal();}
+function nextWHCalMonth(){const s=window._whCalState;s.month++;if(s.month>11){s.month=0;s.year++;}renderWHCal();}
+function showWHCalDay(year,month,day){
+  const mid=session.memberId;
+  const dateStr=`${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  const logs=nippoArr().filter(l=>l.memberId===mid&&l.date===dateStr);
+  const modal=document.getElementById("calDayModal");
+  const title=document.getElementById("calDayTitle");
+  const content=document.getElementById("calDayContent");
+  if(!modal||!title||!content)return;
+  const wdNames=["日","月","火","水","木","金","土"];
+  const wd=wdNames[new Date(dateStr).getDay()];
+  title.textContent=`${month}月${day}日（${wd}）の記録`;
+  const TC={progress:{c:"var(--orange)",l:"直接"},indirect:{c:"var(--blue)",l:"間接"},overtime:{c:"var(--red)",l:"残業"},memo:{c:"var(--green)",l:"メモ"}};
+  if(!logs.length){
+    content.innerHTML="<div style='text-align:center;font-size:12px;color:var(--muted);padding:20px'>この日の記録はありません</div>";
+  }else{
+    const dH=Math.round(logs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
+    const iH=Math.round(logs.filter(l=>l.type==="indirect").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
+    const otH=Math.round(logs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
+    content.innerHTML=`
+      <div class="stat-grid stat-grid-3" style="margin-bottom:12px">
+        <div class="stat-cell"><div class="stat-val" style="color:var(--orange);font-size:16px">${dH}h</div><div class="stat-lbl">直接</div></div>
+        <div class="stat-cell"><div class="stat-val" style="color:var(--blue);font-size:16px">${iH}h</div><div class="stat-lbl">間接</div></div>
+        <div class="stat-cell"><div class="stat-val" style="color:${otH>0?"var(--red)":"var(--dim)"};font-size:16px">${otH}h</div><div class="stat-lbl">残業</div></div>
+      </div>
+      <div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:8px">作業内訳</div>
+      ${logs.map(l=>{
+        const t=TC[l.type]||{c:"var(--dim)",l:l.type};
+        const tm=l.savedAt?new Date(l.savedAt).toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}):"--:--";
+        const detail=l.type==="progress"?`${esc(l.jobName||"—")} · ${esc(l.taskName||"")}`:l.type==="indirect"?esc(IT.find(x=>x.key===l.indirectType)?.label||l.indirectType||""):l.type==="overtime"?"残業":esc(l.memo||"");
+        const hrs=l.type==="overtime"?l.overtime:l.hours;
+        return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(68,136,255,.06)">
+          <div style="font-size:9px;color:var(--dim);min-width:30px">${tm}</div>
+          <div style="width:2px;height:18px;background:${t.c};border-radius:1px;opacity:.7;flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <span class="badge" style="background:${t.c}18;color:${t.c};font-size:8px;margin-bottom:2px">${t.l}</span>
+            <div style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${detail}</div>
+          </div>
+          <div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:${t.c};flex-shrink:0">${hrs||0}h</div>
+        </div>`;
+      }).join("")}`;
+  }
+  modal.style.display="flex";
+}
+
 function renderWHAchieve(tab){
   const el=document.getElementById("whAchieve");if(!el)return;
   const mid=session.memberId;
