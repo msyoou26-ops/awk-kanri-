@@ -1971,7 +1971,7 @@ async function workerCompleteJob(jid){
     jobs[jid]={...jobs[jid],status:"kaiso_done"};
     onDataChange();
     showToast("✅ 架装完了にしました");
-  });
+  },"架装完了にする",false);
 }
 async function undoJobDone(jid){
   await dbSet(`jobs/${jid}/status`,"ongoing");
@@ -2009,9 +2009,13 @@ async function removeTemplate(key,val){const tpls=getTpls(key).filter(t=>t!==val
 function changePassword(){const np=document.getElementById("newPass").value.trim();if(!np)return;bossPassword=np;localStorage.setItem("awk_boss_pass",np);if(fbReady)db.ref("settings/bossPassword").set(np);document.getElementById("newPass").value="";showToast("✅ パスワードを変更しました");}
 
 // ===== 確認モーダル =====
-function confirmAction(title,msg,cb){
+function confirmAction(title,msg,cb,okLabel,okDanger){
   document.getElementById("confirmTitle").textContent=title;document.getElementById("confirmMsg").textContent=msg;
-  document.getElementById("confirmOkBtn").onclick=()=>{closeModal("confirmModal");cb();};
+  const okBtn=document.getElementById("confirmOkBtn");
+  okBtn.textContent=okLabel||"削除する";
+  okBtn.className=(okDanger===false)?"btn-primary":"btn-danger";
+  okBtn.style.flex="1";
+  okBtn.onclick=()=>{closeModal("confirmModal");cb();};
   openModal("confirmModal");
   document.getElementById("confirmModal").onclick=e=>{if(e.target===document.getElementById("confirmModal"))closeModal("confirmModal");};
 }
