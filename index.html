@@ -179,7 +179,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 /* COMPLETION OVERLAY */
 .co-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(16px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s}
 .co-overlay.show{opacity:1;pointer-events:auto}
-.shutter{position:absolute;top:0;left:0;right:0;background:repeating-linear-gradient(180deg,rgba(30,50,90,.9) 0px,rgba(20,35,70,.9) 8px,rgba(15,28,60,.9) 9px,rgba(20,35,70,.9) 10px);height:0;z-index:10;transition:height .65s cubic-bezier(.4,0,.2,1);border-bottom:2px solid rgba(255,107,0,.35)}
+.shutter{position:absolute;top:0;left:0;right:0;background:repeating-linear-gradient(180deg,rgba(30,50,90,.9) 0px,rgba(20,35,70,.9) 8px,rgba(15,28,60,.9) 9px,rgba(20,35,70,.9) 10px);height:0;z-index:10;transition:height .65s cubic-bezier(.4,0,.2,1);border-bottom:2px solid rgba(255,107,0,.35);pointer-events:none}
 .shutter.open{height:calc(100% - 130px)}
 .road{position:absolute;bottom:0;left:0;right:0;height:130px;background:linear-gradient(180deg,#151e30,#080f1e);border-top:1.5px solid rgba(255,107,0,.25)}
 .road::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80%;height:3px;background:repeating-linear-gradient(90deg,rgba(255,184,0,.5) 0px,rgba(255,184,0,.5) 28px,transparent 28px,transparent 56px)}
@@ -196,7 +196,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 .c-wh.f{right:7px}.c-wh.r{left:7px}
 @keyframes exh{0%{opacity:.5;transform:scale(.4)}100%{opacity:0;transform:scale(1.8) translateX(-24px)}}
 .exhaust{position:absolute;bottom:30px;left:-16px;width:18px;height:18px;border-radius:50%;background:rgba(140,160,180,.18);animation:exh .9s ease-out infinite}
-.co-card{background:rgba(5,9,18,.96);border:1px solid rgba(0,214,143,.25);border-radius:20px 20px 0 0;padding:26px 20px;text-align:center;width:100%;max-width:480px;box-shadow:0 -8px 50px rgba(0,214,143,.12),inset 0 1px 0 rgba(0,214,143,.08)}
+.co-card{background:rgba(5,9,18,.96);border:1px solid rgba(0,214,143,.25);border-radius:20px 20px 0 0;padding:26px 20px;text-align:center;width:100%;max-width:480px;box-shadow:0 -8px 50px rgba(0,214,143,.12),inset 0 1px 0 rgba(0,214,143,.08);position:relative;z-index:20}
 @keyframes ckIn{from{transform:scale(0) rotate(-45deg);opacity:0}to{transform:scale(1);opacity:1}}
 .ck-icon{animation:ckIn .55s cubic-bezier(.34,1.56,.64,1) .25s both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -937,11 +937,10 @@ function bossJobCard(j){
     <div style="display:flex;gap:5px" onclick="event.stopPropagation()">
       <button class="btn" style="padding:5px 7px;font-size:10px;justify-content:center;min-width:32px" onclick="openJobModal('${j.id}')"><span class="mi sm">edit</span></button>
       <button class="btn" style="padding:5px 7px;font-size:10px;color:var(--red);justify-content:center;min-width:32px" onclick="deleteJob('${j.id}')"><span class="mi sm">delete</span></button>
+      ${curIdx>0?`<button class="btn" style="padding:5px 7px;font-size:10px;color:var(--amber);justify-content:center;min-width:32px" onclick="revertJobStatus('${j.id}')" title="1つ前の工程に戻す"><span class="mi sm">undo</span></button>`:""}
       ${next?`<button class="btn-primary" style="flex:1;font-size:11px;padding:8px;font-weight:700" onclick="advanceJobStatus('${j.id}')">
         <span class="mi sm" style="font-size:13px">${SI[next]}</span>${SL[next]}へ →
-      </button>`:`<button class="btn" style="flex:1;font-size:11px;padding:8px;color:var(--green);justify-content:center" onclick="undoJobDone('${j.id}')">
-        <span class="mi sm">undo</span>施工中に戻す
-      </button>`}
+      </button>`:`<div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--green);gap:5px"><span class="mi sm">verified</span>完了済み</div>`}
     </div>
 
   </div>
@@ -1755,8 +1754,8 @@ function openJobDetail(jid){
   const next=curIdx>=0&&curIdx<SF.length-1?SF[curIdx+1]:null;
   const flowHtml=`<div class="status-flow" style="margin-bottom:12px">${SF.map((s,i)=>{const isDone=i<curIdx,isAct=i===curIdx;
     return`${i>0?`<div class="sf-conn ${isDone?"done":""}"></div>`:""}
-    <div class="sf-step"><div class="sf-icon ${isDone?"done":isAct?"active":""}"><span class="mi sm" style="font-size:12px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span></div><div class="sf-lbl ${isDone?"done":isAct?"active":""}">${SL[s]}</div></div>`;
-  }).join("")}</div>`;
+    <div class="sf-step"${isBoss()?` onclick="jumpJobStatus('${jid}','${s}')" style="cursor:pointer"`:""}><div class="sf-icon ${isDone?"done":isAct?"active":""}"><span class="mi sm" style="font-size:12px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span></div><div class="sf-lbl ${isDone?"done":isAct?"active":""}">${SL[s]}</div></div>`;
+  }).join("")}</div>${isBoss()?`<div style="font-size:9px;color:var(--dim);text-align:center;margin:-6px 0 12px">工程アイコンをタップすると直接移動できます</div>`:""}`;
   document.getElementById("jobDetailContent").innerHTML=`
     <div style="font-size:10px;color:var(--dim);margin-bottom:12px">${esc(j.orderNo||"—")} / ${esc(j.carType||"—")} / ${esc(j.userName||"")}</div>
     ${flowHtml}
@@ -1769,7 +1768,8 @@ function openJobDetail(jid){
     ${tp>0?`<div class="prog-bar" style="margin-bottom:3px"><div style="height:100%;width:${Math.min(pct,100)}%;background:${pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)"};border-radius:2px"></div></div><div style="text-align:right;font-size:9px;color:var(--dim);margin-bottom:10px">${pct}%</div>`:""}
     ${isBoss()?`<div style="display:flex;gap:7px">
       <button class="btn" style="flex:1;justify-content:center" onclick="openJobModal('${jid}');closeModal('jobDetailModal')"><span class="mi sm">edit</span>編集</button>
-      ${next?`<button class="btn-primary" style="flex:1" onclick="advanceJobStatus('${jid}');closeModal('jobDetailModal')"><span class="mi sm" style="font-size:13px">${SI[next]}</span>${SL[next]}へ</button>`:`<button class="btn" style="flex:1;color:var(--amber);border-color:rgba(255,184,0,.3);justify-content:center" onclick="undoJobDone('${jid}');closeModal('jobDetailModal')"><span class="mi sm">undo</span>施工中に戻す</button>`}
+      ${curIdx>0?`<button class="btn" style="padding:0 12px;color:var(--amber);border-color:rgba(255,184,0,.3);justify-content:center" onclick="revertJobStatus('${jid}')" title="1つ前の工程に戻す"><span class="mi sm">undo</span></button>`:""}
+      ${next?`<button class="btn-primary" style="flex:1" onclick="advanceJobStatus('${jid}');closeModal('jobDetailModal')"><span class="mi sm" style="font-size:13px">${SI[next]}</span>${SL[next]}へ</button>`:`<div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--green);gap:5px"><span class="mi sm">verified</span>完了済み</div>`}
     </div>`:""}`;
   openModal("jobDetailModal");
   document.getElementById("jobDetailModal").onclick=e=>{if(e.target===document.getElementById("jobDetailModal"))closeModal("jobDetailModal");};
@@ -1975,6 +1975,28 @@ async function workerCompleteJob(jid){
     onDataChange();
     showCompletionOverlay(j.name,{eyebrow:"KAISO COMPLETE",sub:"架装完了 — お疲れさまでした。この後は管理者が検査工程へ進めます",icon:"check_circle"});
   },"架装完了にする",false);
+}
+async function jumpJobStatus(jid,targetStatus){
+  const j=jobs[jid];if(!j)return;
+  if((j.status||"planned")===targetStatus)return;
+  confirmAction(`「${SL[targetStatus]}」に移動しますか？`,"工程を直接切り替えます。",async()=>{
+    await dbSet(`jobs/${jid}/status`,targetStatus);
+    jobs[jid]={...jobs[jid],status:targetStatus};
+    onDataChange();
+    if(document.getElementById("jobDetailModal")?.classList.contains("open"))openJobDetail(jid);
+    if(targetStatus==="done")showCompletionOverlay(j.name);
+    else showToast(`→ ${SL[targetStatus]} に更新しました`);
+  },"移動する",false);
+}
+async function revertJobStatus(jid){
+  const j=jobs[jid];if(!j)return;
+  const curIdx=SF.indexOf(j.status||"planned");
+  if(curIdx<=0)return;
+  const prev=SF[curIdx-1];
+  await dbSet(`jobs/${jid}/status`,prev);
+  jobs[jid]={...jobs[jid],status:prev};
+  onDataChange();
+  showToast(`↩ ${SL[prev]} に戻しました`);
 }
 async function undoJobDone(jid){
   await dbSet(`jobs/${jid}/status`,"ongoing");
