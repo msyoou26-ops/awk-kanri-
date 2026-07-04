@@ -563,8 +563,8 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     </div>
     <div style="position:absolute;bottom:130px;left:50%;transform:translateX(-50%);width:100%;max-width:480px">
       <div class="co-card">
-        <div class="ck-icon" style="width:52px;height:52px;border-radius:50%;background:rgba(0,214,143,.12);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 0 20px rgba(0,214,143,.25)"><span class="mi lg" style="color:var(--green);font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">local_shipping</span></div>
-        <div class="co-txt"><div style="font-size:9px;color:var(--green);letter-spacing:2px;font-weight:700;margin-bottom:6px">SHIPPING COMPLETE</div><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:5px" id="coName"></div><div style="font-size:11px;color:var(--dim);margin-bottom:16px">出荷完了 — お客様のもとへ向かっています</div><button onclick="closeCoOverlay()" style="background:rgba(0,214,143,.1);border:1px solid rgba(0,214,143,.25);color:var(--green);padding:9px 24px;border-radius:16px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:600">確認</button></div>
+        <div class="ck-icon" id="coIcon" style="width:52px;height:52px;border-radius:50%;background:rgba(0,214,143,.12);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 0 20px rgba(0,214,143,.25)"><span class="mi lg" id="coIconGlyph" style="color:var(--green);font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">local_shipping</span></div>
+        <div class="co-txt"><div id="coEyebrow" style="font-size:9px;color:var(--green);letter-spacing:2px;font-weight:700;margin-bottom:6px">SHIPPING COMPLETE</div><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:5px" id="coName"></div><div id="coSub" style="font-size:11px;color:var(--dim);margin-bottom:16px">出荷完了 — お客様のもとへ向かっています</div><button onclick="closeCoOverlay()" style="background:rgba(0,214,143,.1);border:1px solid rgba(0,214,143,.25);color:var(--green);padding:9px 24px;border-radius:16px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:600">確認</button></div>
       </div>
     </div>
   </div>
@@ -1612,10 +1612,10 @@ async function saveInput(){
     banner.innerHTML=`<span style="font-size:11px;color:var(--text)">🔴 QC候補に反映しました</span><button onclick="showBossScreen('qcScreen');this.parentElement.remove()" style="font-size:10px;padding:4px 10px;border-radius:6px;border:none;background:var(--navy2);color:#fff;cursor:pointer;font-family:'Noto Sans JP',sans-serif">見る</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--dim);cursor:pointer"><span class="mi sm">close</span></button>`;
     document.body.appendChild(banner);setTimeout(()=>{if(banner.parentElement)banner.remove();},5000);
   }else showToast(`✅ ${hours}h 保存しました`);
-  inputState.taskId=null;inputState.losses=[];
+  inputState.losses=[];
   document.getElementById("inputMemo").value="";document.getElementById("inputOT").value="0";document.getElementById("inputHour").value="1";
   document.querySelectorAll(".h-btn").forEach(b=>b.classList.remove("on"));
-  renderInputTasks();renderLossChips();onDataChange();
+  renderInputTasks();renderLossChips();
 }
 function toggleLossPanel(){
   const wrap=document.getElementById("lossChipsWrap");
@@ -1637,7 +1637,6 @@ async function saveOTOnly(){
   await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"overtime",hours:0,overtime:ot,memo:"",savedAt:Date.now()});
   document.getElementById("inputOT").value="0";
   showToast(`✅ 残業 ${ot}h を登録しました`);
-  onDataChange();
 }
 async function saveMemoOnly(){
   const memo=document.getElementById("inputMemo").value.trim();
@@ -1647,7 +1646,7 @@ async function saveMemoOnly(){
   const ot=parseFloat(document.getElementById("inputOT").value)||0;
   await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"memo",jobId:inputState.jobId||"",jobName:"",taskName:"",hours:0,loss:false,lossCauses:[],overtime:ot,memo,savedAt:Date.now()});
   showToast(ot>0?`✅ メモと残業${ot}h を保存しました`:"✅ メモを保存しました");
-  document.getElementById("inputMemo").value="";document.getElementById("inputOT").value="0";onDataChange();
+  document.getElementById("inputMemo").value="";document.getElementById("inputOT").value="0";
 }
 // Zコード
 function renderZBatch(){
@@ -1672,7 +1671,7 @@ async function saveZBatch(){
   if(!sel.length){showToast("Zコードを選んでください");return;}
   for(const [key,{h}] of sel)await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"indirect",indirectType:key,hours:h,overtime:0,memo:"",savedAt:Date.now()});
   showToast(`✅ ${sel.length}件 計${Math.round(sel.reduce((a,[k,v])=>a+v.h,0)*100)/100}h 一括保存しました`);
-  zBatchState={};renderZBatch();onDataChange();
+  zBatchState={};renderZBatch();
 }
 // 履歴・修正
 function renderBossInputHistory(){
@@ -1940,8 +1939,12 @@ async function advanceJobStatus(jid){
   if(next==="done")showCompletionOverlay(j.name);
   else showToast(`→ ${SL[next]} に更新しました`);
 }
-function showCompletionOverlay(name){
+function showCompletionOverlay(name,opts){
+  const o=opts||{};
   document.getElementById("coName").textContent=name;
+  document.getElementById("coEyebrow").textContent=o.eyebrow||"SHIPPING COMPLETE";
+  document.getElementById("coSub").textContent=o.sub||"出荷完了 — お客様のもとへ向かっています";
+  document.getElementById("coIconGlyph").textContent=o.icon||"local_shipping";
   const overlay=document.getElementById("coOverlay");
   overlay.classList.add("show");
   setTimeout(()=>{
@@ -1970,7 +1973,7 @@ async function workerCompleteJob(jid){
     await dbSet(`jobs/${jid}/status`,"kaiso_done");
     jobs[jid]={...jobs[jid],status:"kaiso_done"};
     onDataChange();
-    showToast("✅ 架装完了にしました");
+    showCompletionOverlay(j.name,{eyebrow:"KAISO COMPLETE",sub:"架装完了 — お疲れさまでした。この後は管理者が検査工程へ進めます",icon:"check_circle"});
   },"架装完了にする",false);
 }
 async function undoJobDone(jid){
