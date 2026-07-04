@@ -179,24 +179,75 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 /* COMPLETION OVERLAY */
 .co-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(16px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s}
 .co-overlay.show{opacity:1;pointer-events:auto}
-.shutter{position:absolute;top:0;left:0;right:0;background:repeating-linear-gradient(180deg,rgba(30,50,90,.9) 0px,rgba(20,35,70,.9) 8px,rgba(15,28,60,.9) 9px,rgba(20,35,70,.9) 10px);height:0;z-index:10;transition:height .65s cubic-bezier(.4,0,.2,1);border-bottom:2px solid rgba(255,107,0,.35);pointer-events:none}
+.shutter{position:absolute;top:0;left:0;right:0;background:repeating-linear-gradient(180deg,rgba(30,50,90,.9) 0px,rgba(20,35,70,.9) 8px,rgba(15,28,60,.9) 9px,rgba(20,35,70,.9) 10px);height:0;z-index:10;transition:height .6s cubic-bezier(.34,1.35,.64,1);border-bottom:2px solid rgba(255,107,0,.35);pointer-events:none;overflow:hidden}
+.shutter::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.06) 45%,rgba(255,255,255,.1) 50%,rgba(255,255,255,.06) 55%,transparent 70%);background-size:220% 100%;background-position:120% 0;transition:background-position 1s ease-out .1s}
 .shutter.open{height:calc(100% - 130px)}
-.road{position:absolute;bottom:0;left:0;right:0;height:130px;background:linear-gradient(180deg,#151e30,#080f1e);border-top:1.5px solid rgba(255,107,0,.25)}
-.road::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80%;height:3px;background:repeating-linear-gradient(90deg,rgba(255,184,0,.5) 0px,rgba(255,184,0,.5) 28px,transparent 28px,transparent 56px)}
+.shutter.open::after{background-position:-20% 0}
+.road{position:absolute;bottom:0;left:0;right:0;height:130px;background:linear-gradient(180deg,#151e30,#080f1e);border-top:1.5px solid rgba(255,107,0,.25);overflow:hidden}
+.road::before{content:'';position:absolute;top:50%;left:0;transform:translateY(-50%);width:200%;height:3px;background:repeating-linear-gradient(90deg,rgba(255,184,0,.5) 0px,rgba(255,184,0,.5) 28px,transparent 28px,transparent 56px)}
+.road.roll::before{animation:roadScroll .45s linear infinite}
+@keyframes roadScroll{0%{transform:translate(0,-50%)}100%{transform:translate(-56px,-50%)}}
+.car-shadow{position:absolute;bottom:20px;left:8px;width:96px;height:14px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 72%);filter:blur(1px)}
 .vehicle{position:absolute;bottom:26px;left:-130px}
 .vehicle.go{animation:driveOut 2.2s cubic-bezier(.4,0,.8,1) forwards}
+.vehicle.go .car-b{animation:susp .28s ease-in-out infinite}
+.vehicle.go .car-shadow{animation:shadowPulse .28s ease-in-out infinite}
+@keyframes susp{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+@keyframes shadowPulse{0%,100%{transform:scaleX(1);opacity:.55}50%{transform:scaleX(.92);opacity:.4}}
 @keyframes driveOut{0%{left:-130px;opacity:1}15%{left:8%}80%{left:82%;opacity:1}100%{left:108%;opacity:0}}
-.car-b{width:110px;height:52px;position:relative}
+.car-b{width:110px;height:52px;position:relative;transition:filter .6s ease}
 .c-roof{position:absolute;top:0;left:16px;width:75px;height:26px;background:linear-gradient(135deg,#1e3050,#28407a);border-radius:7px 7px 0 0;border:1px solid rgba(68,136,255,.25)}
-.c-base{position:absolute;bottom:0;left:0;width:110px;height:30px;background:linear-gradient(180deg,#182438,#0e1b2e);border-radius:4px;border:1px solid rgba(68,136,255,.15)}
-.c-win{position:absolute;top:4px;left:6px;width:56px;height:16px;background:rgba(100,180,255,.12);border-radius:3px;border:1px solid rgba(100,180,255,.25)}
+.c-base{position:absolute;bottom:0;left:0;width:110px;height:30px;background:linear-gradient(180deg,#243554,#0e1b2e);border-radius:4px;border:1px solid rgba(68,136,255,.15);box-shadow:inset 0 3px 4px rgba(255,255,255,.06),inset 0 -6px 8px rgba(0,0,0,.35)}
+.c-win{position:absolute;top:4px;left:6px;width:56px;height:16px;background:linear-gradient(135deg,rgba(140,200,255,.22),rgba(100,180,255,.08));border-radius:3px;border:1px solid rgba(100,180,255,.25)}
 .c-fl{position:absolute;right:-3px;top:7px;width:7px;height:12px;background:#fff8aa;border-radius:2px;box-shadow:0 0 10px 3px rgba(255,220,0,.6)}
+.c-fl::after{content:'';position:absolute;top:-6px;right:5px;width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:34px solid rgba(255,230,140,.16);filter:blur(1px)}
 .c-rl{position:absolute;left:-3px;top:9px;width:5px;height:9px;background:#ff2222;border-radius:2px;box-shadow:0 0 7px 2px rgba(255,40,40,.5)}
-.c-wh{position:absolute;bottom:-8px;width:20px;height:20px;border-radius:50%;background:radial-gradient(#181828,#252545);border:2.5px solid rgba(68,136,255,.35)}
+.c-wh{position:absolute;bottom:-8px;width:20px;height:20px;border-radius:50%;background:radial-gradient(#181828,#252545);border:2.5px solid rgba(68,136,255,.35);background-image:radial-gradient(#181828,#252545),repeating-conic-gradient(rgba(255,255,255,.18) 0deg 12deg,transparent 12deg 45deg);background-blend-mode:normal}
+.vehicle.go .c-wh{animation:wheelSpin .35s linear infinite}
+@keyframes wheelSpin{to{transform:rotate(360deg)}}
 .c-wh.f{right:7px}.c-wh.r{left:7px}
-@keyframes exh{0%{opacity:.5;transform:scale(.4)}100%{opacity:0;transform:scale(1.8) translateX(-24px)}}
-.exhaust{position:absolute;bottom:30px;left:-16px;width:18px;height:18px;border-radius:50%;background:rgba(140,160,180,.18);animation:exh .9s ease-out infinite}
+@keyframes exh{0%{opacity:.5;transform:scale(.4) translate(0,0)}100%{opacity:0;transform:scale(2.1) translate(-30px,-10px)}}
+.exhaust{position:absolute;bottom:30px;left:-16px;width:18px;height:18px;border-radius:50%;background:radial-gradient(rgba(200,210,220,.35),rgba(140,160,180,.1));animation:exh .9s ease-out infinite}
 .co-card{background:rgba(5,9,18,.96);border:1px solid rgba(0,214,143,.25);border-radius:20px 20px 0 0;padding:26px 20px;text-align:center;width:100%;max-width:480px;box-shadow:0 -8px 50px rgba(0,214,143,.12),inset 0 1px 0 rgba(0,214,143,.08);position:relative;z-index:20}
+/* ===== 完成演出: 正面から迫るトラック ===== */
+.cf-scene{position:absolute;inset:0;overflow:hidden}
+.cf-sky{position:absolute;inset:0;background:linear-gradient(180deg,#05080f 0%,#0a1220 42%,#0d1a2c 100%);transition:background 1.1s ease}
+.cf-sky.lit{background:linear-gradient(180deg,#111f36 0%,#122237 40%,#0c1728 100%)}
+.cf-shutter{position:absolute;top:13%;left:14%;right:14%;height:110px;max-width:340px;margin:0 auto;background:repeating-linear-gradient(180deg,rgba(42,62,102,.95) 0px,rgba(26,42,78,.95) 8px,rgba(18,30,62,.95) 9px,rgba(26,42,78,.95) 10px);border:2px solid rgba(255,107,0,.32);border-top-width:4px;border-radius:6px 6px 0 0;transition:height .95s cubic-bezier(.34,1.4,.64,1),opacity .5s;transform-origin:top center}
+.cf-shutter.open{height:6px;opacity:.45}
+.cf-glow{position:absolute;top:13%;left:14%;right:14%;height:110px;max-width:340px;margin:0 auto;border-radius:6px 6px 0 0;background:radial-gradient(ellipse at 50% 100%,rgba(255,205,130,.32),transparent 72%);opacity:0;transition:opacity .8s ease .25s;pointer-events:none}
+.cf-shutter.open ~ .cf-glow{opacity:1}
+.cf-road-mark{position:absolute;top:30%;width:6px;height:24px;background:rgba(255,184,0,.5);border-radius:2px;opacity:0;transform:translate(-50%,0) scale(.3)}
+.cf-mark1{left:calc(50% - 26px)}
+.cf-mark2{left:calc(50% + 20px)}
+.cf-road-mark.go.cf-mark1{animation:markApproach 2.5s ease-in .05s forwards}
+.cf-road-mark.go.cf-mark2{animation:markApproach 2.5s ease-in .85s forwards}
+@keyframes markApproach{0%{top:30%;opacity:0;transform:translate(-50%,0) scale(.3)}10%{opacity:.65}88%{opacity:.4}100%{top:74%;opacity:0;transform:translate(-50%,0) scale(2.6)}}
+.cf-truck{position:absolute;top:15%;left:50%;transform:translate(-50%,0) scale(.32);opacity:0;transition:opacity .4s}
+.cf-truck.show{opacity:1}
+.cf-truck.go{animation:truckApproach 2.5s cubic-bezier(.3,0,.35,1) forwards}
+@keyframes truckApproach{0%{top:15%;transform:translate(-50%,0) scale(.32)}100%{top:56%;transform:translate(-50%,0) scale(1.3)}}
+.cf-truck.go .tf-cab{animation:susp .3s ease-in-out infinite}
+.cf-truck.go .tf-wheel{animation:wheelSpin .32s linear infinite}
+.cf-shadow{position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:110px;height:15px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 72%);transition:width .8s,opacity .8s;opacity:.28}
+.cf-truck.go .cf-shadow{width:145px;opacity:.55}
+.tf-cab{position:relative;width:130px;height:92px}
+.tf-mirror{position:absolute;top:6px;width:8px;height:16px;background:#1c2b46;border:1px solid rgba(68,136,255,.3);border-radius:2px}
+.tf-mirror.l{left:-9px}.tf-mirror.r{right:-9px}
+.tf-roof{position:absolute;top:0;left:6px;right:6px;height:13px;background:linear-gradient(180deg,#2a4270,#1a2c4c);border-radius:10px 10px 0 0;border:1px solid rgba(68,136,255,.25)}
+.tf-wind{position:absolute;top:12px;left:14px;right:14px;height:26px;background:linear-gradient(160deg,rgba(150,205,255,.28),rgba(90,150,220,.08));border-radius:4px;border:1px solid rgba(120,180,255,.3);overflow:hidden}
+.tf-wind::after{content:'';position:absolute;top:-10px;left:-30%;width:40%;height:200%;background:rgba(255,255,255,.18);transform:rotate(20deg)}
+.tf-body{position:absolute;bottom:0;left:0;width:130px;height:50px;background:linear-gradient(180deg,#243759,#101d34);border-radius:8px;border:1px solid rgba(68,136,255,.2);box-shadow:inset 0 3px 5px rgba(255,255,255,.06),inset 0 -8px 10px rgba(0,0,0,.4);transition:filter .6s}
+.cf-truck.go .tf-body{filter:brightness(1.1)}
+.tf-badge{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-family:'Inter',sans-serif;font-size:8px;font-weight:800;letter-spacing:1.5px;color:rgba(255,150,60,.7)}
+.tf-grille{position:absolute;bottom:14px;left:38px;right:38px;height:16px;border-radius:2px;background:repeating-linear-gradient(180deg,rgba(10,16,28,.9) 0 2px,rgba(40,55,85,.9) 2px 4px)}
+.tf-headlight{position:absolute;bottom:15px;width:15px;height:11px;border-radius:3px;background:#fff8d8;box-shadow:0 0 14px 4px rgba(255,225,140,.65)}
+.tf-headlight.l{left:8px}.tf-headlight.r{right:8px}
+.tf-beam{position:absolute;bottom:-2px;width:46px;height:70px;background:linear-gradient(180deg,rgba(255,235,180,.32),transparent 75%);clip-path:polygon(20% 0,80% 0,150% 100%,-50% 100%);opacity:0;transition:opacity .6s}
+.tf-beam.l{left:-16px}.tf-beam.r{right:-16px}
+.cf-truck.go .tf-beam{opacity:.5}
+.tf-wheel{position:absolute;bottom:-10px;width:22px;height:22px;border-radius:50%;background:radial-gradient(#181828,#252545),repeating-conic-gradient(rgba(255,255,255,.16) 0deg 12deg,transparent 12deg 45deg);border:2.5px solid rgba(68,136,255,.35)}
+.tf-wheel.l{left:6px}.tf-wheel.r{right:6px}
 @keyframes ckIn{from{transform:scale(0) rotate(-45deg);opacity:0}to{transform:scale(1);opacity:1}}
 .ck-icon{animation:ckIn .55s cubic-bezier(.34,1.56,.64,1) .25s both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -204,7 +255,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 /* LOGIN */
 .login-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 18px;position:relative;overflow:hidden}
 .login-wrap::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(68,136,255,.03) 39px,rgba(68,136,255,.03) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(68,136,255,.03) 39px,rgba(68,136,255,.03) 40px);pointer-events:none}
-.login-box{background:rgba(5,9,18,.88);backdrop-filter:blur(40px);border:1px solid rgba(255,107,0,.18);border-radius:18px;padding:30px 22px;width:100%;max-width:340px;box-shadow:0 24px 70px rgba(0,0,0,.7),0 0 50px rgba(255,107,0,.04),inset 0 1px 0 rgba(255,107,0,.08)}
+.login-box{background:rgba(5,9,18,.88);backdrop-filter:blur(40px);border:1px solid rgba(255,107,0,.18);border-radius:18px;padding:30px 22px;width:100%;max-width:340px;box-shadow:0 24px 70px rgba(0,0,0,.7),0 0 50px rgba(255,107,0,.04),inset 0 1px 0 rgba(255,107,0,.08);position:relative;z-index:1}
 .login-logo{font-family:'Inter',sans-serif;font-size:48px;font-weight:900;letter-spacing:8px;background:linear-gradient(135deg,#ff6b00,#ffaa44,#ff6b00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 18px rgba(255,107,0,.35));text-align:center;margin-bottom:3px}
 .login-tag{font-size:9px;color:rgba(255,107,0,.55);letter-spacing:2px;text-align:center;margin-bottom:20px;text-transform:uppercase}
 .login-tabs{display:flex;background:rgba(255,255,255,.03);border:1px solid var(--gb);border-radius:9px;padding:3px;margin-bottom:16px;gap:3px}
@@ -553,12 +604,27 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 <!-- 出荷演出 -->
 <div class="co-overlay" id="coOverlay">
   <div style="width:100%;height:100%;position:relative">
-    <div class="shutter" id="coShutter"></div>
-    <div class="road">
-      <div class="vehicle" id="coVehicle">
-        <div class="exhaust"></div>
-        <div class="exhaust" style="animation-delay:.35s;bottom:30px"></div>
-        <div class="car-b"><div class="c-roof"></div><div class="c-base"></div><div class="c-win"></div><div class="c-fl"></div><div class="c-rl"></div><div class="c-wh f"></div><div class="c-wh r"></div></div>
+    <div class="cf-scene">
+      <div class="cf-sky" id="cfSky"></div>
+      <div class="cf-shutter" id="coShutter"></div>
+      <div class="cf-glow"></div>
+      <div class="cf-road-mark cf-mark1"></div>
+      <div class="cf-road-mark cf-mark2"></div>
+      <div class="cf-truck" id="coVehicle">
+        <div class="cf-shadow"></div>
+        <div class="tf-cab">
+          <div class="tf-mirror l"></div><div class="tf-mirror r"></div>
+          <div class="tf-roof"></div>
+          <div class="tf-wind"></div>
+          <div class="tf-body">
+            <div class="tf-badge">AWK</div>
+            <div class="tf-grille"></div>
+            <div class="tf-headlight l"></div>
+            <div class="tf-headlight r"></div>
+            <div class="tf-beam l"></div><div class="tf-beam r"></div>
+          </div>
+          <div class="tf-wheel l"></div><div class="tf-wheel r"></div>
+        </div>
       </div>
     </div>
     <div style="position:absolute;bottom:130px;left:50%;transform:translateX(-50%);width:100%;max-width:480px">
@@ -926,7 +992,7 @@ function bossJobCard(j){
           <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${lh>0?"var(--red)":"var(--dim)"};line-height:1">${lh}h</div>
           <div style="font-size:8px;color:var(--dim);margin-top:2px">ロス</div>
         </div>
-        ${dl!==null?`<div style="grid-column:1/-1;background:${dl<0?"rgba(255,59,59,.08)":dl<=3?"rgba(255,184,0,.08)":"rgba(255,255,255,.03)"};border:${dl<0?"1px solid rgba(255,59,59,.15)":dl<=3?"1px solid rgba(255,184,0,.15)":""};border-radius:7px;padding:5px 7px;display:flex;align-items:center;gap:6px">
+        ${dl!==null&&j.status!=="done"?`<div style="grid-column:1/-1;background:${dl<0?"rgba(255,59,59,.08)":dl<=3?"rgba(255,184,0,.08)":"rgba(255,255,255,.03)"};border:${dl<0?"1px solid rgba(255,59,59,.15)":dl<=3?"1px solid rgba(255,184,0,.15)":""};border-radius:7px;padding:5px 7px;display:flex;align-items:center;gap:6px">
           <span class="mi sm" style="font-size:14px;color:${dlC}">event</span>
           <div><div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${dlC};line-height:1">${dl<0?"納期超過 "+Math.abs(dl)+"日":dl+"日"}</div><div style="font-size:8px;color:var(--dim);margin-top:1px">${dl<0?"超過":"納期まで"}</div></div>
         </div>`:""}
@@ -1235,7 +1301,7 @@ function renderWHCalInner(el,mid,st){
         </div>
         <div style="text-align:right;flex-shrink:0">
           <span class="badge ${SB[j.status]||"badge-navy"}" style="font-size:8px">${SL[j.status]||j.status}</span>
-          ${dl!==null?`<div style="font-size:9px;font-weight:700;color:${dl<0?"var(--red)":dl<=3?"var(--amber)":"var(--text2)"};margin-top:3px">${dl<0?"超過"+Math.abs(dl)+"日":"残"+dl+"日"}</div>`:""}
+          ${dl!==null&&j.status!=="done"?`<div style="font-size:9px;font-weight:700;color:${dl<0?"var(--red)":dl<=3?"var(--amber)":"var(--text2)"};margin-top:3px">${dl<0?"超過"+Math.abs(dl)+"日":"残"+dl+"日"}</div>`:""}
         </div>
       </div>`;
     }).join("")}`:"<div style='font-size:12px;color:var(--muted);text-align:center;padding:12px'>今月の架装案件はありません</div>"}
@@ -1949,18 +2015,27 @@ function showCompletionOverlay(name,opts){
   document.getElementById("coSub").textContent=o.sub||"出荷完了 — お客様のもとへ向かっています";
   document.getElementById("coIconGlyph").textContent=o.icon||"local_shipping";
   const overlay=document.getElementById("coOverlay");
+  const sky=document.getElementById("cfSky"),sh=document.getElementById("coShutter"),v=document.getElementById("coVehicle");
+  const marks=document.querySelectorAll(".cf-road-mark");
+  // リセット（連続で発火しても毎回最初から再生されるように）
+  if(sh)sh.classList.remove("open");
+  if(sky)sky.classList.remove("lit");
+  if(v)v.classList.remove("go","show");
+  marks.forEach(m=>m.classList.remove("go"));
+  void overlay.offsetWidth;
   overlay.classList.add("show");
   setTimeout(()=>{
-    const sh=document.getElementById("coShutter");if(sh)sh.classList.add("open");
-    setTimeout(()=>{const v=document.getElementById("coVehicle");if(v)v.classList.add("go");},700);
-  },200);
+    if(sh)sh.classList.add("open");
+    if(sky)sky.classList.add("lit");
+    setTimeout(()=>{
+      if(v){v.classList.add("show");v.classList.add("go");}
+      marks.forEach(m=>m.classList.add("go"));
+    },650);
+  },250);
 }
 function closeCoOverlay(){
   const overlay=document.getElementById("coOverlay");
   overlay.classList.remove("show");
-  const sh=document.getElementById("coShutter"),v=document.getElementById("coVehicle");
-  if(sh)sh.classList.remove("open");
-  if(v){v.classList.remove("go");void v.offsetWidth;}
   onDataChange();
 }
 // オーバーレイ背景タップで閉じる
@@ -1992,14 +2067,12 @@ async function workerCompleteJob(jid){
 async function jumpJobStatus(jid,targetStatus){
   const j=jobs[jid];if(!j)return;
   if((j.status||"planned")===targetStatus)return;
-  confirmAction(`「${SL[targetStatus]}」に移動しますか？`,"工程を直接切り替えます。",async()=>{
-    await dbSet(`jobs/${jid}/status`,targetStatus);
-    jobs[jid]={...jobs[jid],status:targetStatus};
-    onDataChange();
-    if(document.getElementById("jobDetailModal")?.classList.contains("open"))openJobDetail(jid);
-    if(targetStatus==="done")showCompletionOverlay(j.name);
-    else showToast(`→ ${SL[targetStatus]} に更新しました`);
-  },"移動する",false);
+  await dbSet(`jobs/${jid}/status`,targetStatus);
+  jobs[jid]={...jobs[jid],status:targetStatus};
+  onDataChange();
+  if(document.getElementById("jobDetailModal")?.classList.contains("open"))openJobDetail(jid);
+  if(targetStatus==="done")showCompletionOverlay(j.name);
+  else showToast(`→ ${SL[targetStatus]} に更新しました`);
 }
 async function revertJobStatus(jid){
   const j=jobs[jid];if(!j)return;
