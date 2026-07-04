@@ -576,10 +576,10 @@ const FC={apiKey:"AIzaSyALzcHgWi33tip-QiMYfjeJCJgxEt8KI-4",authDomain:"awk-kanri
 const WD=["日","月","火","水","木","金","土"];
 function todayJST(){return new Date().toLocaleDateString("sv-SE",{timeZone:"Asia/Tokyo"});}
 function thisMonthJST(){const d=new Date(Date.now()+9*36e5);return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}`;}
-const SL={planned:"予定",ongoing:"施工中",kaiso_done:"架装完了",inspection:"検査中",rework:"手直し",shipping_prep:"出荷準備中",shipping:"出荷中",done:"出荷完了",overdue:"遅延"};
-const SB={planned:"badge-navy",ongoing:"badge-orange",kaiso_done:"badge-green",inspection:"badge-amber",rework:"badge-red",shipping_prep:"badge-blue",shipping:"badge-blue",done:"badge-green",overdue:"badge-red"};
-const SF=["planned","ongoing","kaiso_done","inspection","rework","shipping_prep","shipping","done"];
-const SI={planned:"schedule",ongoing:"build",kaiso_done:"check_circle",inspection:"fact_check",rework:"build_circle",shipping_prep:"inventory",shipping:"local_shipping",done:"verified",overdue:"warning"};
+const SL={planned:"予定",ongoing:"施工中",kaiso_done:"架装完了",inspection:"検査中",rework:"手直し",done:"出荷完了",overdue:"遅延"};
+const SB={planned:"badge-navy",ongoing:"badge-orange",kaiso_done:"badge-green",inspection:"badge-amber",rework:"badge-red",done:"badge-green",overdue:"badge-red"};
+const SF=["planned","ongoing","kaiso_done","inspection","rework","done"];
+const SI={planned:"schedule",ongoing:"build",kaiso_done:"check_circle",inspection:"fact_check",rework:"build_circle",done:"verified",overdue:"warning"};
 // 作業者が操作できる範囲（施工中→架装完了の2段階のみ）。これ以降は管理者のみが進行できる。
 const WORKER_EDITABLE_STATUSES=["planned","ongoing"];
 const IT=[
@@ -823,7 +823,7 @@ function renderBossJobList(){
   if(jobFilter==="ongoing")all=all.filter(j=>j.status!=="done");
   else if(jobFilter==="done")all=all.filter(j=>j.status==="done");
   else if(jobFilter==="over")all=all.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
-  const doneHint=jobFilter==="done"?`<div style="display:flex;align-items:center;gap:7px;padding:9px 12px;margin-bottom:8px;background:rgba(255,184,0,.07);border:1px solid rgba(255,184,0,.18);border-radius:9px;font-size:11px;color:var(--amber)"><span class="mi sm" style="font-size:14px;color:var(--amber)">info</span>間違えて完成にした場合は「施工中に戻す」ボタンで取り消せます</div>`:"";
+  const doneHint=jobFilter==="done"?`<div style="display:flex;align-items:center;gap:7px;padding:9px 12px;margin-bottom:8px;background:rgba(255,184,0,.07);border:1px solid rgba(255,184,0,.18);border-radius:9px;font-size:11px;color:var(--amber)"><span class="mi sm" style="font-size:14px;color:var(--amber)">info</span>戻すボタン(↩)は1段階ずつ戻せます。案件をタップして開くと、フロー図の工程を直接タップして一気に移動できます</div>`:"";
   el.innerHTML=doneHint+(all.length?all.map(j=>bossJobCard(j)).join(""):"<div style='text-align:center;padding:20px;font-size:12px;color:var(--muted)'>案件がありません</div>");
 }
 // ドーナツチャートSVGを生成するヘルパー
@@ -865,7 +865,7 @@ function bossJobCard(j){
   const schedC=schedPct!==null&&pct<schedPct-10?"var(--red)":schedPct!==null&&pct<schedPct?"var(--amber)":"var(--green)";
   // ステータスバー（一目で分かるよう主要4段階に絞って表示。検査中〜出荷中の詳細はタップ後のモーダルで表示）
   const SF3=["planned","ongoing","kaiso_done","done"];
-  const stMap={planned:0,ongoing:1,kaiso_done:2,inspection:3,rework:3,shipping_prep:3,shipping:3,done:3};
+  const stMap={planned:0,ongoing:1,kaiso_done:2,inspection:3,rework:3,done:3};
   const curIdx3=stMap[j.status]??0;
   const sfFlow=`<div style="display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;margin-bottom:10px">${SF3.map((s,i)=>{const isDone=i<curIdx3,isAct=i===curIdx3;return`${i>0?`<div style="width:20px;height:1px;background:${isDone?"var(--green)":"rgba(68,136,255,.15)"};flex-shrink:0;margin-bottom:12px"></div>`:""}
     <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
@@ -968,8 +968,8 @@ function renderBossSummary(){
   const otH=Math.round(logs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
   const lH=Math.round(wlArr().filter(l=>l.date===ts).reduce((a,l)=>a+(l.lossHours||0),0)*100)/100;
   const done=jobsArr().filter(j=>j.status==="done").length;
-  const ship=jobsArr().filter(j=>j.status==="shipping").length;
-  el.innerHTML=`<div class="card-sm" style="margin-bottom:10px"><div class="stat-grid stat-grid-3">${[["直接",dH+"h","var(--orange)"],["間接",iH+"h","var(--blue)"],["残業",otH+"h","var(--red)"],["ロス",lH+"h","var(--red)"],["完了",done+"件","var(--green)"],["出荷中",ship+"件","var(--blue)"]].map(([l,v,c])=>`<div style="text-align:center;padding:6px 0"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:${c}">${v}</div><div style="font-size:8px;color:var(--dim);margin-top:2px">${l}</div></div>`).join("")}</div></div>`;
+  const rework=jobsArr().filter(j=>j.status==="rework").length;
+  el.innerHTML=`<div class="card-sm" style="margin-bottom:10px"><div class="stat-grid stat-grid-3">${[["直接",dH+"h","var(--orange)"],["間接",iH+"h","var(--blue)"],["残業",otH+"h","var(--red)"],["ロス",lH+"h","var(--red)"],["完了",done+"件","var(--green)"],["手直し中",rework+"件","var(--red)"]].map(([l,v,c])=>`<div style="text-align:center;padding:6px 0"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:${c}">${v}</div><div style="font-size:8px;color:var(--dim);margin-top:2px">${l}</div></div>`).join("")}</div></div>`;
 }
 function renderBossTimeline(){
   const el=document.getElementById("homeTimeline");if(!el)return;
@@ -1358,17 +1358,20 @@ function renderWorkerJobDetail(){
     const barC=pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)";
     const tasks=((j.memberTasks&&j.memberTasks[mid])||[]);
     const pid="wd"+Math.random().toString(36).slice(2,7);
-    // ステータスフロー（作業者が見るのは「施工中→架装完了」の2段階のみ。それ以降の検査〜出荷は管理者側の工程）
+    // ステータスフロー（作業者が見るのは「施工中→架装完了」の2段階のみ。ただし手直し中は再び入力・完了操作が必要）
+    const isRework=j.status==="rework";
     const SF2W=["ongoing","kaiso_done"];
     const kIdx=SF.indexOf("kaiso_done"),jIdx=SF.indexOf(j.status||"planned");
     const curIdx=jIdx>=kIdx?1:0;
-    const flowHtml=`<div class="status-flow" style="margin-bottom:10px">${SF2W.map((s,i)=>{
+    const flowHtml=isRework?`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(255,59,59,.08);border:1px solid rgba(255,59,59,.2);border-radius:9px;font-size:11px;color:var(--red);font-weight:600"><span class="mi sm" style="font-size:14px">build_circle</span>手直し中 — 修正作業をして完了報告してください</div>`:`<div class="status-flow" style="margin-bottom:10px">${SF2W.map((s,i)=>{
       const isDone=i<curIdx,isAct=i===curIdx;
       return`${i>0?`<div class="sf-conn ${isDone?"done":""}"></div>`:""}
       <div class="sf-step"><div class="sf-icon ${isDone?"done":isAct?"active":""}"><span class="mi sm" style="font-size:12px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span></div><div class="sf-lbl ${isDone?"done":isAct?"active":""}">${SL[s]}</div></div>`;
     }).join("")}</div>`;
     const canComplete=WORKER_EDITABLE_STATUSES.includes(j.status||"planned");
-    const completeBtnHtml=canComplete?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>架装完了にする</button>`:`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(0,214,143,.06);border:1px solid rgba(0,214,143,.15);border-radius:9px;font-size:11px;color:var(--green)"><span class="mi sm" style="font-size:14px">verified</span>架装完了済み — この先は管理者が進めます</div>`;
+    const completeBtnHtml=isRework?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;background:var(--red);border-color:var(--red)" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>手直し完了にする</button>`
+      :canComplete?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>架装完了にする</button>`
+      :`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(0,214,143,.06);border:1px solid rgba(0,214,143,.15);border-radius:9px;font-size:11px;color:var(--green)"><span class="mi sm" style="font-size:14px">verified</span>架装完了済み — この先は管理者が進めます</div>`;
     return`<div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
         <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${esc(j.name)}</div><div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}</div></div>
@@ -1968,7 +1971,17 @@ async function markJobDone(jid){await advanceJobStatus(jid);}
 // ===== 作業者：架装完了ボタン =====
 async function workerCompleteJob(jid){
   const j=jobs[jid];if(!j)return;
-  if(!WORKER_EDITABLE_STATUSES.includes(j.status||"planned")){showToast("この案件はすでに架装完了しています");return;}
+  const status=j.status||"planned";
+  if(status==="rework"){
+    confirmAction("手直し完了にしますか？","再検査のため管理者に戻します。",async()=>{
+      await dbSet(`jobs/${jid}/status`,"inspection");
+      jobs[jid]={...jobs[jid],status:"inspection"};
+      onDataChange();
+      showCompletionOverlay(j.name,{eyebrow:"REWORK COMPLETE",sub:"手直し完了 — 管理者が再検査します",icon:"check_circle"});
+    },"手直し完了にする",false);
+    return;
+  }
+  if(!WORKER_EDITABLE_STATUSES.includes(status)){showToast("この案件はすでに架装完了しています");return;}
   confirmAction("架装完了にしますか？","この後の検査・出荷準備は管理者が進めます。",async()=>{
     await dbSet(`jobs/${jid}/status`,"kaiso_done");
     jobs[jid]={...jobs[jid],status:"kaiso_done"};
