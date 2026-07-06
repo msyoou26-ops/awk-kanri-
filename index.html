@@ -1108,9 +1108,6 @@ function renderMemberList(){
     const otH=Math.round(mLogs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
     // 今日の直接工数
     const dH=Math.round(mLogs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
-    // 担当案件の進捗率（平均）
-    const myJobs=getJobsForMember(m.id).filter(j=>j.status!=="done");
-    const avgPct=myJobs.length?Math.round(myJobs.reduce((a,j)=>{const tp=totalH(j),ta=actualH(j);return a+(tp>0?Math.min(ta/tp*100,100):0);},0)/myJobs.length):null;
     return`<div class="card-sm" style="margin-bottom:6px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${on>0?"8":"0"}px">
         <div style="position:relative">
@@ -1124,7 +1121,7 @@ function renderMemberList(){
         <button class="btn-ghost" onclick="openMemberModal('${m.id}')"><span class="mi sm">edit</span></button>
         <button class="btn-ghost" style="color:var(--red)" onclick="deleteMember('${m.id}')"><span class="mi sm">delete</span></button>
       </div>
-      ${on>0||dH>0||otH>0?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+      ${on>0||dH>0||otH>0?`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px">
         <div style="background:rgba(255,107,0,.06);border:1px solid rgba(255,107,0,.12);border-radius:7px;padding:6px;text-align:center">
           <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:var(--orange);line-height:1">${dH}h</div>
           <div style="font-size:8px;color:var(--dim);margin-top:2px">今日の直接</div>
@@ -1132,10 +1129,6 @@ function renderMemberList(){
         <div style="background:${otH>0?"rgba(255,59,59,.08)":"rgba(255,255,255,.03)"};border:1px solid ${otH>0?"rgba(255,59,59,.2)":"rgba(68,136,255,.08)"};border-radius:7px;padding:6px;text-align:center">
           <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${otH>0?"var(--red)":"var(--dim)"};line-height:1">${otH}h</div>
           <div style="font-size:8px;color:var(--dim);margin-top:2px">残業</div>
-        </div>
-        <div style="background:${avgPct!==null&&avgPct>=80?"rgba(255,59,59,.06)":avgPct!==null&&avgPct>=60?"rgba(255,184,0,.06)":"rgba(0,214,143,.04)"};border:1px solid ${avgPct!==null&&avgPct>=80?"rgba(255,59,59,.15)":avgPct!==null&&avgPct>=60?"rgba(255,184,0,.15)":"rgba(0,214,143,.1)"};border-radius:7px;padding:6px;text-align:center">
-          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${avgPct!==null&&avgPct>=80?"var(--red)":avgPct!==null&&avgPct>=60?"var(--amber)":"var(--green)"};line-height:1">${avgPct!==null?avgPct+"%":"—"}</div>
-          <div style="font-size:8px;color:var(--dim);margin-top:2px">案件進捗</div>
         </div>
       </div>`:""}
     </div>`;}).join("")+`<button class="btn" style="width:100%;justify-content:center;margin-top:6px" onclick="openMemberModal()"><span class="mi sm">person_add</span>作業者を追加</button>`;
