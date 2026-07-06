@@ -923,8 +923,25 @@ function renderBossJobList(){
   else if(jobFilter==="over")all=all.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   const doneHint=jobFilter==="done"?`<div style="display:flex;align-items:center;gap:7px;padding:9px 12px;margin-bottom:8px;background:rgba(255,184,0,.07);border:1px solid rgba(255,184,0,.18);border-radius:9px;font-size:11px;color:var(--amber)"><span class="mi sm" style="font-size:14px;color:var(--amber)">info</span>戻すボタン(↩)は1段階ずつ戻せます。案件をタップして開くと、フロー図の工程を直接タップして一気に移動できます</div>`:"";
   el.innerHTML=doneHint+(all.length?all.map(j=>bossJobCard(j)).join(""):"<div style='text-align:center;padding:20px;font-size:12px;color:var(--muted)'>案件がありません</div>");
+  runPendingDonutAnimations();
 }
 // ドーナツチャートSVGを生成するヘルパー
+let pendingDonutAnimations=[];
+function runPendingDonutAnimations(){
+  const batch=pendingDonutAnimations;pendingDonutAnimations=[];
+  setTimeout(()=>{
+    batch.forEach(({targets})=>{
+      targets.forEach(({id,pct:p,c})=>{
+        const el=document.getElementById(id),lb=document.getElementById(id+"_lbl");
+        if(!el)return;
+        const r=el.r?.baseVal?.value||22,circ=2*Math.PI*r;
+        el.style.stroke=c;
+        el.style.strokeDashoffset=circ-(circ*Math.min(p,100)/100);
+        if(lb){let cur=0;const t=setInterval(()=>{cur=Math.min(cur+2,p);lb.textContent=cur+"%";if(cur>=p)clearInterval(t);},18);}
+      });
+    });
+  },80);
+}
 function donutSVG(pct,color,size,id){
   const r=size/2-5,circ=2*Math.PI*r;
   const offset=circ-(circ*Math.min(pct,100)/100);
@@ -973,7 +990,7 @@ function bossJobCard(j){
       <div style="font-size:6px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"};white-space:nowrap;${isAct?"font-weight:700":""}">${SL[s]}</div>
     </div>`;}).join("")}</div>`;
 
-  return`<div class="job-card s-${j.status||"planned"}" style="padding:14px 14px 14px 17px;cursor:pointer" onclick="openJobDetail('${j.id}')">
+  const html=`<div class="job-card s-${j.status||"planned"}" style="padding:14px 14px 14px 17px;cursor:pointer" onclick="openJobDetail('${j.id}')">
 
     <!-- ヘッダー: 案件名 + バッジ -->
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
@@ -1045,21 +1062,16 @@ function bossJobCard(j){
       </button>`:`<div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--green);gap:5px"><span class="mi sm">verified</span>完了済み</div>`}
     </div>
 
-  </div>
-  <script>setTimeout(()=>{
-    const targets=[
-      {id:"${oid}_p",pct:${pct},c:"${pctC}"},
-      {id:"${oid}_r",pct:${remainPct!==null?remainPct:0},c:"${remC}"},
-      {id:"${oid}_s",pct:${schedPct!==null?schedPct:0},c:"${schedC}"},
-    ];
-    targets.forEach(({id,pct:p,c})=>{
-      const el=document.getElementById(id),lb=document.getElementById(id+"_lbl");
-      if(!el)return;
-      const r=el.r?.baseVal?.value||22,circ=2*Math.PI*r;
-      el.style.strokeDashoffset=circ-(circ*Math.min(p,100)/100);
-      if(lb){let cur=0;const t=setInterval(()=>{cur=Math.min(cur+2,p);lb.textContent=cur+"%";if(cur>=p)clearInterval(t);},18);}
-    });
-  },100);<\/script>`;
+  </div>`;
+  pendingDonutAnimations.push({
+    targets:[
+      {id:oid+"_m",pct:j.manualProgress?.pct??0,c:(j.manualProgress&&j.manualProgress.pct>=100)?"var(--green)":"var(--blue)"},
+      {id:oid+"_p",pct,c:pctC},
+      {id:oid+"_r",pct:remainPct!==null?remainPct:0,c:remC},
+      {id:oid+"_s",pct:schedPct!==null?schedPct:0,c:schedC},
+    ]
+  });
+  return html;
 }
 function renderBossSummary(){
   const el=document.getElementById("homeSummary");if(!el)return;
