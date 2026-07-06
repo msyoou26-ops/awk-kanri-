@@ -1477,22 +1477,33 @@ function renderWorkerJobDetail(){
 function renderBossInput(){
   const mid=getIWId();
   const badge=document.getElementById("bossInputWorkerBadge");
+  const content=document.getElementById("bossInputContent");
   if(!mid){
     if(badge)badge.textContent="";
-    document.getElementById("bossInputContent").innerHTML=buildWorkerSelectUI();
+    content.innerHTML=buildWorkerSelectUI();
+    content.dataset.builtFor="";
     return;
   }
   const m=getMember(mid);
   if(badge)badge.textContent=m?m.name:"";
-  document.getElementById("bossInputContent").innerHTML=buildInputUI(mid);
+  if(content.dataset.builtFor!==String(mid)){
+    content.innerHTML=buildInputUI(mid);
+    content.dataset.builtFor=String(mid);
+  }
   renderInputJobList(mid,"bossInputContent");
+  renderInputTasks();
   renderLossChips();
   renderZBatch();
 }
 function renderWorkerInput(){
   const mid=session.memberId;
-  document.getElementById("workerInputContent").innerHTML=buildInputUI(mid);
+  const content=document.getElementById("workerInputContent");
+  if(content.dataset.builtFor!==String(mid)){
+    content.innerHTML=buildInputUI(mid);
+    content.dataset.builtFor=String(mid);
+  }
   renderInputJobList(mid,"workerInputContent");
+  renderInputTasks();
   renderLossChips();
   renderZBatch();
 }
