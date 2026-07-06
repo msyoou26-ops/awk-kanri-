@@ -1021,10 +1021,6 @@ function bossJobCard(j){
           ${donutSVG(remainPct,remC,54,oid+"_r")}
           <div style="font-size:7px;color:var(--dim);margin-top:2px">残工数率</div>
         </div>`:""}
-        ${schedPct!==null?`<div style="text-align:center;flex-shrink:0">
-          ${donutSVG(schedPct,schedC,54,oid+"_s")}
-          <div style="font-size:7px;color:var(--dim);margin-top:2px">日程</div>
-        </div>`:""}
       </div>
 
       <!-- 数字エリア -->
@@ -1068,7 +1064,6 @@ function bossJobCard(j){
       {id:oid+"_m",pct:j.manualProgress?.pct??0,c:(j.manualProgress&&j.manualProgress.pct>=100)?"var(--green)":"var(--blue)"},
       {id:oid+"_p",pct,c:pctC},
       {id:oid+"_r",pct:remainPct!==null?remainPct:0,c:remC},
-      {id:oid+"_s",pct:schedPct!==null?schedPct:0,c:schedC},
     ]
   });
   return html;
