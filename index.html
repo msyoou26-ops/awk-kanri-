@@ -594,6 +594,10 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     </div>
     <div class="field"><label>見積工数（h）</label><input type="number" id="fPlan" class="f-input" min="0" step="0.5" placeholder="例: 120"></div>
     <div class="field"><label>担当者</label><div id="fMemberChips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px"></div></div>
+    <div class="field" style="display:flex;gap:8px">
+      <div style="flex:1"><label>主担当（車担当・見積70%）</label><select id="fPrimary" class="f-input"></select></div>
+      <div style="flex:1"><label>電装担当（見積30%）</label><select id="fDenki" class="f-input"></select></div>
+    </div>
     <div style="display:flex;gap:7px;margin-top:6px"><button class="btn" style="flex:1;justify-content:center" onclick="closeModal('jobModal')">キャンセル</button><button class="btn-primary" style="flex:2" onclick="saveJob()"><span class="mi sm">save</span>保存</button></div>
   </div>
 </div>
@@ -750,6 +754,18 @@ function wlArr(){return Object.entries(workLogs).map(([id,l])=>({...l,id})).sort
 function getMember(id){return members[id]||null;}
 function getJobsForMember(mid){return jobsArr().filter(j=>{const ids=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);return ids.includes(mid);});}
 function totalH(j){return parseFloat(j.planH)||0;}
+// 個人の見積按分：主担当70%・電装担当30%・それ以外(サブ)は見積負担なし(0)。
+// 主担当/電装が未設定の古い案件は今まで通り人数で均等按分するフォールバック
+function memberEstimateShare(j,mid){
+  const total=totalH(j);
+  if(j.primaryMemberId||j.denkiMemberId){
+    if(mid===j.primaryMemberId)return total*0.7;
+    if(mid===j.denkiMemberId)return total*0.3;
+    return 0;
+  }
+  const mids=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);
+  return total/Math.max(mids.length,1);
+}
 function actualH(j){let t=0;const mids=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);mids.forEach(mid=>{((j.memberTasks&&j.memberTasks[mid])||[]).forEach(t2=>{t+=parseFloat(t2.actual)||0;});});return Math.round(t*100)/100;}
 function lossH(j){let t=0;const mids=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);mids.forEach(mid=>{((j.memberTasks&&j.memberTasks[mid])||[]).forEach(t2=>{t+=parseFloat(t2.lossH)||0;});});return Math.round(t*100)/100;}
 function daysLeft(d){const t=new Date();t.setHours(0,0,0,0);return Math.ceil((new Date(d)-t)/86400000);}
@@ -1162,13 +1178,9 @@ function renderWHMonth(){
   const mid=session.memberId,ym=thisMonthJST();
   const logs=nippoArr().filter(l=>l.memberId===mid&&l.date&&l.date.startsWith(ym));
   const actH=Math.round(logs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
-  // 担当案件の今月見積（案件の見積工数を作業者数で割って今月分と仮定）
+  // 担当案件の今月見積（主担当70%・電装30%・サブは負担なしで按分）
   const myJobs=getJobsForMember(mid).filter(j=>j.status!=="done");
-  const planH=Math.round(myJobs.reduce((a,j)=>{
-    const mids=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);
-    const share=mids.length>0?mids.length:1;
-    return a+(totalH(j)/share);
-  },0)*100)/100;
+  const planH=Math.round(myJobs.reduce((a,j)=>a+memberEstimateShare(j,mid),0)*100)/100;
   const remain=Math.round((planH-actH)*100)/100;
   el.innerHTML=`<div class="stat-grid stat-grid-3" style="margin-bottom:8px">
     <div class="stat-cell"><div class="stat-val" style="color:var(--orange);font-size:18px">${actH}h</div><div class="stat-lbl">今月実績</div></div>
@@ -1183,10 +1195,7 @@ function renderWHYear(){
   const logs=nippoArr().filter(l=>l.memberId===mid&&l.date&&l.date.startsWith(year));
   const actH=Math.round(logs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
   const myJobs=getJobsForMember(mid);
-  const planH=Math.round(myJobs.reduce((a,j)=>{
-    const mids=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);
-    return a+(totalH(j)/Math.max(mids.length,1));
-  },0)*100)/100;
+  const planH=Math.round(myJobs.reduce((a,j)=>a+memberEstimateShare(j,mid),0)*100)/100;
   const remain=Math.round((planH-actH)*100)/100;
   el.innerHTML=`<div class="stat-grid stat-grid-3" style="margin-bottom:8px">
     <div class="stat-cell"><div class="stat-val" style="color:var(--orange);font-size:18px">${actH}h</div><div class="stat-lbl">年間実績</div></div>
@@ -1388,7 +1397,7 @@ function renderWHAchieve(tab){
     const logs=nippoArr().filter(l=>l.memberId===mid&&l.date&&l.date.startsWith(ym));
     const actH=Math.round(logs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
     const myJobs=getJobsForMember(mid).filter(j=>j.status!=="done");
-    const planH=Math.round(myJobs.reduce((a,j)=>{const ms=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);return a+(totalH(j)/Math.max(ms.length,1));},0)*100)/100;
+    const planH=Math.round(myJobs.reduce((a,j)=>a+memberEstimateShare(j,mid),0)*100)/100;
     const remain=Math.round((planH-actH)*100)/100;
     if(remain>0){msg=`今月 ${remain}h 工数に余裕があります`;icon="trending_down";color="var(--green)";}
     else if(remain<0){msg=`今月 ${Math.abs(remain)}h 見積を超えています`;icon="trending_up";color="var(--red)";}
@@ -1398,7 +1407,7 @@ function renderWHAchieve(tab){
     const logs=nippoArr().filter(l=>l.memberId===mid&&l.date&&l.date.startsWith(year));
     const actH=Math.round(logs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
     const myJobs=getJobsForMember(mid);
-    const planH=Math.round(myJobs.reduce((a,j)=>{const ms=(j.memberIds&&j.memberIds.length)?j.memberIds:[j.memberId].filter(Boolean);return a+(totalH(j)/Math.max(ms.length,1));},0)*100)/100;
+    const planH=Math.round(myJobs.reduce((a,j)=>a+memberEstimateShare(j,mid),0)*100)/100;
     const remain=Math.round((planH-actH)*100)/100;
     if(remain>0){msg=`年間 ${remain}h 見積より少なく進めています`;icon="emoji_events";color="var(--green)";}
     else if(remain<0){msg=`年間 ${Math.abs(remain)}h 見積を超えています`;icon="trending_up";color="var(--red)";}
@@ -1919,9 +1928,22 @@ function renderAnalysisOverview(){
     <div class="stat-cell" style="${overR>50?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="color:${overR>50?"var(--red)":"var(--text)"}">${overR}%</div><div class="stat-lbl">工数超過率</div></div>
     <div class="stat-cell" style="${avgD>0?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="color:${avgD>0?"var(--red)":"var(--green)"}">${avgD>0?"+":""}${avgD}h</div><div class="stat-lbl">平均超過/件</div></div>
   </div></div>
-  <div class="card"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">案件別 見積 vs 実績</div>${done.length?done.map(j=>{const tp=totalH(j),ta=actualH(j),diff=Math.round((ta-tp)*100)/100,pct=tp>0?Math.round(ta/tp*100):0;
+  <div class="card" style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">案件別 見積 vs 実績</div>${done.length?done.map(j=>{const tp=totalH(j),ta=actualH(j),diff=Math.round((ta-tp)*100)/100,pct=tp>0?Math.round(ta/tp*100):0;
     return`<div style="padding:8px 0;border-bottom:1px solid rgba(68,136,255,.06)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div><span class="badge ${diff>0?"badge-red":"badge-green"}" style="margin-left:8px;flex-shrink:0">${diff>0?"+":""}${diff}h</span></div><div style="display:flex;gap:8px;font-size:9px;color:var(--dim);margin-bottom:4px"><span>見積${tp}h</span><span>実績${ta}h</span><span>${pct}%</span></div><div class="prog-bar" style="height:3px"><div class="prog-fill" style="width:${Math.min(pct,100)}%;background:${pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)"}"></div></div></div>`;
-  }).join(""):"<div style='font-size:12px;color:var(--muted);text-align:center;padding:16px'>完成案件がありません</div>"}</div>`;
+  }).join(""):"<div style='font-size:12px;color:var(--muted);text-align:center;padding:16px'>完成案件がありません</div>"}</div>
+  <div class="card"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">個人別 見積 vs 実績（主担当70%・電装30%で按分）</div>${(()=>{
+    const rows=membersArr().map(m=>{
+      const myJobs=getJobsForMember(m.id);
+      const plan=Math.round(myJobs.reduce((a,j)=>a+memberEstimateShare(j,m.id),0)*100)/100;
+      const act=Math.round(myJobs.reduce((a,j)=>{const mt=(j.memberTasks&&j.memberTasks[m.id])||[];return a+mt.reduce((s,t)=>s+(parseFloat(t.actual)||0),0);},0)*100)/100;
+      return{m,plan,act,diff:Math.round((plan-act)*100)/100};
+    }).filter(r=>r.plan>0||r.act>0).sort((a,b)=>b.diff-a.diff);
+    if(!rows.length)return "<div style='font-size:12px;color:var(--muted);text-align:center;padding:16px'>データなし</div>";
+    return rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(68,136,255,.06)">
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.m.name)}</div><div style="font-size:9px;color:var(--dim);margin-top:1px">見積${r.plan}h ／ 実績${r.act}h</div></div>
+      <span class="badge ${r.diff>=0?"badge-green":"badge-red"}" style="flex-shrink:0">${r.diff>=0?"+":""}${r.diff}h ${r.diff>=0?"余り":"超過"}</span>
+    </div>`).join("");
+  })()}</div>`;
 }
 function renderAnalysisProcess(){
   const el=document.getElementById("analysisProcessTab");if(!el)return;
@@ -2026,6 +2048,9 @@ function openJobModal(jid){
   populateTplSelect("fName","jobName",j?.name||"");populateTplSelect("fCar","carType",j?.carType||"");
   const mids=j?.memberIds||[];
   document.getElementById("fMemberChips").innerHTML=membersArr().map(m=>`<div onclick="this.classList.toggle('on')" id="jmc_${m.id}" class="chip${mids.includes(m.id)?" on":""}" style="font-size:11px;padding:5px 10px">${esc(m.name)}</div>`).join("");
+  const memOpts=`<option value="">未設定</option>`+membersArr().map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join("");
+  document.getElementById("fPrimary").innerHTML=memOpts;document.getElementById("fPrimary").value=j?.primaryMemberId||"";
+  document.getElementById("fDenki").innerHTML=memOpts;document.getElementById("fDenki").value=j?.denkiMemberId||"";
   openModal("jobModal");
   document.getElementById("jobModal").onclick=e=>{if(e.target===document.getElementById("jobModal"))closeModal("jobModal");};
 }
@@ -2040,8 +2065,12 @@ async function saveJob(){
   const name=document.getElementById("fName").value==="__manual__"?document.getElementById("fNameManual").value.trim():document.getElementById("fName").value;
   const carType=document.getElementById("fCar").value==="__manual__"?document.getElementById("fCarManual").value.trim():document.getElementById("fCar").value;
   if(!name){showToast("案件名を入力してください");return;}
-  const memberIds=[...document.querySelectorAll("#fMemberChips .chip.on")].map(el=>el.id.replace("jmc_",""));
-  const data={name,orderNo:document.getElementById("fOrd").value.trim(),carType,userName:document.getElementById("fUser").value.trim(),start:document.getElementById("fStart").value,end:document.getElementById("fEnd").value,planH:parseFloat(document.getElementById("fPlan").value)||0,memberIds,status:editJobId?jobs[editJobId]?.status:"ongoing",updatedAt:Date.now()};
+  let memberIds=[...document.querySelectorAll("#fMemberChips .chip.on")].map(el=>el.id.replace("jmc_",""));
+  const primaryMemberId=document.getElementById("fPrimary").value||null;
+  const denkiMemberId=document.getElementById("fDenki").value||null;
+  // 主担当・電装担当に選んだ人は担当者リストにも自動で含める
+  [primaryMemberId,denkiMemberId].forEach(id=>{if(id&&!memberIds.includes(id))memberIds.push(id);});
+  const data={name,orderNo:document.getElementById("fOrd").value.trim(),carType,userName:document.getElementById("fUser").value.trim(),start:document.getElementById("fStart").value,end:document.getElementById("fEnd").value,planH:parseFloat(document.getElementById("fPlan").value)||0,memberIds,primaryMemberId,denkiMemberId,status:editJobId?jobs[editJobId]?.status:"ongoing",updatedAt:Date.now()};
   const id=editJobId||uid();
   await dbSet("jobs/"+id,{...(editJobId?jobs[editJobId]:{}), ...data});
   if(!fbReady)jobs[id]={...data,id};
