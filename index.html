@@ -1633,11 +1633,12 @@ function renderInputTasks(){
   const tasks=mid?((j.memberTasks&&j.memberTasks[mid])||[]):[];
   if(!tasks.length){el.innerHTML=`<div style="text-align:center;padding:10px;font-size:12px;color:var(--muted)">工程がまだありません<br><button class="btn" style="margin-top:7px;font-size:11px" onclick="addNewTask()"><span class="mi sm">add</span>工程を追加</button></div>`;return;}
   el.innerHTML=tasks.map(t=>{const sel=inputState.taskId===t.id;const a=parseFloat(t.actual)||0;
-    return`<div onclick="selectInputTask('${t.id}')" style="padding:9px 12px;border-radius:9px;border:1px solid ${sel?"rgba(255,107,0,.3)":"var(--gb)"};background:${sel?"rgba(255,107,0,.08)":"var(--glass2)"};cursor:pointer;margin-bottom:5px;display:flex;align-items:center;gap:7px;transition:all .15s">
+    return`<div onclick="selectInputTask('${t.id}')" data-task-id="${t.id}" style="padding:9px 12px;border-radius:9px;border:1px solid ${sel?"rgba(255,107,0,.3)":"var(--gb)"};background:${sel?"rgba(255,107,0,.08)":"var(--glass2)"};cursor:pointer;margin-bottom:5px;display:flex;align-items:center;gap:7px;transition:all .15s">
       <div style="width:5px;height:5px;border-radius:50%;background:${t.status==="done"?"var(--green)":t.status==="ongoing"?"var(--amber)":"var(--muted)"};flex-shrink:0"></div>
       <input type="text" value="${esc(t.name||"")}" placeholder="工程名" onclick="event.stopPropagation()" onchange="updateTaskName('${t.id}',this.value)" style="flex:1;font-size:12px;font-weight:600;color:${sel?"var(--orange)":"var(--text)"};background:transparent;border:none;outline:none;min-width:0;font-family:'Noto Sans JP',sans-serif">
       <div style="font-size:10px;color:var(--dim);flex-shrink:0">${a}h</div>
       <button onclick="event.stopPropagation();cycleTaskStatus('${t.id}')" style="font-size:9px;padding:2px 6px;border-radius:5px;border:1px solid ${t.status==="done"?"var(--green)":t.status==="ongoing"?"var(--amber)":"var(--gb2)"};background:transparent;color:${t.status==="done"?"var(--green)":t.status==="ongoing"?"var(--amber)":"var(--dim)"};cursor:pointer;flex-shrink:0;font-family:'Noto Sans JP',sans-serif">${t.status==="done"?"完了":t.status==="ongoing"?"進行中":"未着手"}</button>
+      <button onclick="event.stopPropagation();deleteTask('${t.id}')" style="font-size:12px;padding:3px;border-radius:5px;border:none;background:transparent;color:var(--dim);cursor:pointer;flex-shrink:0;display:flex"><span class="mi sm">close</span></button>
       ${sel?`<span class="mi sm" style="color:var(--orange)">check_circle</span>`:""}
     </div>`;}).join("");
 }
@@ -1646,10 +1647,32 @@ async function addNewTask(){
   const j=jobs[inputState.jobId];if(!j)return;
   const mid=getIWId();if(!mid){showToast("作業者を選んでください");return;}
   const mt=(j.memberTasks&&j.memberTasks[mid])||[];
-  const updated=[...mt,{id:uid(),name:"",actual:0,lossH:0,status:"planned"}];
+  const newId=uid();
+  const updated=[...mt,{id:newId,name:"",actual:0,lossH:0,status:"planned"}];
   await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,updated);
-  if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
+  if(!j.memberTasks)j.memberTasks={};
+  j.memberTasks[mid]=updated;
   renderInputTasks();
+  showToast("✅ 工程を追加しました");
+  // 追加した工程が画面内に見えるようにスクロール＆フォーカス
+  setTimeout(()=>{
+    const row=document.querySelector(`[data-task-id="${newId}"]`);
+    if(row){row.scrollIntoView({behavior:"smooth",block:"center"});const inp=row.querySelector("input");if(inp)inp.focus();}
+  },80);
+}
+async function deleteTask(tid){
+  const j=jobs[inputState.jobId];if(!j)return;
+  const mid=getIWId();if(!mid)return;
+  confirmAction("この工程を削除しますか？","入力した実績時間もこの工程から削除されます。",async()=>{
+    const mt=(j.memberTasks&&j.memberTasks[mid])||[];
+    const updated=mt.filter(t=>t.id!==tid);
+    await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,updated);
+    if(!j.memberTasks)j.memberTasks={};
+    j.memberTasks[mid]=updated;
+    if(inputState.taskId===tid)inputState.taskId=null;
+    renderInputTasks();
+    showToast("🗑️ 工程を削除しました");
+  },"削除する",true);
 }
 async function updateTaskName(tid,name){
   const j=jobs[inputState.jobId];if(!j)return;
@@ -1657,7 +1680,8 @@ async function updateTaskName(tid,name){
   const mt=(j.memberTasks&&j.memberTasks[mid])||[];
   const updated=mt.map(t=>t.id===tid?{...t,name}:t);
   await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,updated);
-  if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
+  if(!j.memberTasks)j.memberTasks={};
+  j.memberTasks[mid]=updated;
 }
 async function cycleTaskStatus(tid){
   const j=jobs[inputState.jobId];if(!j)return;
