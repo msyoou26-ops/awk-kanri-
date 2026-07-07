@@ -1464,8 +1464,12 @@ function renderWorkerJobDetail(){
       <div class="sf-step"><div class="sf-icon ${isDone?"done":isAct?"active":""}"><span class="mi sm" style="font-size:12px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span></div><div class="sf-lbl ${isDone?"done":isAct?"active":""}">${SL[s]}</div></div>`;
     }).join("")}</div>`;
     const canComplete=WORKER_EDITABLE_STATUSES.includes(j.status||"planned");
-    const completeBtnHtml=isRework?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;background:var(--red);border-color:var(--red)" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>手直し完了にする</button>`
-      :canComplete?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>架装完了にする</button>`
+    const allTasksDone=tasks.length>0&&tasks.every(t=>t.status==="done");
+    const notDoneCount=tasks.filter(t=>t.status!=="done").length;
+    const lockedMsg=`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(255,184,0,.06);border:1px solid rgba(255,184,0,.18);border-radius:9px;font-size:11px;color:var(--amber)"><span class="mi sm" style="font-size:14px">lock</span>${tasks.length===0?"工程がまだ登録されていません":`工程が${notDoneCount}件未完了です — 全て完了にすると押せます`}</div>`;
+    const completeBtnHtml=isRework
+      ?(allTasksDone?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;background:var(--red);border-color:var(--red)" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>手直し完了にする</button>`:lockedMsg)
+      :canComplete?(allTasksDone?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>架装完了にする</button>`:lockedMsg)
       :`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(0,214,143,.06);border:1px solid rgba(0,214,143,.15);border-radius:9px;font-size:11px;color:var(--green)"><span class="mi sm" style="font-size:14px">verified</span>架装完了済み — この先は管理者が進めます</div>`;
     return`<div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
@@ -2169,6 +2173,9 @@ async function markJobDone(jid){await advanceJobStatus(jid);}
 async function workerCompleteJob(jid){
   const j=jobs[jid];if(!j)return;
   const status=j.status||"planned";
+  const mid=session.memberId;
+  const tasks=(j.memberTasks&&j.memberTasks[mid])||[];
+  if(!tasks.length||!tasks.every(t=>t.status==="done")){showToast("工程を全て完了にしてから押してください");return;}
   if(status==="rework"){
     confirmAction("手直し完了にしますか？","再検査のため管理者に戻します。",async()=>{
       await dbSet(`jobs/${jid}/status`,"inspection");
