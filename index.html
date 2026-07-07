@@ -1278,15 +1278,16 @@ function renderWHCalInner(el,mid,st){
     const oth=hasLog?Math.round(hasLog.ot*10)/10:0;
     const isSpan=span.length>0;
     cells+=`<div onclick="showWHCalDay(${year},${month+1},${d})"
-      style="min-height:52px;border-radius:8px;padding:4px;cursor:pointer;position:relative;
-      background:${isToday?"rgba(255,107,0,.15)":isSpan?"rgba(68,136,255,.07)":"rgba(255,255,255,.02)"};
-      border:1px solid ${isToday?"rgba(255,107,0,.4)":isSpan?"rgba(68,136,255,.15)":"rgba(68,136,255,.06)"};
+      style="min-height:52px;border-radius:8px;padding:4px;cursor:pointer;position:relative;overflow:hidden;
+      background:${isToday?"rgba(255,107,0,.15)":isSpan?"rgba(68,136,255,.1)":"rgba(255,255,255,.02)"};
+      border:1px solid ${isToday?"rgba(255,107,0,.4)":isSpan?"rgba(68,136,255,.25)":"rgba(68,136,255,.06)"};
       transition:background .15s">
+      ${isSpan?`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue)"></div>`:""}
       <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:${isToday?"800":"500"};color:${isToday?"var(--orange)":"var(--text2)"};margin-bottom:2px">${d}</div>
       ${dh>0?`<div style="font-size:8px;font-weight:700;color:var(--orange);line-height:1.2">${dh}h</div>`:""}
       ${oth>0?`<div style="font-size:8px;color:var(--red);line-height:1.2">残${oth}h</div>`:""}
-      ${evs.map(e=>`<div style="font-size:6px;padding:1px 3px;border-radius:2px;background:${e.type==="start"?"rgba(0,214,143,.2)":"rgba(255,59,59,.2)"};color:${e.type==="start"?"var(--green)":"var(--red)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${e.type==="start"?"▶":"⬛"}</div>`).join("")}
-      ${isSpan&&!dh?`<div style="position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:rgba(68,136,255,.4)"></div>`:""}
+      ${evs.some(e=>e.type==="start")?`<div style="position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px rgba(5,9,18,.9)"><span class="mi sm" style="font-size:9px;color:#04140e">flag</span></div>`:""}
+      ${evs.some(e=>e.type==="end")?`<div style="position:absolute;top:${evs.some(e=>e.type==="start")?"18px":"2px"};right:2px;width:14px;height:14px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px rgba(5,9,18,.9)"><span class="mi sm" style="font-size:9px;color:#2a0808">event_busy</span></div>`:""}
     </div>`;
   }
   // 案件リスト（今月期間中）
@@ -1314,9 +1315,9 @@ function renderWHCalInner(el,mid,st){
     <!-- 凡例 -->
     <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
       <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:8px;height:8px;border-radius:2px;background:rgba(255,107,0,.15);border:1px solid rgba(255,107,0,.4)"></div>今日</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:8px;height:8px;border-radius:2px;background:rgba(68,136,255,.07);border:1px solid rgba(68,136,255,.15)"></div>架装期間中</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><span style="font-size:8px;color:var(--green)">▶</span>着工日</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><span style="font-size:8px;color:var(--red)">⬛</span>納期</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:8px;height:3px;border-radius:2px;background:var(--blue)"></div>架装期間中</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:11px;height:11px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center"><span class="mi sm" style="font-size:8px;color:#04140e">flag</span></div>着工日</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:11px;height:11px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center"><span class="mi sm" style="font-size:8px;color:#2a0808">event_busy</span></div>納期</div>
     </div>
     <!-- 今月の案件一覧 -->
     ${monthJobs.length?`<div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">今月の架装案件</div>
