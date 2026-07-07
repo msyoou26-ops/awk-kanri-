@@ -1182,14 +1182,12 @@ function renderWHMonth(){
   const mid=session.memberId,ym=thisMonthJST();
   const logs=nippoArr().filter(l=>l.memberId===mid&&l.date&&l.date.startsWith(ym));
   const actH=Math.round(logs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
-  // 担当案件の今月見積（主担当70%・電装30%・サブは負担なしで按分）
-  const myJobs=getJobsForMember(mid).filter(j=>j.status!=="done");
-  const planH=Math.round(myJobs.reduce((a,j)=>a+memberEstimateShare(j,mid),0)*100)/100;
-  const remain=Math.round((planH-actH)*100)/100;
+  const otH=Math.round(logs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
+  const totalH2=Math.round((actH+otH)*100)/100;
   el.innerHTML=`<div class="stat-grid stat-grid-3" style="margin-bottom:8px">
     <div class="stat-cell"><div class="stat-val" style="color:var(--orange);font-size:18px">${actH}h</div><div class="stat-lbl">今月実績</div></div>
-    <div class="stat-cell"><div class="stat-val" style="color:var(--dim);font-size:18px">${planH}h</div><div class="stat-lbl">今月見積</div></div>
-    <div class="stat-cell" style="${remain>=0?"":"background:rgba(255,59,59,.06);border-color:rgba(255,59,59,.15)"}"><div class="stat-val" style="color:${remain>=0?"var(--green)":"var(--red)"};font-size:18px">${remain>=0?"+":""}${remain}h</div><div class="stat-lbl">${remain>=0?"余り工数":"超過"}</div></div>
+    <div class="stat-cell" style="${otH>0?"background:rgba(255,59,59,.06);border-color:rgba(255,59,59,.15)":""}"><div class="stat-val" style="color:${otH>0?"var(--red)":"var(--dim)"};font-size:18px">${otH}h</div><div class="stat-lbl">今月残業</div></div>
+    <div class="stat-cell"><div class="stat-val" style="color:var(--text);font-size:18px">${totalH2}h</div><div class="stat-lbl">今月合計</div></div>
   </div>`;
 }
 function renderWHYear(){
@@ -1397,17 +1395,7 @@ function renderWHAchieve(tab){
   const el=document.getElementById("whAchieve");if(!el)return;
   const mid=session.memberId;
   let msg="",icon="",color="var(--orange)";
-  if(tab==="month"){
-    const ym=thisMonthJST();
-    const logs=nippoArr().filter(l=>l.memberId===mid&&l.date&&l.date.startsWith(ym));
-    const actH=Math.round(logs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
-    const myJobs=getJobsForMember(mid).filter(j=>j.status!=="done");
-    const planH=Math.round(myJobs.reduce((a,j)=>a+memberEstimateShare(j,mid),0)*100)/100;
-    const remain=Math.round((planH-actH)*100)/100;
-    if(remain>0){msg=`今月 ${remain}h 工数に余裕があります`;icon="trending_down";color="var(--green)";}
-    else if(remain<0){msg=`今月 ${Math.abs(remain)}h 見積を超えています`;icon="trending_up";color="var(--red)";}
-    else if(planH>0){msg="今月の工数がちょうど見積通りです";icon="done_all";color="var(--green)";}
-  }else if(tab==="year"){
+  if(tab==="year"){
     const year=new Date().getFullYear().toString();
     const logs=nippoArr().filter(l=>l.memberId===mid&&l.date&&l.date.startsWith(year));
     const actH=Math.round(logs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
