@@ -1428,20 +1428,20 @@ function workerJobCard(j){
   const tp=totalH(j),ta=actualH(j),pct=tp>0?Math.min(Math.round(ta/tp*100),100):0;
   const dl=j.end?daysLeft(j.end):null;
   const barC=pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)";
-  const pid="wj"+Math.random().toString(36).slice(2,7);
+  const isPrimary=session.memberId===j.primaryMemberId;
   return`<div class="job-card s-${j.status||"planned"}" style="padding-left:16px;cursor:pointer" onclick="showWorkerScreen('workerJobScreen')">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
       <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div><div style="font-size:10px;color:var(--dim)">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}</div></div>
       <span class="badge ${SB[j.status]||"badge-navy"}" style="margin-left:8px;flex-shrink:0;font-size:9px">${SL[j.status]||j.status}</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr)${dl!==null?" 1fr":""};gap:5px;margin-bottom:6px">
+    ${isPrimary?`<div style="display:grid;grid-template-columns:repeat(3,1fr)${dl!==null?" 1fr":""};gap:5px;margin-bottom:6px">
       <div class="stat-cell" style="padding:5px 4px"><div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700">${ta}h</div><div style="font-size:8px;color:var(--dim)">実績</div></div>
       <div class="stat-cell" style="padding:5px 4px"><div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--dim)">${tp}h</div><div style="font-size:8px;color:var(--dim)">見積</div></div>
       <div style="background:${tp>0&&ta>tp?"rgba(255,59,59,.08)":"rgba(0,214,143,.06)"};border:1px solid ${tp>0&&ta>tp?"rgba(255,59,59,.15)":"rgba(0,214,143,.12)"};border-radius:8px;padding:5px 4px;text-align:center"><div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:${tp>0&&ta>tp?"var(--red)":"var(--green)"}">${tp>0?Math.abs(Math.round((tp-ta)*100)/100):"-"}h</div><div style="font-size:8px;color:var(--dim)">${tp>0&&ta>tp?"超過":"残り"}</div></div>
       ${dl!==null?`<div class="stat-cell" style="padding:5px 4px"><div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:${dl<0?"var(--red)":dl<=3?"var(--amber)":"var(--text)"}">${dl<0?Math.abs(dl):dl}</div><div style="font-size:8px;color:var(--dim)">${dl<0?"日超":"日残"}</div></div>`:""}
     </div>
-    ${tp>0?`<div class="prog-bar"><div id="${pid}" style="height:100%;width:0%;background:${barC};border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1)"></div></div>`:""}
-  </div><script>setTimeout(()=>{const e=document.getElementById("${pid}");if(e)e.style.width="${pct}%";},120);<\/script>`;
+    ${tp>0?`<div class="prog-bar"><div style="height:100%;width:${pct}%;background:${barC};border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1)"></div></div>`:""}`:""}
+  </div>`;
 }
 function renderWorkerJobDetail(){
   const el=document.getElementById("workerJobDetail");if(!el)return;
@@ -1483,15 +1483,15 @@ function renderWorkerJobDetail(){
         <input type="range" min="0" max="100" value="${j.manualProgress?.pct??0}" oninput="document.getElementById('mpVal_${j.id}').textContent=this.value+'%'" onchange="saveManualProgress('${j.id}',this.value)" style="width:100%">
         <div style="font-size:9px;color:var(--dim);margin-top:5px">${j.manualProgress?.updatedAt?`最終更新：${new Date(j.manualProgress.updatedAt).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}`:"まだ入力されていません。今日の進み具合を入れてください"}</div>
       </div>`:""}
-      <div class="stat-grid stat-grid-4" style="margin-bottom:8px">
+      ${mid===j.primaryMemberId?`<div class="stat-grid stat-grid-4" style="margin-bottom:8px">
         <div class="stat-cell"><div class="stat-val" style="font-size:16px">${ta}h</div><div class="stat-lbl">実績</div></div>
         <div class="stat-cell"><div class="stat-val" style="font-size:16px;color:var(--dim)">${tp}h</div><div class="stat-lbl">見積</div></div>
         <div class="stat-cell" style="${tp>0&&ta>tp?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="font-size:16px;color:${tp>0&&ta>tp?"var(--red)":"var(--green)"}">${tp>0?Math.abs(Math.round((tp-ta)*100)/100):"-"}h</div><div class="stat-lbl">${tp>0&&ta>tp?"超過":"残り"}</div></div>
         <div class="stat-cell" style="${lh>0?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="font-size:16px;color:${lh>0?"var(--red)":"var(--dim)"}">${lh}h</div><div class="stat-lbl">ロス</div></div>
       </div>
-      ${tp>0?`<div class="prog-bar" style="margin-bottom:3px"><div id="${pid}" style="height:100%;width:0%;background:${barC};transition:width 1s cubic-bezier(.4,0,.2,1)"></div></div><div style="text-align:right;font-size:9px;color:${barC};margin-bottom:8px">${pct}%</div>`:""}
+      ${tp>0?`<div class="prog-bar" style="margin-bottom:3px"><div style="height:100%;width:${pct}%;background:${barC};transition:width 1s cubic-bezier(.4,0,.2,1)"></div></div><div style="text-align:right;font-size:9px;color:${barC};margin-bottom:8px">${pct}%</div>`:""}`:""}
       ${tasks.length?`<div style="font-size:9px;font-weight:700;color:var(--dim);margin-bottom:6px;letter-spacing:.8px">工程別</div>${tasks.map(t=>{const a=parseFloat(t.actual)||0;const lH=parseFloat(t.lossH)||0;return`<div style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid rgba(68,136,255,.06)"><div style="width:6px;height:6px;border-radius:50%;background:${t.status==="done"?"var(--green)":t.status==="ongoing"?"var(--amber)":"var(--muted)"};flex-shrink:0"></div><div style="flex:1;font-size:11px;color:var(--text2)">${esc(t.name||"作業")}</div><span style="font-size:11px;font-weight:700;font-family:'Inter',sans-serif">${a}h</span>${lH>0?`<span class="badge badge-red" style="font-size:8px">${lH}h</span>`:""}</div>`;}).join("")}`:""}
-    </div><script>setTimeout(()=>{const e=document.getElementById("${pid}");if(e)e.style.width="${pct}%";},120);<\/script>`;
+    </div>`;
   }).join("");
 }
 
