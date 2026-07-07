@@ -996,7 +996,7 @@ function bossJobCard(j){
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div>
-        <div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}${j.userName?" · "+esc(j.userName):""}</div>
       </div>
       <span class="badge ${SB[j.status]||"badge-navy"}" style="margin-left:8px;flex-shrink:0;font-size:9px">${SL[j.status]||j.status}</span>
     </div>
@@ -1431,7 +1431,7 @@ function workerJobCard(j){
   const isPrimary=session.memberId===j.primaryMemberId;
   return`<div class="job-card s-${j.status||"planned"}" style="padding-left:16px;cursor:pointer" onclick="showWorkerScreen('workerJobScreen')">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
-      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div><div style="font-size:10px;color:var(--dim)">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}</div></div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div><div style="font-size:10px;color:var(--dim)">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}${j.userName?" · "+esc(j.userName):""}</div></div>
       <span class="badge ${SB[j.status]||"badge-navy"}" style="margin-left:8px;flex-shrink:0;font-size:9px">${SL[j.status]||j.status}</span>
     </div>
     ${isPrimary?`<div style="display:grid;grid-template-columns:repeat(3,1fr)${dl!==null?" 1fr":""};gap:5px;margin-bottom:6px">
@@ -1473,7 +1473,7 @@ function renderWorkerJobDetail(){
       :`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(0,214,143,.06);border:1px solid rgba(0,214,143,.15);border-radius:9px;font-size:11px;color:var(--green)"><span class="mi sm" style="font-size:14px">verified</span>架装完了済み — この先は管理者が進めます</div>`;
     return`<div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
-        <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${esc(j.name)}</div><div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}</div></div>
+        <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${esc(j.name)}</div><div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.carType?" · "+esc(j.carType):""}${j.userName?" · "+esc(j.userName):""}</div></div>
         <span class="badge ${SB[j.status]||"badge-navy"}">${SL[j.status]||j.status}</span>
       </div>
       ${flowHtml}
@@ -1638,7 +1638,7 @@ function renderInputJobList(mid,container){
   el.innerHTML=mj.map(j=>{const sel=inputState.jobId===j.id;
     return`<div onclick="selectInputJob('${j.id}')" style="padding:9px 12px;border-radius:9px;border:1px solid ${sel?"rgba(255,107,0,.3)":"var(--gb)"};background:${sel?"rgba(255,107,0,.08)":"var(--glass2)"};cursor:pointer;margin-bottom:5px;display:flex;align-items:center;gap:7px;transition:all .15s">
       <div style="width:5px;height:5px;border-radius:50%;background:${sel?"var(--orange)":"var(--muted)"};flex-shrink:0"></div>
-      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:${sel?"var(--orange)":"var(--text)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div><div style="font-size:9px;color:var(--dim)">${esc(j.orderNo||"—")}</div></div>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:${sel?"var(--orange)":"var(--text)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div><div style="font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.orderNo||"—")}${j.userName?" · "+esc(j.userName):""}</div></div>
       ${sel?`<span class="mi sm" style="color:var(--orange)">check_circle</span>`:""}
     </div>`;}).join("");
 }
