@@ -1115,19 +1115,24 @@ function renderMemberList(){
     const otH=Math.round(mLogs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
     // 今日の直接工数
     const dH=Math.round(mLogs.filter(l=>l.type==="progress").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
-    // 今日、オーダー(案件)別・間接項目別の内訳（直接・間接どちらも）
+    // 今日、オーダー(案件)別・間接項目別の内訳（直接・間接どちらも）。直接はオーダー番号、間接はZコードも併記
     const jobHMap={};
     mLogs.filter(l=>l.type==="progress").forEach(l=>{
-      const name=(jobs[l.jobId]&&jobs[l.jobId].name)||l.jobName||"その他";
-      if(!jobHMap[name])jobHMap[name]={h:0,kind:"直接"};
-      jobHMap[name].h+=(l.hours||0);
+      const j=jobs[l.jobId];
+      const label=j?`${esc(j.orderNo||"—")} ${esc(j.name)}`:esc(l.jobName||"その他");
+      if(!jobHMap[label])jobHMap[label]={h:0,kind:"直接"};
+      jobHMap[label].h+=(l.hours||0);
     });
     mLogs.filter(l=>l.type==="indirect").forEach(l=>{
-      const name=(IT.find(x=>x.key===l.indirectType)?.label)||l.indirectType||"間接作業";
-      if(!jobHMap[name])jobHMap[name]={h:0,kind:"間接"};
-      jobHMap[name].h+=(l.hours||0);
+      const lbl=(IT.find(x=>x.key===l.indirectType)?.label)||"";
+      const label=`${esc(l.indirectType||"")} ${esc(lbl)}`.trim();
+      if(!jobHMap[label])jobHMap[label]={h:0,kind:"間接"};
+      jobHMap[label].h+=(l.hours||0);
     });
     const jobBreakdown=Object.entries(jobHMap).map(([n,v])=>[n,Math.round(v.h*100)/100,v.kind]).sort((a,b)=>b[1]-a[1]);
+    // 今日、この人が更新した架装進捗（自己申告%）
+    const todayStart=new Date(ts+"T00:00:00").getTime();
+    const progressUpdates=jobsArr().filter(j=>j.manualProgress&&j.manualProgress.updatedAt>=todayStart&&(j.primaryMemberId===m.id||j.manualProgress.updatedByName===m.name)).map(j=>[`${esc(j.orderNo||"—")} ${esc(j.name)}`,j.manualProgress.pct]);
     return`<div class="card-sm" style="margin-bottom:6px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${on>0?"8":"0"}px">
         <div style="position:relative">
@@ -1135,17 +1140,13 @@ function renderMemberList(){
           <div style="position:absolute;bottom:-1px;right:-1px;width:12px;height:12px;border-radius:50%;background:${inp?"var(--green)":"var(--red)"};border:2px solid var(--bg)"></div>
         </div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600">${esc(m.name)}</div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="font-size:12px;font-weight:600">${esc(m.name)}</div>${otH>0?`<span style="font-size:8px;padding:1px 6px;border-radius:8px;background:rgba(255,59,59,.15);color:var(--red);font-weight:700;flex-shrink:0">残業 ${otH}h</span>`:""}</div>
           <div style="font-size:10px;color:var(--dim);margin-top:1px">${esc(m.role||"作業者")} · 担当${on}件 · ${inp?`<span style="color:var(--green)">入力済</span>`:`<span style="color:var(--red)">未入力</span>`}</div>
         </div>
         <button class="btn-ghost" onclick="openMemberModal('${m.id}')"><span class="mi sm">edit</span></button>
         <button class="btn-ghost" style="color:var(--red)" onclick="deleteMember('${m.id}')"><span class="mi sm">delete</span></button>
       </div>
-      ${on>0||dH>0||otH>0?`${otH>0?`<div style="background:rgba(255,59,59,.08);border:1px solid rgba(255,59,59,.2);border-radius:7px;padding:6px;text-align:center;margin-bottom:6px">
-          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:var(--red);line-height:1">${otH}h</div>
-          <div style="font-size:8px;color:var(--dim);margin-top:2px">残業</div>
-        </div>`:""}
-      ${jobBreakdown.length?`<div style="${otH>0?"":"border-top:1px solid rgba(68,136,255,.08);padding-top:6px"}">${jobBreakdown.map(([name,h,kind])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0"><div style="flex:1;min-width:0;display:flex;align-items:center;gap:5px"><span style="font-size:7px;padding:1px 5px;border-radius:3px;flex-shrink:0;background:${kind==="直接"?"rgba(255,107,0,.15)":"rgba(68,136,255,.15)"};color:${kind==="直接"?"var(--orange)":"var(--blue)"};font-weight:700">${kind}</span><div style="font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(name)}</div></div><div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--text);flex-shrink:0;margin-left:8px">${h}h</div></div>`).join("")}</div>`:`<div style="font-size:10px;color:var(--muted);text-align:center;padding:4px 0">本日の入力はまだありません</div>`}`:""}
+      ${on>0||dH>0||otH>0||progressUpdates.length?`${jobBreakdown.length||progressUpdates.length?`<div style="border-top:1px solid rgba(68,136,255,.08);padding-top:6px">${jobBreakdown.map(([name,h,kind])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0"><div style="flex:1;min-width:0;display:flex;align-items:center;gap:5px"><span style="font-size:7px;padding:1px 5px;border-radius:3px;flex-shrink:0;background:${kind==="直接"?"rgba(255,107,0,.15)":"rgba(68,136,255,.15)"};color:${kind==="直接"?"var(--orange)":"var(--blue)"};font-weight:700">${kind}</span><div style="font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div></div><div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--text);flex-shrink:0;margin-left:8px">${h}h</div></div>`).join("")}${progressUpdates.map(([name,pct])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0"><div style="flex:1;min-width:0;display:flex;align-items:center;gap:5px"><span style="font-size:7px;padding:1px 5px;border-radius:3px;flex-shrink:0;background:rgba(0,214,143,.15);color:var(--green);font-weight:700">進捗</span><div style="font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name} の架装進捗</div></div><div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--green);flex-shrink:0;margin-left:8px">${pct}%</div></div>`).join("")}</div>`:`<div style="font-size:10px;color:var(--muted);text-align:center;padding:4px 0">本日の入力はまだありません</div>`}`:""}
     </div>`;}).join("")+`<button class="btn" style="width:100%;justify-content:center;margin-top:6px" onclick="openMemberModal()"><span class="mi sm">person_add</span>作業者を追加</button>`;
 }
 
