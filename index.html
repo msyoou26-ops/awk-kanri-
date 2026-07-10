@@ -1139,7 +1139,7 @@ function renderMemberList(){
       if(!jobHMap[label])jobHMap[label]={h:0,kind:"間接"};
       jobHMap[label].h+=(l.hours||0);
     });
-    const jobBreakdown=Object.entries(jobHMap).map(([n,v])=>[n,Math.round(v.h*100)/100,v.kind]).sort((a,b)=>b[1]-a[1]);
+    const KO={"直接":0,"間接":1};const jobBreakdown=Object.entries(jobHMap).map(([n,v])=>[n,Math.round(v.h*100)/100,v.kind]).sort((a,b)=>(KO[a[2]]-KO[b[2]])||(b[1]-a[1]));
     // 今日、この人が更新した架装進捗（自己申告%）
     const todayStart=new Date(ts+"T00:00:00").getTime();
     const progressUpdates=jobsArr().filter(j=>j.manualProgress&&j.manualProgress.updatedAt>=todayStart&&(j.primaryMemberId===m.id||j.manualProgress.updatedByName===m.name)).map(j=>[`${esc(j.orderNo||"—")} ${esc(j.name)}`,j.manualProgress.pct]);
@@ -1203,7 +1203,7 @@ function renderWHToday(){
     if(!jobHMap[label])jobHMap[label]={h:0,kind:"間接"};
     jobHMap[label].h+=(l.hours||0);
   });
-  const breakdown=Object.entries(jobHMap).map(([n,v])=>[n,Math.round(v.h*100)/100,v.kind]).sort((a,b)=>b[1]-a[1]);
+  const KO2={"直接":0,"間接":1};const breakdown=Object.entries(jobHMap).map(([n,v])=>[n,Math.round(v.h*100)/100,v.kind]).sort((a,b)=>(KO2[a[2]]-KO2[b[2]])||(b[1]-a[1]));
   const todayStart=new Date(ts+"T00:00:00").getTime();
   const progressUpdates=jobsArr().filter(j=>j.manualProgress&&j.manualProgress.updatedAt>=todayStart&&(j.memberIds||[]).includes(mid)).map(j=>[`${esc(j.orderNo||"—")} ${esc(j.name)}`,j.manualProgress.pct]);
   el.innerHTML=`<div class="stat-grid stat-grid-4" style="margin-bottom:8px">
