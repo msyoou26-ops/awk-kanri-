@@ -370,7 +370,17 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   </div>
   <div class="app-body" style="padding-top:12px">
     <div id="biInputPane"><div id="bossInputContent"></div></div>
-    <div id="biHistoryPane" style="display:none"><div id="bossInputHistory"></div></div>
+    <div id="biHistoryPane" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px">
+        <button class="btn-ghost" onclick="shiftBossHistoryDate(-1)"><span class="mi sm">chevron_left</span></button>
+        <div style="text-align:center;flex:1">
+          <div id="biHistoryDateLbl" style="font-size:13px;font-weight:700"></div>
+        </div>
+        <button class="btn-ghost" onclick="shiftBossHistoryDate(1)" id="biHistoryNextBtn"><span class="mi sm">chevron_right</span></button>
+        <button class="btn" style="font-size:10px;padding:6px 10px" onclick="jumpBossHistoryToday()">今日</button>
+      </div>
+      <div id="bossInputHistory"></div>
+    </div>
   </div>
   <div class="bnav-wrap">
     <button class="bnav" onclick="showBossScreen('homeScreen')"><span class="mi">home</span>ホーム</button>
@@ -1813,10 +1823,27 @@ async function saveZBatch(){
   zBatchState={};renderZBatch();
 }
 // 履歴・修正
+let bossHistoryDate=null; // nullなら今日
+function ymdStr(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function shiftBossHistoryDate(delta){
+  const cur=bossHistoryDate?new Date(bossHistoryDate+"T00:00:00"):new Date(todayJST()+"T00:00:00");
+  cur.setDate(cur.getDate()+delta);
+  const ny=ymdStr(cur);
+  bossHistoryDate=ny===todayJST()?null:ny;
+  renderBossInputHistory();
+}
+function jumpBossHistoryToday(){bossHistoryDate=null;renderBossInputHistory();}
 function renderBossInputHistory(){
   const mid=getIWId();
   const el=document.getElementById("bossInputHistory");if(!el)return;
-  const ts=todayJST();
+  const ts=bossHistoryDate||todayJST();
+  const lbl=document.getElementById("biHistoryDateLbl");
+  if(lbl){
+    const d=new Date(ts+"T00:00:00");
+    lbl.textContent=(ts===todayJST()?"今日 ":"")+`${d.getMonth()+1}/${d.getDate()}（${["日","月","火","水","木","金","土"][d.getDay()]}）`;
+  }
+  const nextBtn=document.getElementById("biHistoryNextBtn");
+  if(nextBtn)nextBtn.style.opacity=ts>=todayJST()?"0.3":"1";
   const logs=nippoArr().filter(l=>l.date===ts&&(!mid||l.memberId===mid));
   renderHistoryList(logs,el);
 }
@@ -1848,10 +1875,11 @@ function renderWorkerHistory(){
 function renderHistoryList(logs,el){
   const TC={progress:{c:"var(--orange)",l:"直接"},indirect:{c:"var(--blue)",l:"間接"},overtime:{c:"var(--red)",l:"残業"},memo:{c:"var(--green)",l:"メモ"}};
   if(!logs.length){el.innerHTML=`<div style="text-align:center;font-size:13px;color:var(--text2);padding:32px 20px;background:rgba(255,255,255,.03);border:1px solid var(--gb);border-radius:12px;margin:10px 0"><span class="mi" style="font-size:32px;display:block;margin-bottom:8px;color:var(--dim)">history</span>まだ記録がありません<br><span style="font-size:11px;color:var(--dim)">入力すると履歴がここに表示されます</span></div>`;return;}
-  el.innerHTML=`<div style="font-size:10px;color:rgba(255,107,0,.6);margin-bottom:8px">削除すると実績も巻き戻されます</div>`+logs.map(l=>{
+  el.innerHTML=`<div style="font-size:10px;color:rgba(255,107,0,.6);margin-bottom:8px">編集で内容を修正、削除すると実績も巻き戻されます</div>`+logs.map(l=>{
     const t=TC[l.type]||{c:"var(--dim)",l:l.type};
     const tm=l.savedAt?new Date(l.savedAt).toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}):"--:--";
-    const detail=l.type==="progress"?`${esc(l.jobName||"—")} · ${esc(l.taskName||"")} ${l.hours}h`:l.type==="indirect"?`${l.indirectType||""} ${l.hours}h`:l.type==="overtime"?`残業 ${l.overtime}h`:esc(l.memo||"");
+    const who=isBoss()&&l.memberName?`${esc(l.memberName)} · `:"";
+    const detail=l.type==="progress"?`${who}${esc(l.jobName||"—")} · ${esc(l.taskName||"")} ${l.hours}h`:l.type==="indirect"?`${who}${l.indirectType||""} ${l.hours}h`:l.type==="overtime"?`${who}残業 ${l.overtime}h`:`${who}${esc(l.memo||"")}`;
     return`<div class="card-sm" style="display:flex;align-items:center;gap:8px">
       <div style="font-family:'Inter',sans-serif;font-size:9px;color:var(--dim);min-width:30px;flex-shrink:0">${tm}</div>
       <div style="width:2px;height:20px;background:${t.c};border-radius:1px;flex-shrink:0;opacity:.7"></div>
@@ -1860,9 +1888,40 @@ function renderHistoryList(logs,el){
         <div style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${detail}</div>
         ${l.memo&&l.type!=="memo"?`<div style="font-size:10px;color:var(--dim)">${esc(l.memo)}</div>`:""}
       </div>
+      ${l.type!=="memo"?`<button onclick="editNippoLog('${l.id}')" style="background:none;border:none;color:var(--blue);cursor:pointer;flex-shrink:0;padding:3px"><span class="mi sm">edit</span></button>`:""}
       <button onclick="deleteNippoLog('${l.id}')" style="background:none;border:none;color:var(--dim);cursor:pointer;flex-shrink:0;padding:3px"><span class="mi sm">delete</span></button>
     </div>`;
   }).join("");
+}
+async function editNippoLog(id){
+  const log=nippoLogs[id];if(!log)return;
+  const cur=log.type==="overtime"?(log.overtime||0):(log.hours||0);
+  const input=prompt("修正後の時間(h)を入力してください",cur);
+  if(input===null)return;
+  const nv=parseFloat(input);
+  if(isNaN(nv)||nv<0){showToast("正しい数値を入力してください");return;}
+  const diff=Math.round((nv-cur)*100)/100;
+  if(diff===0)return;
+  if(log.type==="progress"&&log.jobId&&log.taskName){
+    const j=jobs[log.jobId];
+    if(j){
+      const mt=(j.memberTasks&&j.memberTasks[log.memberId])||[];
+      const upd=mt.map(t=>t.name!==log.taskName?t:{...t,actual:Math.max(0,Math.round(((parseFloat(t.actual)||0)+diff)*100)/100)});
+      await dbSet(`jobs/${log.jobId}/memberTasks/${log.memberId}`,upd);
+      if(!j.memberTasks)j.memberTasks={};
+      j.memberTasks[log.memberId]=upd;
+    }
+    await dbSet(`nippoLogs/${id}/hours`,nv);
+    nippoLogs[id]={...nippoLogs[id],hours:nv};
+  }else if(log.type==="indirect"){
+    await dbSet(`nippoLogs/${id}/hours`,nv);
+    nippoLogs[id]={...nippoLogs[id],hours:nv};
+  }else if(log.type==="overtime"){
+    await dbSet(`nippoLogs/${id}/overtime`,nv);
+    nippoLogs[id]={...nippoLogs[id],overtime:nv};
+  }
+  onDataChange();
+  showToast("✅ 修正しました");
 }
 async function deleteNippoLog(id){
   confirmAction("この記録を削除しますか？","削除後に正しい内容で再入力してください。",async()=>{
