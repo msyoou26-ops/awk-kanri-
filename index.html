@@ -1378,7 +1378,7 @@ function renderWHCalInner(el,mid,st){
     }).join("")}`:"<div style='font-size:12px;color:var(--muted);text-align:center;padding:12px'>今月の架装案件はありません</div>"}
     <!-- 日別詳細モーダル -->
     <div id="calDayModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);z-index:200;align-items:flex-end;justify-content:center">
-      <div style="background:linear-gradient(160deg,var(--navy2),var(--navy));border:1px solid var(--gb2);border-radius:20px 20px 0 0;padding:20px 16px;width:100%;max-width:480px;max-height:70vh;overflow-y:auto">
+      <div style="background:linear-gradient(160deg,var(--navy2),var(--navy));border:1px solid var(--gb2);border-radius:20px 20px 0 0;padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px));width:100%;max-width:480px;max-height:min(70vh,calc(100dvh - 140px));overflow-y:auto;-webkit-overflow-scrolling:touch">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <div id="calDayTitle" style="font-size:15px;font-weight:700"></div>
           <button onclick="document.getElementById('calDayModal').style.display='none'" style="background:var(--glass);border:1px solid var(--gb2);color:var(--dim);width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center"><span class="mi sm">close</span></button>
