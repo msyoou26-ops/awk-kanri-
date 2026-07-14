@@ -489,7 +489,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   </div>
   <div class="app-body">
     <!-- 入力ボタン -->
-    <div onclick="showWorkerScreen('workerInputScreen')" style="background:linear-gradient(135deg,rgba(255,107,0,.15),rgba(255,107,0,.05));border:1px solid rgba(255,107,0,.3);border-radius:14px;padding:16px 18px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(255,107,0,.1)">
+    <div onclick="openTodayInput()" style="background:linear-gradient(135deg,rgba(255,107,0,.15),rgba(255,107,0,.05));border:1px solid rgba(255,107,0,.3);border-radius:14px;padding:16px 18px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(255,107,0,.1)">
       <div>
         <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px">今日の作業を入力する</div>
         <div style="font-size:11px;color:rgba(255,107,0,.7)">入力するとデータが自動で蓄積されます</div>
@@ -523,7 +523,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   </div>
   <div class="bnav-wrap">
     <button class="bnav on"><span class="mi">home</span>ホーム</button>
-    <button class="bnav" onclick="showWorkerScreen('workerInputScreen')"><span class="mi">edit_note</span>入力</button>
+    <button class="bnav" onclick="openTodayInput()"><span class="mi">edit_note</span>入力</button>
     <button class="bnav" onclick="showWorkerScreen('workerHistoryScreen')"><span class="mi">history</span>履歴</button>
     <button class="bnav" onclick="showWorkerScreen('workerJobScreen')"><span class="mi">assignment</span>案件</button>
   </div>
@@ -566,7 +566,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   </div>
   <div class="bnav-wrap">
     <button class="bnav" onclick="showWorkerScreen('workerHomeScreen')"><span class="mi">home</span>ホーム</button>
-    <button class="bnav" onclick="showWorkerScreen('workerInputScreen')"><span class="mi">edit_note</span>入力</button>
+    <button class="bnav" onclick="openTodayInput()"><span class="mi">edit_note</span>入力</button>
     <button class="bnav on"><span class="mi">history</span>履歴</button>
     <button class="bnav" onclick="showWorkerScreen('workerJobScreen')"><span class="mi">assignment</span>案件</button>
   </div>
@@ -583,7 +583,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
   </div>
   <div class="bnav-wrap">
     <button class="bnav" onclick="showWorkerScreen('workerHomeScreen')"><span class="mi">home</span>ホーム</button>
-    <button class="bnav" onclick="showWorkerScreen('workerInputScreen')"><span class="mi">edit_note</span>入力</button>
+    <button class="bnav" onclick="openTodayInput()"><span class="mi">edit_note</span>入力</button>
     <button class="bnav" onclick="showWorkerScreen('workerHistoryScreen')"><span class="mi">history</span>履歴</button>
     <button class="bnav on"><span class="mi">assignment</span>案件</button>
   </div>
@@ -671,6 +671,22 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 const FC={apiKey:"AIzaSyALzcHgWi33tip-QiMYfjeJCJgxEt8KI-4",authDomain:"awk-kanri.firebaseapp.com",databaseURL:"https://awk-kanri-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"awk-kanri",storageBucket:"awk-kanri.firebasestorage.app",messagingSenderId:"995372648364",appId:"1:995372648364:web:51084b71722ec46e331c09"};
 const WD=["日","月","火","水","木","金","土"];
 function todayJST(){return new Date().toLocaleDateString("sv-SE",{timeZone:"Asia/Tokyo"});}
+// 作業者が過去日を選んで入力し直す機能（直近3日以内のみ）
+let inputTargetDate=null; // null=今日
+function getInputDate(){return inputTargetDate||todayJST();}
+function daysAgoJST(dateStr){
+  const a=new Date(todayJST()+"T00:00:00"),b=new Date(dateStr+"T00:00:00");
+  return Math.round((a-b)/86400000);
+}
+function openTodayInput(){inputTargetDate=null;showWorkerScreen("workerInputScreen");}
+function openInputForDate(dateStr){
+  const diff=daysAgoJST(dateStr);
+  if(diff<0){showToast("未来の日付は選べません");return;}
+  if(diff>3){showToast("3日より前の修正は管理者にご相談ください");return;}
+  inputTargetDate=diff===0?null:dateStr;
+  const modal=document.getElementById("calDayModal");if(modal)modal.style.display="none";
+  showWorkerScreen("workerInputScreen");
+}
 function thisMonthJST(){const d=new Date(Date.now()+9*36e5);return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}`;}
 const SL={planned:"予定",ongoing:"施工中",kaiso_done:"架装完了",inspection:"検査中",rework:"手直し",done:"出荷完了",overdue:"遅延"};
 const SB={planned:"badge-navy",ongoing:"badge-orange",kaiso_done:"badge-green",inspection:"badge-amber",rework:"badge-red",done:"badge-green",overdue:"badge-red"};
@@ -1289,15 +1305,6 @@ function renderWHCalInner(el,mid,st){
         jobEvents.push({day:e.getDate(),type:"end",name:j.name,status:j.status});
     }
   });
-  // 施工中案件の期間をハイライト
-  const spanDays={};
-  myJobs.filter(j=>j.start&&j.end&&j.status!=="done").forEach(j=>{
-    let s=new Date(j.start),e=new Date(j.end);
-    for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
-      if(d.getFullYear()===year&&d.getMonth()===month)
-        spanDays[d.getDate()]=(spanDays[d.getDate()]||[]).concat(j);
-    }
-  });
   const today=new Date();
   const todayDay=today.getFullYear()===year&&today.getMonth()===month?today.getDate():null;
   // カレンダーHTML
@@ -1307,20 +1314,19 @@ function renderWHCalInner(el,mid,st){
   for(let d=1;d<=daysInMonth;d++){
     const isToday=d===todayDay;
     const hasLog=logDates[d];
-    const span=spanDays[d]||[];
     const evs=jobEvents.filter(e=>e.day===d);
     const dh=hasLog?Math.round(hasLog.direct*10)/10:0;
     const oth=hasLog?Math.round(hasLog.ot*10)/10:0;
-    const isSpan=span.length>0;
+    // 実際に働いた時間でヒートマップ（濃いほどよく働いた日）
+    const heat=Math.min(dh/8,1);
+    const bg=isToday?"rgba(255,107,0,.18)":dh>0?`rgba(255,107,0,${(0.05+heat*0.22).toFixed(2)})`:"rgba(255,255,255,.02)";
+    const bd=isToday?"rgba(255,107,0,.5)":dh>0?`rgba(255,107,0,${(0.15+heat*0.35).toFixed(2)})`:"rgba(68,136,255,.06)";
     cells+=`<div onclick="showWHCalDay(${year},${month+1},${d})"
-      style="min-height:52px;border-radius:8px;padding:4px;cursor:pointer;position:relative;overflow:hidden;
-      background:${isToday?"rgba(255,107,0,.15)":isSpan?"rgba(68,136,255,.1)":"rgba(255,255,255,.02)"};
-      border:1px solid ${isToday?"rgba(255,107,0,.4)":isSpan?"rgba(68,136,255,.25)":"rgba(68,136,255,.06)"};
-      transition:background .15s">
-      ${isSpan?`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue)"></div>`:""}
-      <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:${isToday?"800":"500"};color:${isToday?"var(--orange)":"var(--text2)"};margin-bottom:2px">${d}</div>
-      ${dh>0?`<div style="font-size:8px;font-weight:700;color:var(--orange);line-height:1.2">${dh}h</div>`:""}
-      ${oth>0?`<div style="font-size:8px;color:var(--red);line-height:1.2">残${oth}h</div>`:""}
+      style="min-height:56px;border-radius:8px;padding:4px;cursor:pointer;position:relative;overflow:hidden;
+      background:${bg};border:1px solid ${bd};transition:background .15s">
+      <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:${isToday?"800":"500"};color:${isToday?"var(--orange)":"var(--text2)"};margin-bottom:3px">${d}</div>
+      ${dh>0?`<div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:800;color:var(--orange);line-height:1.15">${dh}h</div>`:""}
+      ${oth>0?`<div style="font-size:9px;font-weight:700;color:var(--red);line-height:1.2;margin-top:1px">残業${oth}h</div>`:""}
       ${evs.some(e=>e.type==="start")?`<div style="position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px rgba(5,9,18,.9)"><span class="mi sm" style="font-size:9px;color:#04140e">flag</span></div>`:""}
       ${evs.some(e=>e.type==="end")?`<div style="position:absolute;top:${evs.some(e=>e.type==="start")?"18px":"2px"};right:2px;width:14px;height:14px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px rgba(5,9,18,.9)"><span class="mi sm" style="font-size:9px;color:#2a0808">event_busy</span></div>`:""}
     </div>`;
@@ -1350,7 +1356,7 @@ function renderWHCalInner(el,mid,st){
     <!-- 凡例 -->
     <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
       <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:8px;height:8px;border-radius:2px;background:rgba(255,107,0,.15);border:1px solid rgba(255,107,0,.4)"></div>今日</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:8px;height:3px;border-radius:2px;background:var(--blue)"></div>架装期間中</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:8px;height:8px;border-radius:2px;background:linear-gradient(90deg,rgba(255,107,0,.06),rgba(255,107,0,.4))"></div>色が濃いほど稼働時間が多い日</div>
       <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:11px;height:11px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center"><span class="mi sm" style="font-size:8px;color:#04140e">flag</span></div>着工日</div>
       <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim)"><div style="width:11px;height:11px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center"><span class="mi sm" style="font-size:8px;color:#2a0808">event_busy</span></div>納期</div>
     </div>
@@ -1425,6 +1431,9 @@ function showWHCalDay(year,month,day){
         </div>`;
       }).join("")}`;
   }
+  const diff=daysAgoJST(dateStr);
+  const editBtn=diff<0?"":diff<=3?`<button class="btn-primary" style="width:100%;justify-content:center;margin-top:12px" onclick="openInputForDate('${dateStr}')"><span class="mi sm">edit</span>${diff===0?"今日の分を入力する":"この日の分を入力・修正する"}</button>`:`<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:12px">3日より前の修正は管理者にご相談ください</div>`;
+  content.innerHTML+=editBtn;
   modal.style.display="flex";
 }
 
@@ -1549,6 +1558,14 @@ function renderWorkerInput(){
     content.innerHTML=buildInputUI(mid);
     content.dataset.builtFor=String(mid);
   }
+  const banner=document.getElementById("inputDateBanner");
+  if(banner){
+    if(inputTargetDate){
+      const d=new Date(inputTargetDate+"T00:00:00");
+      const wd=["日","月","火","水","木","金","土"][d.getDay()];
+      banner.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin-bottom:10px;background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.25);border-radius:9px;font-size:12px;color:var(--amber)"><span class="mi sm" style="font-size:15px">event</span><div style="flex:1">${d.getMonth()+1}/${d.getDate()}（${wd}）分を入力・修正中</div><button onclick="openTodayInput()" style="background:none;border:1px solid rgba(255,184,0,.4);color:var(--amber);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'Noto Sans JP',sans-serif">今日に戻す</button></div>`;
+    }else banner.innerHTML="";
+  }
   renderInputJobList(mid,"workerInputContent");
   renderInputTasks();
   renderLossChips();
@@ -1584,6 +1601,7 @@ function buildWorkerSelectUI(){
 }
 function buildInputUI(mid){
   return`
+  <div id="inputDateBanner"></div>
   <!-- STEP 1: 案件 -->
   <div class="in-panel">
     <div class="in-panel-hdr"><span class="step-num active">1</span><span style="font-size:13px;font-weight:700">案件</span></div>
@@ -1768,10 +1786,10 @@ async function saveInput(){
   if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
   const taskName=mt.find(t=>t.id===inputState.taskId)?.name||"作業";
   const jobLabel=`${j.orderNo?j.orderNo+" / ":""}${j.name}`;
-  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"progress",jobId:inputState.jobId,jobName:jobLabel,taskName,hours,loss:lossFlag,lossCauses:inputState.losses,overtime:0,memo,savedAt:Date.now()});
-  if(ot>0)await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"overtime",hours:0,overtime:ot,memo:"",savedAt:Date.now()});
+  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"progress",jobId:inputState.jobId,jobName:jobLabel,taskName,hours,loss:lossFlag,lossCauses:inputState.losses,overtime:0,memo,savedAt:Date.now()});
+  if(ot>0)await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"overtime",hours:0,overtime:ot,memo:"",savedAt:Date.now()});
   if(lossFlag){
-    await dbPush("workLogs",{memberId:mid,memberName:m?.name||"",jobId:inputState.jobId,vehicleLabel:jobLabel,date:todayJST(),causes:inputState.losses,lossCause:inputState.losses.join("・"),lossHours:hours,taskName,memo,savedAt:Date.now()});
+    await dbPush("workLogs",{memberId:mid,memberName:m?.name||"",jobId:inputState.jobId,vehicleLabel:jobLabel,date:getInputDate(),causes:inputState.losses,lossCause:inputState.losses.join("・"),lossHours:hours,taskName,memo,savedAt:Date.now()});
     showToast("✅ 保存 → QC候補に反映しました");
     const banner=document.createElement("div");
     banner.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(6,12,24,.95);border:1px solid rgba(68,136,255,.2);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:998;white-space:nowrap";
@@ -1800,7 +1818,7 @@ async function saveOTOnly(){
   if(ot<=0){showToast("残業時間を入力してください");return;}
   const mid=getIWId();if(!mid){showToast("作業者を選んでください");return;}
   const m=getMember(mid);
-  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"overtime",hours:0,overtime:ot,memo:"",savedAt:Date.now()});
+  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"overtime",hours:0,overtime:ot,memo:"",savedAt:Date.now()});
   document.getElementById("inputOT").value="0";
   showToast(`✅ 残業 ${ot}h を登録しました`);
 }
@@ -1810,7 +1828,7 @@ async function saveMemoOnly(){
   const mid=getIWId();if(!mid){showToast("作業者を選んでください");return;}
   const m=getMember(mid);
   const ot=parseFloat(document.getElementById("inputOT").value)||0;
-  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"memo",jobId:inputState.jobId||"",jobName:"",taskName:"",hours:0,loss:false,lossCauses:[],overtime:ot,memo,savedAt:Date.now()});
+  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"memo",jobId:inputState.jobId||"",jobName:"",taskName:"",hours:0,loss:false,lossCauses:[],overtime:ot,memo,savedAt:Date.now()});
   showToast(ot>0?`✅ メモと残業${ot}h を保存しました`:"✅ メモを保存しました");
   document.getElementById("inputMemo").value="";document.getElementById("inputOT").value="0";
 }
@@ -1835,7 +1853,7 @@ async function saveZBatch(){
   const m=getMember(mid);
   const sel=Object.entries(zBatchState).filter(([k,v])=>v.checked&&v.h>0);
   if(!sel.length){showToast("Zコードを選んでください");return;}
-  for(const [key,{h}] of sel)await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:todayJST(),type:"indirect",indirectType:key,hours:h,overtime:0,memo:"",savedAt:Date.now()});
+  for(const [key,{h}] of sel)await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"indirect",indirectType:key,hours:h,overtime:0,memo:"",savedAt:Date.now()});
   showToast(`✅ ${sel.length}件 計${Math.round(sel.reduce((a,[k,v])=>a+v.h,0)*100)/100}h 一括保存しました`);
   zBatchState={};renderZBatch();
 }
