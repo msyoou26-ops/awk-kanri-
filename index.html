@@ -1517,7 +1517,6 @@ function buildInputUI(mid){
       <span style="font-size:12px;color:var(--dim)">h</span>
       <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(0.5)"><span class="mi sm">add</span></button>
     </div>
-    <textarea id="inputMemo" placeholder="メモ（任意）" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--gb2);color:var(--text);padding:9px;border-radius:9px;font-size:12px;outline:none;min-height:44px;resize:none;box-sizing:border-box;font-family:'Noto Sans JP',sans-serif;margin-bottom:8px"></textarea>
     <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="saveOTOnly()"><span class="mi sm">schedule</span>残業を保存する</button>
   </div>
   <div style="border-top:1px solid rgba(68,136,255,.1);padding-top:14px">
@@ -1656,21 +1655,9 @@ async function saveOTOnly(){
   if(ot<=0){showToast("残業時間を入力してください");return;}
   const mid=getIWId();if(!mid){showToast("作業者を選んでください");return;}
   const m=getMember(mid);
-  const memo=document.getElementById("inputMemo").value.trim();
-  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"overtime",hours:0,overtime:ot,memo,savedAt:Date.now()});
+  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"overtime",hours:0,overtime:ot,memo:"",savedAt:Date.now()});
   document.getElementById("inputOT").value="0";
-  document.getElementById("inputMemo").value="";
   showToast(`✅ 残業 ${ot}h を登録しました`);
-}
-async function saveMemoOnly(){
-  const memo=document.getElementById("inputMemo").value.trim();
-  if(!memo){showToast("メモを入力してください");return;}
-  const mid=getIWId();if(!mid){showToast("作業者を選んでください");return;}
-  const m=getMember(mid);
-  const ot=parseFloat(document.getElementById("inputOT").value)||0;
-  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"memo",jobId:inputState.jobId||"",jobName:"",taskName:"",hours:0,loss:false,lossCauses:[],overtime:ot,memo,savedAt:Date.now()});
-  showToast(ot>0?`✅ メモと残業${ot}h を保存しました`:"✅ メモを保存しました");
-  document.getElementById("inputMemo").value="";document.getElementById("inputOT").value="0";
 }
 // Zコード
 function renderZBatch(){
