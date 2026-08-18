@@ -176,96 +176,6 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 /* TIMELINE */
 .tl-row{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(68,136,255,.06)}
 .tl-row:last-child{border-bottom:none}
-/* COMPLETION OVERLAY */
-.co-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(16px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s}
-.co-overlay.show{opacity:1;pointer-events:auto}
-.shutter{position:absolute;top:0;left:0;right:0;background:repeating-linear-gradient(180deg,rgba(30,50,90,.9) 0px,rgba(20,35,70,.9) 8px,rgba(15,28,60,.9) 9px,rgba(20,35,70,.9) 10px);height:0;z-index:10;transition:height .6s cubic-bezier(.34,1.35,.64,1);border-bottom:2px solid rgba(255,107,0,.35);pointer-events:none;overflow:hidden}
-.shutter::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.06) 45%,rgba(255,255,255,.1) 50%,rgba(255,255,255,.06) 55%,transparent 70%);background-size:220% 100%;background-position:120% 0;transition:background-position 1s ease-out .1s}
-.shutter.open{height:calc(100% - 130px)}
-.shutter.open::after{background-position:-20% 0}
-.road{position:absolute;bottom:0;left:0;right:0;height:130px;background:linear-gradient(180deg,#151e30,#080f1e);border-top:1.5px solid rgba(255,107,0,.25);overflow:hidden}
-.road::before{content:'';position:absolute;top:50%;left:0;transform:translateY(-50%);width:200%;height:3px;background:repeating-linear-gradient(90deg,rgba(255,184,0,.5) 0px,rgba(255,184,0,.5) 28px,transparent 28px,transparent 56px)}
-.road.roll::before{animation:roadScroll .45s linear infinite}
-@keyframes roadScroll{0%{transform:translate(0,-50%)}100%{transform:translate(-56px,-50%)}}
-.car-shadow{position:absolute;bottom:20px;left:8px;width:96px;height:14px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 72%);filter:blur(1px)}
-.vehicle{position:absolute;bottom:26px;left:-130px}
-.vehicle.go{animation:driveOut 2.2s cubic-bezier(.4,0,.8,1) forwards}
-.vehicle.go .car-b{animation:susp .28s ease-in-out infinite}
-.vehicle.go .car-shadow{animation:shadowPulse .28s ease-in-out infinite}
-@keyframes susp{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
-@keyframes shadowPulse{0%,100%{transform:scaleX(1);opacity:.55}50%{transform:scaleX(.92);opacity:.4}}
-@keyframes driveOut{0%{left:-130px;opacity:1}15%{left:8%}80%{left:82%;opacity:1}100%{left:108%;opacity:0}}
-.car-b{width:110px;height:52px;position:relative;transition:filter .6s ease}
-.c-roof{position:absolute;top:0;left:16px;width:75px;height:26px;background:linear-gradient(135deg,#1e3050,#28407a);border-radius:7px 7px 0 0;border:1px solid rgba(68,136,255,.25)}
-.c-base{position:absolute;bottom:0;left:0;width:110px;height:30px;background:linear-gradient(180deg,#243554,#0e1b2e);border-radius:4px;border:1px solid rgba(68,136,255,.15);box-shadow:inset 0 3px 4px rgba(255,255,255,.06),inset 0 -6px 8px rgba(0,0,0,.35)}
-.c-win{position:absolute;top:4px;left:6px;width:56px;height:16px;background:linear-gradient(135deg,rgba(140,200,255,.22),rgba(100,180,255,.08));border-radius:3px;border:1px solid rgba(100,180,255,.25)}
-.c-fl{position:absolute;right:-3px;top:7px;width:7px;height:12px;background:#fff8aa;border-radius:2px;box-shadow:0 0 10px 3px rgba(255,220,0,.6)}
-.c-fl::after{content:'';position:absolute;top:-6px;right:5px;width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:34px solid rgba(255,230,140,.16);filter:blur(1px)}
-.c-rl{position:absolute;left:-3px;top:9px;width:5px;height:9px;background:#ff2222;border-radius:2px;box-shadow:0 0 7px 2px rgba(255,40,40,.5)}
-.c-wh{position:absolute;bottom:-8px;width:20px;height:20px;border-radius:50%;background:radial-gradient(#181828,#252545);border:2.5px solid rgba(68,136,255,.35);background-image:radial-gradient(#181828,#252545),repeating-conic-gradient(rgba(255,255,255,.18) 0deg 12deg,transparent 12deg 45deg);background-blend-mode:normal}
-.vehicle.go .c-wh{animation:wheelSpin .35s linear infinite}
-@keyframes wheelSpin{to{transform:rotate(360deg)}}
-.c-wh.f{right:7px}.c-wh.r{left:7px}
-@keyframes exh{0%{opacity:.5;transform:scale(.4) translate(0,0)}100%{opacity:0;transform:scale(2.1) translate(-30px,-10px)}}
-.exhaust{position:absolute;bottom:30px;left:-16px;width:18px;height:18px;border-radius:50%;background:radial-gradient(rgba(200,210,220,.35),rgba(140,160,180,.1));animation:exh .9s ease-out infinite}
-.co-card{background:rgba(5,9,18,.96);border:1px solid rgba(0,214,143,.25);border-radius:20px 20px 0 0;padding:26px 20px;text-align:center;width:100%;max-width:480px;box-shadow:0 -8px 50px rgba(0,214,143,.12),inset 0 1px 0 rgba(0,214,143,.08);position:relative;z-index:20;opacity:0;pointer-events:none;transform:translateY(16px);transition:opacity .55s ease,transform .55s ease}
-.co-card.show{opacity:1;pointer-events:auto;transform:translateY(0)}
-.co-skip{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;z-index:30;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:11px;padding:7px 14px;border-radius:20px;font-family:'Noto Sans JP',sans-serif;opacity:0;pointer-events:none;transition:opacity .4s}
-.co-skip.show{opacity:1;pointer-events:auto}
-/* ===== 完成演出: 出庫シネマシーケンス（1回きり） ===== */
-.cf-scene{position:absolute;inset:0;overflow:hidden}
-.cf-sky{position:absolute;inset:0;background:linear-gradient(180deg,#04070d 0%,#080e18 42%,#0a1524 100%);transition:background 1.3s ease}
-.cf-sky.lit{background:linear-gradient(180deg,#12213a 0%,#15263e 38%,#0e1a2c 100%)}
-.cf-shutter{position:absolute;top:13%;left:14%;right:14%;height:110px;max-width:340px;margin:0 auto;background:repeating-linear-gradient(180deg,rgba(42,62,102,.95) 0px,rgba(26,42,78,.95) 8px,rgba(18,30,62,.95) 9px,rgba(26,42,78,.95) 10px);border:2px solid rgba(255,107,0,.32);border-top-width:4px;border-radius:6px 6px 0 0;transition:height 1.25s cubic-bezier(.22,.85,.34,1.18);transform-origin:top center;box-shadow:0 4px 20px rgba(0,0,0,.4)}
-.cf-shutter.open{height:6px}
-.cf-glow{position:absolute;top:13%;left:14%;right:14%;height:110px;max-width:340px;margin:0 auto;border-radius:6px 6px 0 0;background:radial-gradient(ellipse at 50% 100%,rgba(255,205,130,.34),transparent 72%);opacity:0;transition:opacity 1s ease .35s;pointer-events:none}
-.cf-shutter.open ~ .cf-glow{opacity:1}
-.cf-road-mark{position:absolute;top:30%;width:6px;height:22px;background:rgba(255,184,0,.5);border-radius:2px;opacity:0;transform:translate(-50%,0) scale(.3)}
-.cf-mark1{left:calc(50% - 26px)}
-.cf-mark2{left:calc(50% + 20px)}
-.cf-mark3{left:calc(50% - 8px)}
-.cf-road-mark.go.cf-mark1{animation:markApproach 4.4s cubic-bezier(.5,0,.7,1) .05s forwards}
-.cf-road-mark.go.cf-mark2{animation:markApproach 4.4s cubic-bezier(.5,0,.7,1) .55s forwards}
-.cf-road-mark.go.cf-mark3{animation:markApproach 4.4s cubic-bezier(.5,0,.7,1) 1.05s forwards}
-@keyframes markApproach{0%{top:29%;opacity:0;transform:translate(-50%,0) scale(.3)}12%{opacity:.6}70%{opacity:.55;transform:translate(-50%,0) scale(1.8)}100%{top:97%;opacity:0;transform:translate(-50%,0) scale(3.4)}}
-.cf-truck{position:absolute;top:19%;left:50%;transform:translate(-50%,0) scale(.3);opacity:0;transition:opacity .4s}
-.cf-truck.show{opacity:1}
-.cf-truck.go{animation:truckDeparture 4.3s cubic-bezier(.3,.05,.4,1) forwards}
-@keyframes truckDeparture{
-  0%{top:19%;transform:translate(-50%,0) scale(.3)}
-  18%{top:20%;transform:translate(-50%,0) scale(.34)}
-  50%{top:42%;transform:translate(-50%,0) scale(.85)}
-  75%{top:64%;transform:translate(-50%,0) scale(1.25)}
-  92%{top:85%;transform:translate(-50%,0) scale(1.55);opacity:1}
-  100%{top:99%;transform:translate(-50%,0) scale(1.7);opacity:0}
-}
-.cf-truck.go .tf-cab{animation:susp .3s ease-in-out infinite}
-.cf-truck.go .tf-wheel{animation:wheelSpin .32s linear infinite}
-.cf-truck.outside .tf-body{filter:brightness(1.14) saturate(1.05)}
-.cf-shadow{position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:105px;height:14px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 72%);transition:width .9s,opacity .9s;opacity:.25}
-.cf-truck.go .cf-shadow{width:150px;opacity:.6}
-.tf-cab{position:relative;width:130px;height:92px}
-.tf-mirror{position:absolute;top:6px;width:8px;height:16px;background:#1c2b46;border:1px solid rgba(68,136,255,.3);border-radius:2px}
-.tf-mirror.l{left:-9px}.tf-mirror.r{right:-9px}
-.tf-roof{position:absolute;top:0;left:6px;right:6px;height:13px;background:linear-gradient(180deg,#2a4270,#1a2c4c);border-radius:10px 10px 0 0;border:1px solid rgba(68,136,255,.25)}
-.tf-wind{position:absolute;top:12px;left:14px;right:14px;height:26px;background:linear-gradient(160deg,rgba(150,205,255,.28),rgba(90,150,220,.08));border-radius:4px;border:1px solid rgba(120,180,255,.3);overflow:hidden}
-.tf-wind::after{content:'';position:absolute;top:-10px;left:-30%;width:40%;height:200%;background:rgba(255,255,255,.18);transform:rotate(20deg)}
-.tf-body{position:absolute;bottom:0;left:0;width:130px;height:50px;background:linear-gradient(180deg,#243759,#101d34);border-radius:8px;border:1px solid rgba(68,136,255,.2);box-shadow:inset 0 3px 5px rgba(255,255,255,.06),inset 0 -8px 10px rgba(0,0,0,.4);transition:filter .7s}
-.tf-badge{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-family:'Inter',sans-serif;font-size:8px;font-weight:800;letter-spacing:1.5px;color:rgba(255,150,60,.7)}
-.tf-grille{position:absolute;bottom:14px;left:38px;right:38px;height:16px;border-radius:2px;background:repeating-linear-gradient(180deg,rgba(10,16,28,.9) 0 2px,rgba(40,55,85,.9) 2px 4px)}
-.tf-headlight{position:absolute;bottom:15px;width:15px;height:11px;border-radius:3px;background:#4a4630;box-shadow:none;transition:background .4s,box-shadow .4s}
-.tf-headlight.l{left:8px}.tf-headlight.r{right:8px}
-.cf-truck.lights-on .tf-headlight{background:#fff8d8;box-shadow:0 0 14px 4px rgba(255,225,140,.65)}
-.tf-beam{position:absolute;bottom:-2px;width:46px;height:70px;background:linear-gradient(180deg,rgba(255,235,180,.32),transparent 75%);clip-path:polygon(20% 0,80% 0,150% 100%,-50% 100%);opacity:0;transition:opacity .5s}
-.tf-beam.l{left:-16px}.tf-beam.r{right:-16px}
-.cf-truck.lights-on .tf-beam{opacity:.5}
-.cf-truck.outside .tf-beam{opacity:.75}
-.tf-wheel{position:absolute;bottom:-10px;width:22px;height:22px;border-radius:50%;background:radial-gradient(#181828,#252545),repeating-conic-gradient(rgba(255,255,255,.16) 0deg 12deg,transparent 12deg 45deg);border:2.5px solid rgba(68,136,255,.35)}
-.tf-wheel.l{left:6px}.tf-wheel.r{right:6px}
-@keyframes ckIn{from{transform:scale(0) rotate(-45deg);opacity:0}to{transform:scale(1);opacity:1}}
-.ck-icon{animation:ckIn .55s cubic-bezier(.34,1.56,.64,1) .25s both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.co-txt{animation:fadeUp .4s ease .55s both}
 /* LOGIN */
 .login-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 18px;position:relative;overflow:hidden}
 .login-wrap::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(68,136,255,.03) 39px,rgba(68,136,255,.03) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(68,136,255,.03) 39px,rgba(68,136,255,.03) 40px);pointer-events:none}
@@ -626,42 +536,6 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
       <div id="confirmTitle" style="font-size:14px;font-weight:700;margin:10px 0 6px"></div>
       <div id="confirmMsg" style="font-size:12px;color:var(--dim);line-height:1.6;margin-bottom:16px"></div>
       <div style="display:flex;gap:7px"><button class="btn" style="flex:1;justify-content:center" onclick="closeModal('confirmModal')">キャンセル</button><button class="btn-danger" style="flex:1" id="confirmOkBtn">削除する</button></div>
-    </div>
-  </div>
-</div>
-<!-- 出荷演出 -->
-<div class="co-overlay" id="coOverlay">
-  <div style="width:100%;height:100%;position:relative">
-    <button class="co-skip" id="coSkip" onclick="skipCoAnimation()">スキップ ›</button>
-    <div class="cf-scene">
-      <div class="cf-sky" id="cfSky"></div>
-      <div class="cf-shutter" id="coShutter"></div>
-      <div class="cf-glow"></div>
-      <div class="cf-road-mark cf-mark1"></div>
-      <div class="cf-road-mark cf-mark2"></div>
-      <div class="cf-road-mark cf-mark3"></div>
-      <div class="cf-truck" id="coVehicle">
-        <div class="cf-shadow"></div>
-        <div class="tf-cab">
-          <div class="tf-mirror l"></div><div class="tf-mirror r"></div>
-          <div class="tf-roof"></div>
-          <div class="tf-wind"></div>
-          <div class="tf-body">
-            <div class="tf-badge">AWK</div>
-            <div class="tf-grille"></div>
-            <div class="tf-headlight l"></div>
-            <div class="tf-headlight r"></div>
-            <div class="tf-beam l"></div><div class="tf-beam r"></div>
-          </div>
-          <div class="tf-wheel l"></div><div class="tf-wheel r"></div>
-        </div>
-      </div>
-    </div>
-    <div style="position:absolute;bottom:130px;left:50%;transform:translateX(-50%);width:100%;max-width:480px">
-      <div class="co-card">
-        <div class="ck-icon" id="coIcon" style="width:52px;height:52px;border-radius:50%;background:rgba(0,214,143,.12);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 0 20px rgba(0,214,143,.25)"><span class="mi lg" id="coIconGlyph" style="color:var(--green);font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">local_shipping</span></div>
-        <div class="co-txt"><div id="coEyebrow" style="font-size:9px;color:var(--green);letter-spacing:2px;font-weight:700;margin-bottom:6px">SHIPPING COMPLETE</div><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:5px" id="coName"></div><div id="coSub" style="font-size:11px;color:var(--dim);margin-bottom:16px">出荷完了 — お客様のもとへ向かっています</div><button onclick="closeCoOverlay()" style="background:rgba(0,214,143,.1);border:1px solid rgba(0,214,143,.25);color:var(--green);padding:9px 24px;border-radius:16px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:600">確認</button></div>
-      </div>
     </div>
   </div>
 </div>
@@ -1611,12 +1485,12 @@ function buildInputUI(mid){
   </div>
 
   <!-- STEP 2: 工程 -->
-  <div class="in-panel" id="inputStep2" style="display:none">
+  <div class="in-panel" id="inputStep2">
     <div class="in-panel-hdr">
       <span class="step-num">2</span><span style="font-size:13px;font-weight:700">工程</span>
       <button class="btn-ghost" onclick="addNewTask()" style="margin-left:auto;font-size:11px"><span class="mi sm">add</span>追加</button>
     </div>
-    <div id="inputTaskList"></div>
+    <div id="inputTaskList"><div style="text-align:center;padding:10px;font-size:12px;color:var(--muted)">まず上で案件を選んでください</div></div>
   </div>
 
   <!-- STEP 3: 時間（ステッパーのみ・シンプル） -->
@@ -1643,23 +1517,30 @@ function buildInputUI(mid){
     </div>
   </div>
 
-  <!-- STEP 5: 残業＋メモ（コンパクト） -->
+  <!-- STEP 5: 残業＋メモ（折りたたみ・普段は隠れてる） -->
   <div class="in-panel">
-    <div class="in-panel-hdr"><span class="step-num" style="background:var(--dim);border-color:var(--dim)">5</span><span style="font-size:13px;font-weight:700">残業・メモ</span><span style="font-size:10px;color:var(--dim);margin-left:4px">任意</span></div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:11px;color:var(--dim);flex-shrink:0;min-width:36px">残業</span>
-      <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(-0.5)"><span class="mi sm">remove</span></button>
-      <input class="h-val" id="inputOT" type="number" min="0" step="0.5" value="0" inputmode="decimal" style="font-size:16px;padding:7px">
-      <span style="font-size:12px;color:var(--dim)">h</span>
-      <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(0.5)"><span class="mi sm">add</span></button>
+    <div class="in-panel-hdr" onclick="toggleOTPanel()" style="cursor:pointer;margin-bottom:0">
+      <span class="step-num" style="background:var(--dim);border-color:var(--dim)">5</span>
+      <span style="font-size:13px;font-weight:700">残業・メモ</span>
+      <span style="font-size:10px;color:var(--dim);margin-left:4px">任意</span>
+      <span class="mi sm" style="margin-left:auto;color:var(--dim);transition:transform .2s" id="otArrow">expand_more</span>
     </div>
-    <textarea id="inputMemo" placeholder="メモ（任意）" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--gb2);color:var(--text);padding:9px;border-radius:9px;font-size:12px;outline:none;min-height:44px;resize:none;box-sizing:border-box;font-family:'Noto Sans JP',sans-serif"></textarea>
+    <div id="otWrap" style="display:none;margin-top:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:11px;color:var(--dim);flex-shrink:0;min-width:36px">残業</span>
+        <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(-0.5)"><span class="mi sm">remove</span></button>
+        <input class="h-val" id="inputOT" type="number" min="0" step="0.5" value="0" inputmode="decimal" style="font-size:16px;padding:7px">
+        <span style="font-size:12px;color:var(--dim)">h</span>
+        <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(0.5)"><span class="mi sm">add</span></button>
+      </div>
+      <textarea id="inputMemo" placeholder="メモ（任意）" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--gb2);color:var(--text);padding:9px;border-radius:9px;font-size:12px;outline:none;min-height:44px;resize:none;box-sizing:border-box;font-family:'Noto Sans JP',sans-serif;margin-bottom:8px"></textarea>
+      <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="saveOTOnly()"><span class="mi sm">schedule</span>残業だけ保存する</button>
+    </div>
   </div>
 
   <!-- 保存ボタン -->
   <div style="display:flex;gap:7px;margin-bottom:16px">
-    <button class="btn" style="flex:1;justify-content:center;font-size:12px" onclick="saveOTOnly()"><span class="mi sm">schedule</span>残業だけ</button>
-    <button class="btn-primary" style="flex:2;font-size:14px" onclick="saveInput()"><span class="mi sm">save</span>保存する</button>
+    <button class="btn-primary" style="flex:1;font-size:14px" onclick="saveInput()"><span class="mi sm">save</span>保存する</button>
   </div>
   <div style="border-top:1px solid rgba(68,136,255,.1);padding-top:14px">
     <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="mi sm" style="color:var(--dim)">swap_horiz</span>間接作業（Zコード）</div>
@@ -1690,12 +1571,11 @@ function renderInputJobList(mid,container){
 function selectInputJob(jid){
   inputState.jobId=jid;inputState.taskId=null;
   renderInputJobList(getIWId());renderInputTasks();
-  const s2=document.getElementById("inputStep2");if(s2)s2.style.display="block";
 }
 function renderInputTasks(){
   const el=document.getElementById("inputTaskList");if(!el)return;
   const j=jobs[inputState.jobId];
-  if(!j){const s2=document.getElementById("inputStep2");if(s2)s2.style.display="none";return;}
+  if(!j){el.innerHTML=`<div style="text-align:center;padding:10px;font-size:12px;color:var(--muted)">まず上で案件を選んでください</div>`;return;}
   const mid=getIWId();
   const tasks=mid?((j.memberTasks&&j.memberTasks[mid])||[]):[];
   if(!tasks.length){el.innerHTML=`<div style="text-align:center;padding:10px;font-size:12px;color:var(--muted)">工程がまだありません<br><button class="btn" style="margin-top:7px;font-size:11px" onclick="addNewTask()"><span class="mi sm">add</span>工程を追加</button></div>`;return;}
@@ -1802,6 +1682,14 @@ async function saveInput(){
   document.getElementById("inputMemo").value="";document.getElementById("inputOT").value="0";document.getElementById("inputHour").value="1";
   document.querySelectorAll(".h-btn").forEach(b=>b.classList.remove("on"));
   renderInputTasks();renderLossChips();
+}
+function toggleOTPanel(){
+  const wrap=document.getElementById("otWrap");
+  const arrow=document.getElementById("otArrow");
+  if(!wrap)return;
+  const open=wrap.style.display==="none";
+  wrap.style.display=open?"block":"none";
+  if(arrow)arrow.textContent=open?"expand_less":"expand_more";
 }
 function toggleLossPanel(){
   const wrap=document.getElementById("lossChipsWrap");
@@ -2209,59 +2097,12 @@ async function advanceJobStatus(jid){
   if(next==="done")showCompletionOverlay(j.name);
   else showToast(`→ ${SL[next]} に更新しました`);
 }
-let coTimers=[];
 function showCompletionOverlay(name,opts){
   const o=opts||{};
-  document.getElementById("coName").textContent=name;
-  document.getElementById("coEyebrow").textContent=o.eyebrow||"SHIPPING COMPLETE";
-  document.getElementById("coSub").textContent=o.sub||"出荷完了 — お客様のもとへ向かっています";
-  document.getElementById("coIconGlyph").textContent=o.icon||"local_shipping";
-  const overlay=document.getElementById("coOverlay");
-  const sky=document.getElementById("cfSky"),sh=document.getElementById("coShutter"),v=document.getElementById("coVehicle");
-  const card=document.querySelector("#coOverlay .co-card"),skipBtn=document.getElementById("coSkip");
-  const marks=document.querySelectorAll(".cf-road-mark");
-  coTimers.forEach(clearTimeout);coTimers=[];
-  // リセット（連続で発火しても毎回最初から再生されるように）
-  if(sh)sh.classList.remove("open");
-  if(sky)sky.classList.remove("lit");
-  if(v)v.classList.remove("go","show","lights-on","outside");
-  if(card)card.classList.remove("show");
-  if(skipBtn)skipBtn.classList.remove("show");
-  marks.forEach(m=>m.classList.remove("go"));
-  void overlay.offsetWidth;
-  overlay.classList.add("show");
-  const T=(ms,fn)=>coTimers.push(setTimeout(fn,ms));
-  T(500,()=>{if(skipBtn)skipBtn.classList.add("show");});
-  T(500,()=>{if(sh)sh.classList.add("open");if(sky)sky.classList.add("lit");});          // ③④ シャッター開放・照明
-  T(500+1400,()=>{if(v){v.classList.add("show");v.classList.add("lights-on");}});         // ⑤ ヘッドライト点灯
-  T(500+1400+400,()=>{                                                                     // ⑥ 前進開始
-    if(v)v.classList.add("go");
-    marks.forEach(m=>m.classList.add("go"));
-  });
-  T(500+1400+400+1900,()=>{if(v)v.classList.add("outside");});                             // ⑦ 屋外の明るさへ
-  T(500+1400+400+4300+500,()=>{if(card)card.classList.add("show");});                      // ⑩ 完了カード表示
-}
-function skipCoAnimation(){
-  coTimers.forEach(clearTimeout);coTimers=[];
-  const sky=document.getElementById("cfSky"),sh=document.getElementById("coShutter"),v=document.getElementById("coVehicle");
-  const card=document.querySelector("#coOverlay .co-card"),skipBtn=document.getElementById("coSkip");
-  if(sh)sh.classList.add("open");
-  if(sky)sky.classList.add("lit");
-  if(v){v.classList.remove("go");v.classList.add("show","lights-on","outside");v.style.opacity="0";}
-  if(skipBtn)skipBtn.classList.remove("show");
-  if(card)card.classList.add("show");
-}
-function closeCoOverlay(){
-  coTimers.forEach(clearTimeout);coTimers=[];
-  const overlay=document.getElementById("coOverlay");
-  overlay.classList.remove("show");
-  const v=document.getElementById("coVehicle");if(v)v.style.opacity="";
+  const sub=o.sub||"出荷完了 — お客様のもとへ向かっています";
+  showToast(`✅ ${name}：${sub}`);
   onDataChange();
 }
-// オーバーレイ背景タップで閉じる
-document.getElementById("coOverlay").addEventListener("click",function(e){
-  if(e.target===this)closeCoOverlay();
-});
 async function markJobDone(jid){await advanceJobStatus(jid);}
 // ===== 作業者：架装完了ボタン =====
 async function workerCompleteJob(jid){
