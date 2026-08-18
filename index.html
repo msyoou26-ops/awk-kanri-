@@ -1424,7 +1424,6 @@ function renderBossInput(){
   }
   renderInputJobList(mid,"bossInputContent");
   renderInputTasks();
-  renderLossChips();
   renderZBatch();
 }
 function renderWorkerInput(){
@@ -1444,7 +1443,6 @@ function renderWorkerInput(){
   }
   renderInputJobList(mid,"workerInputContent");
   renderInputTasks();
-  renderLossChips();
   renderZBatch();
 }
 function switchBITab(tab,el){
@@ -1504,43 +1502,23 @@ function buildInputUI(mid){
     </div>
   </div>
 
-  <!-- STEP 4: ロス理由（折りたたみ） -->
-  <div class="in-panel" id="lossPanel">
-    <div class="in-panel-hdr" onclick="toggleLossPanel()" style="cursor:pointer;margin-bottom:0">
-      <span class="step-num" style="background:var(--amber);border-color:var(--amber);color:#fff">4</span>
-      <span style="font-size:13px;font-weight:700">ロスあり？</span>
-      <span style="font-size:10px;color:var(--dim);margin-left:4px">任意</span>
-      <span class="mi sm" style="margin-left:auto;color:var(--dim);transition:transform .2s" id="lossArrow">expand_more</span>
-    </div>
-    <div id="lossChipsWrap" style="display:none;margin-top:10px">
-      <div style="display:flex;flex-wrap:wrap;gap:5px" id="lossChips"></div>
-    </div>
-  </div>
-
-  <!-- STEP 5: 残業＋メモ（折りたたみ・普段は隠れてる） -->
-  <div class="in-panel">
-    <div class="in-panel-hdr" onclick="toggleOTPanel()" style="cursor:pointer;margin-bottom:0">
-      <span class="step-num" style="background:var(--dim);border-color:var(--dim)">5</span>
-      <span style="font-size:13px;font-weight:700">残業・メモ</span>
-      <span style="font-size:10px;color:var(--dim);margin-left:4px">任意</span>
-      <span class="mi sm" style="margin-left:auto;color:var(--dim);transition:transform .2s" id="otArrow">expand_more</span>
-    </div>
-    <div id="otWrap" style="display:none;margin-top:10px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="font-size:11px;color:var(--dim);flex-shrink:0;min-width:36px">残業</span>
-        <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(-0.5)"><span class="mi sm">remove</span></button>
-        <input class="h-val" id="inputOT" type="number" min="0" step="0.5" value="0" inputmode="decimal" style="font-size:16px;padding:7px">
-        <span style="font-size:12px;color:var(--dim)">h</span>
-        <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(0.5)"><span class="mi sm">add</span></button>
-      </div>
-      <textarea id="inputMemo" placeholder="メモ（任意）" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--gb2);color:var(--text);padding:9px;border-radius:9px;font-size:12px;outline:none;min-height:44px;resize:none;box-sizing:border-box;font-family:'Noto Sans JP',sans-serif;margin-bottom:8px"></textarea>
-      <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="saveOTOnly()"><span class="mi sm">schedule</span>残業だけ保存する</button>
-    </div>
-  </div>
-
   <!-- 保存ボタン -->
   <div style="display:flex;gap:7px;margin-bottom:16px">
     <button class="btn-primary" style="flex:1;font-size:14px" onclick="saveInput()"><span class="mi sm">save</span>保存する</button>
+  </div>
+
+  <!-- 残業入力（本工程の入力とは別枠） -->
+  <div class="in-panel" style="border-color:rgba(255,59,59,.15)">
+    <div class="in-panel-hdr"><span class="mi sm" style="color:var(--red)">schedule</span><span style="font-size:13px;font-weight:700">残業を記録</span><span style="font-size:10px;color:var(--dim);margin-left:4px">工程とは別に記録できます</span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--dim);flex-shrink:0;min-width:36px">残業</span>
+      <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(-0.5)"><span class="mi sm">remove</span></button>
+      <input class="h-val" id="inputOT" type="number" min="0" step="0.5" value="0" inputmode="decimal" style="font-size:16px;padding:7px">
+      <span style="font-size:12px;color:var(--dim)">h</span>
+      <button class="h-step-btn" style="width:34px;height:34px" onclick="changeInputOT(0.5)"><span class="mi sm">add</span></button>
+    </div>
+    <textarea id="inputMemo" placeholder="メモ（任意）" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--gb2);color:var(--text);padding:9px;border-radius:9px;font-size:12px;outline:none;min-height:44px;resize:none;box-sizing:border-box;font-family:'Noto Sans JP',sans-serif;margin-bottom:8px"></textarea>
+    <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="saveOTOnly()"><span class="mi sm">schedule</span>残業を保存する</button>
   </div>
   <div style="border-top:1px solid rgba(68,136,255,.1);padding-top:14px">
     <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="mi sm" style="color:var(--dim)">swap_horiz</span>間接作業（Zコード）</div>
@@ -1639,13 +1617,6 @@ async function cycleTaskStatus(tid){
   if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
   renderInputTasks();showToast(`✅ ステータスを変更しました`);
 }
-function renderLossChips(){
-  const el=document.getElementById("lossChips");if(!el)return;
-  el.innerHTML=LR.map(r=>{const on=inputState.losses.includes(r.key);
-    return`<div class="loss-chip${on?" on":""}" onclick="toggleLoss('${r.key}')" style="${on?`border-color:${r.color};background:${r.color}15;color:${r.color}`:""}">${esc(r.key)}</div>`;
-  }).join("");
-}
-function toggleLoss(key){const i=inputState.losses.indexOf(key);if(i>=0)inputState.losses.splice(i,1);else inputState.losses.push(key);renderLossChips();}
 function setInputHour(h){inputState.hour=h;document.getElementById("inputHour").value=h;document.querySelectorAll(".h-btn").forEach(b=>b.classList.toggle("on",parseFloat(b.textContent)===h));}
 function changeInputHour(d){const el=document.getElementById("inputHour");const v=Math.max(0.5,Math.round(((parseFloat(el.value)||0)+d)*100)/100);el.value=v;inputState.hour=v;}
 function changeInputOT(d){const el=document.getElementById("inputOT");const v=Math.max(0,Math.round(((parseFloat(el.value)||0)+d)*100)/100);el.value=v;}
@@ -1654,34 +1625,22 @@ async function saveInput(){
   if(!inputState.taskId){showToast("工程を選んでください");return;}
   const hours=parseFloat(document.getElementById("inputHour").value)||0;
   if(hours<=0){showToast("作業時間を入力してください");return;}
-  const ot=parseFloat(document.getElementById("inputOT").value)||0;
-  const memo=document.getElementById("inputMemo").value.trim();
   const mid=getIWId();if(!mid){showToast("作業者を選んでください");return;}
   const m=getMember(mid);const j=jobs[inputState.jobId];if(!j)return;
-  const lossFlag=inputState.losses.length>0;
   const mt=(j.memberTasks&&j.memberTasks[mid])||[];
   const updated=mt.map(t=>{
     if(t.id!==inputState.taskId)return t;
-    return{...t,actual:Math.round(((parseFloat(t.actual)||0)+hours)*100)/100,lossH:Math.round(((parseFloat(t.lossH)||0)+(lossFlag?hours:0))*100)/100,status:((parseFloat(t.actual)||0)+hours)>0&&t.status==="planned"?"ongoing":t.status};
+    return{...t,actual:Math.round(((parseFloat(t.actual)||0)+hours)*100)/100,status:((parseFloat(t.actual)||0)+hours)>0&&t.status==="planned"?"ongoing":t.status};
   });
   await dbSet(`jobs/${inputState.jobId}/memberTasks/${mid}`,updated);
   if(!fbReady){if(!j.memberTasks)j.memberTasks={};j.memberTasks[mid]=updated;}
   const taskName=mt.find(t=>t.id===inputState.taskId)?.name||"作業";
   const jobLabel=`${j.orderNo?j.orderNo+" / ":""}${j.name}`;
-  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"progress",jobId:inputState.jobId,jobName:jobLabel,taskName,hours,loss:lossFlag,lossCauses:inputState.losses,overtime:0,memo,savedAt:Date.now()});
-  if(ot>0)await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"overtime",hours:0,overtime:ot,memo:"",savedAt:Date.now()});
-  if(lossFlag){
-    await dbPush("workLogs",{memberId:mid,memberName:m?.name||"",jobId:inputState.jobId,vehicleLabel:jobLabel,date:getInputDate(),causes:inputState.losses,lossCause:inputState.losses.join("・"),lossHours:hours,taskName,memo,savedAt:Date.now()});
-    showToast("✅ 保存 → QC候補に反映しました");
-    const banner=document.createElement("div");
-    banner.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(6,12,24,.95);border:1px solid rgba(68,136,255,.2);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:998;white-space:nowrap";
-    banner.innerHTML=`<span style="font-size:11px;color:var(--text)">🔴 QC候補に反映しました</span><button onclick="showBossScreen('qcScreen');this.parentElement.remove()" style="font-size:10px;padding:4px 10px;border-radius:6px;border:none;background:var(--navy2);color:#fff;cursor:pointer;font-family:'Noto Sans JP',sans-serif">見る</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--dim);cursor:pointer"><span class="mi sm">close</span></button>`;
-    document.body.appendChild(banner);setTimeout(()=>{if(banner.parentElement)banner.remove();},5000);
-  }else showToast(`✅ ${hours}h 保存しました`);
-  inputState.losses=[];
-  document.getElementById("inputMemo").value="";document.getElementById("inputOT").value="0";document.getElementById("inputHour").value="1";
+  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"progress",jobId:inputState.jobId,jobName:jobLabel,taskName,hours,loss:false,lossCauses:[],overtime:0,memo:"",savedAt:Date.now()});
+  showToast(`✅ ${hours}h 保存しました`);
+  document.getElementById("inputHour").value="1";
   document.querySelectorAll(".h-btn").forEach(b=>b.classList.remove("on"));
-  renderInputTasks();renderLossChips();
+  renderInputTasks();
 }
 function toggleOTPanel(){
   const wrap=document.getElementById("otWrap");
@@ -1691,25 +1650,16 @@ function toggleOTPanel(){
   wrap.style.display=open?"block":"none";
   if(arrow)arrow.textContent=open?"expand_less":"expand_more";
 }
-function toggleLossPanel(){
-  const wrap=document.getElementById("lossChipsWrap");
-  const arrow=document.getElementById("lossArrow");
-  if(!wrap)return;
-  const open=wrap.style.display==="none";
-  wrap.style.display=open?"flex":"none";
-  wrap.style.flexWrap="wrap";
-  wrap.style.gap="5px";
-  if(arrow)arrow.textContent=open?"expand_less":"expand_more";
-  if(open&&wrap.children.length===0)renderLossChips();
-}
 function quickSetOT(h){const el=document.getElementById("inputOT");if(el){el.value=h;}}
 async function saveOTOnly(){
   const ot=parseFloat(document.getElementById("inputOT").value)||0;
   if(ot<=0){showToast("残業時間を入力してください");return;}
   const mid=getIWId();if(!mid){showToast("作業者を選んでください");return;}
   const m=getMember(mid);
-  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"overtime",hours:0,overtime:ot,memo:"",savedAt:Date.now()});
+  const memo=document.getElementById("inputMemo").value.trim();
+  await dbPush("nippoLogs",{memberId:mid,memberName:m?.name||"",date:getInputDate(),type:"overtime",hours:0,overtime:ot,memo,savedAt:Date.now()});
   document.getElementById("inputOT").value="0";
+  document.getElementById("inputMemo").value="";
   showToast(`✅ 残業 ${ot}h を登録しました`);
 }
 async function saveMemoOnly(){
