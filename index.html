@@ -122,9 +122,7 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
 .job-card{background:rgba(6,12,24,.8);border:1px solid var(--gb);border-radius:var(--r);padding:14px;margin-bottom:8px;position:relative;overflow:hidden}
 .job-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px}
 .job-card.s-ongoing::before{background:linear-gradient(180deg,#ff6b00,#ff9500);box-shadow:0 0 10px rgba(255,107,0,.5)}
-.job-card.s-inspection::before{background:linear-gradient(180deg,#ffb800,#ff8800)}
-.job-card.s-shipping_prep::before,.job-card.s-shipping::before{background:linear-gradient(180deg,#4488ff,#2266dd)}
-.job-card.s-done::before{background:linear-gradient(180deg,#00d68f,#00b870);box-shadow:0 0 8px rgba(0,214,143,.4)}
+.job-card.s-kaiso_done::before{background:linear-gradient(180deg,#00d68f,#00b870);box-shadow:0 0 8px rgba(0,214,143,.4)}
 .job-card.s-overdue::before{background:linear-gradient(180deg,#ff3b3b,#ff6666)}
 .job-card.s-planned::before{background:var(--dim)}
 /* LOSS CHIP */
@@ -523,10 +521,10 @@ function openInputForDate(dateStr){
   showWorkerScreen("workerInputScreen");
 }
 function thisMonthJST(){const d=new Date(Date.now()+9*36e5);return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}`;}
-const SL={planned:"予定",ongoing:"施工中",kaiso_done:"架装完了",inspection:"検査中",rework:"手直し",done:"出荷完了",overdue:"遅延"};
-const SB={planned:"badge-navy",ongoing:"badge-orange",kaiso_done:"badge-green",inspection:"badge-amber",rework:"badge-red",done:"badge-green",overdue:"badge-red"};
-const SF=["planned","ongoing","kaiso_done","inspection","rework","done"];
-const SI={planned:"schedule",ongoing:"build",kaiso_done:"check_circle",inspection:"fact_check",rework:"build_circle",done:"verified",overdue:"warning"};
+const SL={planned:"予定",ongoing:"施工中",kaiso_done:"架装完了",overdue:"遅延"};
+const SB={planned:"badge-navy",ongoing:"badge-orange",kaiso_done:"badge-green",overdue:"badge-red"};
+const SF=["planned","ongoing","kaiso_done"];
+const SI={planned:"schedule",ongoing:"build",kaiso_done:"check_circle",overdue:"warning"};
 // 作業者が操作できる範囲（施工中→架装完了の2段階のみ）。これ以降は管理者のみが進行できる。
 const WORKER_EDITABLE_STATUSES=["planned","ongoing"];
 const IT=[
@@ -747,7 +745,7 @@ function renderBossKPI(){
   const el=document.getElementById("homeKPI");if(!el)return;
   const ts=todayJST();
   const logs=nippoArr().filter(l=>l.date===ts);
-  const active=jobsArr().filter(j=>j.status!=="done");
+  const active=jobsArr().filter(j=>j.status!=="kaiso_done");
   const ov=active.filter(j=>j.end&&daysLeft(j.end)<0).length;
   const lossT=wlArr().filter(l=>l.date===ts).length;
   const otH=Math.round(logs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
@@ -761,7 +759,7 @@ function renderBossKPI(){
 }
 function renderBossAlerts(){
   const el=document.getElementById("homeAlerts");if(!el)return;
-  const active=jobsArr().filter(j=>j.status!=="done");
+  const active=jobsArr().filter(j=>j.status!=="kaiso_done");
   const ov=active.filter(j=>j.end&&daysLeft(j.end)<0);
   const near=active.filter(j=>j.end&&daysLeft(j.end)>=0&&daysLeft(j.end)<=3);
   const over=active.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
@@ -777,8 +775,8 @@ function setJobFilter(f,el){jobFilter=f;document.querySelectorAll(".chip").forEa
 function renderBossJobList(){
   const el=document.getElementById("homeJobList");if(!el)return;
   let all=jobsArr();
-  if(jobFilter==="ongoing")all=all.filter(j=>j.status!=="done");
-  else if(jobFilter==="done")all=all.filter(j=>j.status==="done");
+  if(jobFilter==="ongoing")all=all.filter(j=>j.status!=="kaiso_done");
+  else if(jobFilter==="done")all=all.filter(j=>j.status==="kaiso_done");
   else if(jobFilter==="over")all=all.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   const doneHint=jobFilter==="done"?`<div style="display:flex;align-items:center;gap:7px;padding:9px 12px;margin-bottom:8px;background:rgba(255,184,0,.07);border:1px solid rgba(255,184,0,.18);border-radius:9px;font-size:11px;color:var(--amber)"><span class="mi sm" style="font-size:14px;color:var(--amber)">info</span>戻すボタン(↩)は1段階ずつ戻せます。案件をタップして開くと、フロー図の工程を直接タップして一気に移動できます</div>`:"";
   el.innerHTML=doneHint+(all.length?all.map(j=>bossJobCard(j)).join(""):"<div style='text-align:center;padding:20px;font-size:12px;color:var(--muted)'>案件がありません</div>");
@@ -838,8 +836,8 @@ function bossJobCard(j){
   const dlC=dl!==null&&dl<0?"var(--red)":dl!==null&&dl<=3?"var(--amber)":"var(--blue)";
   const schedC=schedPct!==null&&pct<schedPct-10?"var(--red)":schedPct!==null&&pct<schedPct?"var(--amber)":"var(--green)";
   // ステータスバー（一目で分かるよう主要4段階に絞って表示。検査中〜出荷中の詳細はタップ後のモーダルで表示）
-  const SF3=["planned","ongoing","kaiso_done","done"];
-  const stMap={planned:0,ongoing:1,kaiso_done:2,inspection:3,rework:3,done:3};
+  const SF3=["planned","ongoing","kaiso_done"];
+  const stMap={planned:0,ongoing:1,kaiso_done:2};
   const curIdx3=stMap[j.status]??0;
   const sfFlow=`<div style="display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;margin-bottom:10px">${SF3.map((s,i)=>{const isDone=i<curIdx3,isAct=i===curIdx3;return`${i>0?`<div style="width:20px;height:1px;background:${isDone?"var(--green)":"rgba(68,136,255,.15)"};flex-shrink:0;margin-bottom:12px"></div>`:""}
     <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
@@ -900,7 +898,7 @@ function bossJobCard(j){
           <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${lh>0?"var(--red)":"var(--dim)"};line-height:1">${lh}h</div>
           <div style="font-size:8px;color:var(--dim);margin-top:2px">ロス</div>
         </div>
-        ${dl!==null&&j.status!=="done"?`<div style="grid-column:1/-1;background:${dl<0?"rgba(255,59,59,.08)":dl<=3?"rgba(255,184,0,.08)":"rgba(255,255,255,.03)"};border:${dl<0?"1px solid rgba(255,59,59,.15)":dl<=3?"1px solid rgba(255,184,0,.15)":""};border-radius:7px;padding:5px 7px;display:flex;align-items:center;gap:6px">
+        ${dl!==null&&j.status!=="kaiso_done"?`<div style="grid-column:1/-1;background:${dl<0?"rgba(255,59,59,.08)":dl<=3?"rgba(255,184,0,.08)":"rgba(255,255,255,.03)"};border:${dl<0?"1px solid rgba(255,59,59,.15)":dl<=3?"1px solid rgba(255,184,0,.15)":""};border-radius:7px;padding:5px 7px;display:flex;align-items:center;gap:6px">
           <span class="mi sm" style="font-size:14px;color:${dlC}">event</span>
           <div><div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${dlC};line-height:1">${dl<0?"納期超過 "+Math.abs(dl)+"日":dl+"日"}</div><div style="font-size:8px;color:var(--dim);margin-top:1px">${dl<0?"超過":"納期まで"}</div></div>
         </div>`:""}
@@ -935,9 +933,8 @@ function renderBossSummary(){
   const iH=Math.round(logs.filter(l=>l.type==="indirect").reduce((a,l)=>a+(l.hours||0),0)*100)/100;
   const otH=Math.round(logs.filter(l=>l.type==="overtime").reduce((a,l)=>a+(l.overtime||0),0)*100)/100;
   const lH=Math.round(wlArr().filter(l=>l.date===ts).reduce((a,l)=>a+(l.lossHours||0),0)*100)/100;
-  const done=jobsArr().filter(j=>j.status==="done").length;
-  const rework=jobsArr().filter(j=>j.status==="rework").length;
-  el.innerHTML=`<div class="card-sm" style="margin-bottom:10px"><div class="stat-grid stat-grid-3">${[["直接",dH+"h","var(--orange)"],["間接",iH+"h","var(--blue)"],["残業",otH+"h","var(--red)"],["ロス",lH+"h","var(--red)"],["完了",done+"件","var(--green)"],["手直し中",rework+"件","var(--red)"]].map(([l,v,c])=>`<div style="text-align:center;padding:6px 0"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:${c}">${v}</div><div style="font-size:8px;color:var(--dim);margin-top:2px">${l}</div></div>`).join("")}</div></div>`;
+  const done=jobsArr().filter(j=>j.status==="kaiso_done").length;
+  el.innerHTML=`<div class="card-sm" style="margin-bottom:10px"><div class="stat-grid stat-grid-3">${[["直接",dH+"h","var(--orange)"],["間接",iH+"h","var(--blue)"],["残業",otH+"h","var(--red)"],["ロス",lH+"h","var(--red)"],["完了",done+"件","var(--green)"]].map(([l,v,c])=>`<div style="text-align:center;padding:6px 0"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:${c}">${v}</div><div style="font-size:8px;color:var(--dim);margin-top:2px">${l}</div></div>`).join("")}</div></div>`;
 }
 function renderBossTimeline(){
   const el=document.getElementById("homeTimeline");if(!el)return;
@@ -967,7 +964,7 @@ function renderMemberList(){
   const allLogs=nippoArr().filter(l=>l.date===ts);
   const inMids=new Set(allLogs.filter(l=>l.type==="progress"||l.type==="indirect").map(l=>l.memberId));
   el.innerHTML=membersArr().map(m=>{
-    const on=getJobsForMember(m.id).filter(j=>j.status!=="done").length;
+    const on=getJobsForMember(m.id).filter(j=>j.status!=="kaiso_done").length;
     const inp=inMids.has(m.id);
     const mLogs=allLogs.filter(l=>l.memberId===m.id);
     // 残業時間
@@ -1198,14 +1195,14 @@ function renderWHCalInner(el,mid,st){
     ${monthJobs.map(j=>{
       const dl=j.end?daysLeft(j.end):null;
       return`<div style="background:rgba(6,12,24,.8);border:1px solid var(--gb);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
-        <div style="width:4px;height:36px;border-radius:2px;background:${j.status==="done"?"var(--green)":dl!==null&&dl<0?"var(--red)":dl!==null&&dl<=3?"var(--amber)":"var(--orange)"};flex-shrink:0"></div>
+        <div style="width:4px;height:36px;border-radius:2px;background:${j.status==="kaiso_done"?"var(--green)":dl!==null&&dl<0?"var(--red)":dl!==null&&dl<=3?"var(--amber)":"var(--orange)"};flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name)}</div>
           <div style="font-size:9px;color:var(--dim);margin-top:2px">${j.start||"—"} 〜 ${j.end||"—"}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <span class="badge ${SB[j.status]||"badge-navy"}" style="font-size:8px">${SL[j.status]||j.status}</span>
-          ${dl!==null&&j.status!=="done"?`<div style="font-size:9px;font-weight:700;color:${dl<0?"var(--red)":dl<=3?"var(--amber)":"var(--text2)"};margin-top:3px">${dl<0?"超過"+Math.abs(dl)+"日":"残"+dl+"日"}</div>`:""}
+          ${dl!==null&&j.status!=="kaiso_done"?`<div style="font-size:9px;font-weight:700;color:${dl<0?"var(--red)":dl<=3?"var(--amber)":"var(--text2)"};margin-top:3px">${dl<0?"超過"+Math.abs(dl)+"日":"残"+dl+"日"}</div>`:""}
         </div>
       </div>`;
     }).join("")}`:"<div style='font-size:12px;color:var(--muted);text-align:center;padding:12px'>今月の架装案件はありません</div>"}
@@ -1291,7 +1288,7 @@ function renderWHAchieve(tab){
 function renderWorkerJobList(){
   const el=document.getElementById("workerJobList");if(!el)return;
   const mid=session.memberId;
-  const myJobs=getJobsForMember(mid).filter(j=>j.status!=="done");
+  const myJobs=getJobsForMember(mid).filter(j=>j.status!=="kaiso_done");
   el.innerHTML=myJobs.length?myJobs.map(j=>workerJobCard(j)).join(""):"<div style='font-size:12px;color:var(--muted);text-align:center;padding:16px'>担当案件がありません</div>";
 }
 function workerJobCard(j){
@@ -1322,12 +1319,11 @@ function renderWorkerJobDetail(){
     const barC=pct>=100?"var(--red)":pct>=80?"var(--amber)":"var(--orange)";
     const tasks=((j.memberTasks&&j.memberTasks[mid])||[]);
     const pid="wd"+Math.random().toString(36).slice(2,7);
-    // ステータスフロー（作業者が見るのは「施工中→架装完了」の2段階のみ。ただし手直し中は再び入力・完了操作が必要）
-    const isRework=j.status==="rework";
+    // ステータスフロー（作業者が見るのは「施工中→架装完了」の2段階のみ）
     const SF2W=["ongoing","kaiso_done"];
     const kIdx=SF.indexOf("kaiso_done"),jIdx=SF.indexOf(j.status||"planned");
     const curIdx=jIdx>=kIdx?1:0;
-    const flowHtml=isRework?`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(255,59,59,.08);border:1px solid rgba(255,59,59,.2);border-radius:9px;font-size:11px;color:var(--red);font-weight:600"><span class="mi sm" style="font-size:14px">build_circle</span>手直し中 — 修正作業をして完了報告してください</div>`:`<div class="status-flow" style="margin-bottom:10px">${SF2W.map((s,i)=>{
+    const flowHtml=`<div class="status-flow" style="margin-bottom:10px">${SF2W.map((s,i)=>{
       const isDone=i<curIdx,isAct=i===curIdx;
       return`${i>0?`<div class="sf-conn ${isDone?"done":""}"></div>`:""}
       <div class="sf-step"><div class="sf-icon ${isDone?"done":isAct?"active":""}"><span class="mi sm" style="font-size:12px;color:${isDone?"var(--green)":isAct?"var(--orange)":"var(--dim)"}">${SI[s]}</span></div><div class="sf-lbl ${isDone?"done":isAct?"active":""}">${SL[s]}</div></div>`;
@@ -1336,10 +1332,8 @@ function renderWorkerJobDetail(){
     const allTasksDone=tasks.length>0&&tasks.every(t=>t.status==="done");
     const notDoneCount=tasks.filter(t=>t.status!=="done").length;
     const lockedMsg=`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(255,184,0,.06);border:1px solid rgba(255,184,0,.18);border-radius:9px;font-size:11px;color:var(--amber)"><span class="mi sm" style="font-size:14px">lock</span>${tasks.length===0?"工程がまだ登録されていません":`工程が${notDoneCount}件未完了です — 全て完了にすると押せます`}</div>`;
-    const completeBtnHtml=isRework
-      ?(allTasksDone?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;background:var(--red);border-color:var(--red)" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>手直し完了にする</button>`:lockedMsg)
-      :canComplete?(allTasksDone?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>架装完了にする</button>`:lockedMsg)
-      :`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(0,214,143,.06);border:1px solid rgba(0,214,143,.15);border-radius:9px;font-size:11px;color:var(--green)"><span class="mi sm" style="font-size:14px">verified</span>架装完了済み — この先は管理者が進めます</div>`;
+    const completeBtnHtml=canComplete?(allTasksDone?`<button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="workerCompleteJob('${j.id}')"><span class="mi sm">check_circle</span>架装完了にする</button>`:lockedMsg)
+      :`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:10px;background:rgba(0,214,143,.06);border:1px solid rgba(0,214,143,.15);border-radius:9px;font-size:11px;color:var(--green)"><span class="mi sm" style="font-size:14px">verified</span>架装完了済みです</div>`;
     return`<div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
         <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${esc(j.name)}</div><div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(j.orderNo||"—")}${j.userName?" · "+esc(j.userName):""}${j.carType?" · "+esc(j.carType):""}</div></div>
@@ -1501,7 +1495,7 @@ function buildInputUI(mid){
 function selectInputWorker(mid){inputWorkerId=mid;renderBossInput();}
 function renderInputJobList(mid,container){
   const el=document.getElementById("inputJobList");if(!el)return;
-  const mj=mid?getJobsForMember(mid).filter(j=>j.status!=="done"):jobsArr().filter(j=>j.status!=="done");
+  const mj=mid?getJobsForMember(mid).filter(j=>j.status!=="kaiso_done"):jobsArr().filter(j=>j.status!=="kaiso_done");
   if(!mj.length){el.innerHTML="<div style='font-size:12px;color:var(--muted);text-align:center;padding:10px'>担当案件がありません</div>";return;}
   el.innerHTML=mj.map(j=>{const sel=inputState.jobId===j.id;
     return`<div onclick="selectInputJob('${j.id}')" style="padding:9px 12px;border-radius:9px;border:1px solid ${sel?"rgba(255,107,0,.3)":"var(--gb)"};background:${sel?"rgba(255,107,0,.08)":"var(--glass2)"};cursor:pointer;margin-bottom:5px;display:flex;align-items:center;gap:7px;transition:all .15s">
@@ -1829,7 +1823,7 @@ function switchAnalysisTab(tab,el){
 function renderAnalysis(){switchAnalysisTab("overview",document.getElementById("aNoverview"));}
 function renderAnalysisOverview(){
   const el=document.getElementById("analysisOverviewTab");if(!el)return;
-  const done=jobsArr().filter(j=>j.status==="done"),ongoing=jobsArr().filter(j=>j.status!=="done");
+  const done=jobsArr().filter(j=>j.status==="kaiso_done"),ongoing=jobsArr().filter(j=>j.status!=="kaiso_done");
   const overJ=done.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   const overR=done.length?Math.round(overJ.length/done.length*100):0;
   const avgD=done.length?Math.round((done.reduce((a,j)=>a+actualH(j),0)-done.reduce((a,j)=>a+totalH(j),0))/done.length*10)/10:0;
@@ -1868,7 +1862,7 @@ function renderAnalysisProcess(){
 }
 function renderAnalysisAccuracy(){
   const el=document.getElementById("analysisAccuracyTab");if(!el)return;
-  const done=jobsArr().filter(j=>j.status==="done"&&totalH(j)>0);
+  const done=jobsArr().filter(j=>j.status==="kaiso_done"&&totalH(j)>0);
   if(!done.length){el.innerHTML="<div style='text-align:center;font-size:12px;color:var(--muted);padding:32px'>完成案件がありません</div>";return;}
   const groups={};done.forEach(j=>{const k=j.name;if(!groups[k])groups[k]={name:k,jobs:[]};groups[k].jobs.push(j);});
   el.innerHTML=`<div class="card">${Object.values(groups).map(g=>{
@@ -1903,7 +1897,7 @@ function renderAnalysisLoss(){
 }
 function runAnalysisAI(){
   const el=document.getElementById("analysisAiResult");
-  const done=jobsArr().filter(j=>j.status==="done"),ongoing=jobsArr().filter(j=>j.status!=="done");
+  const done=jobsArr().filter(j=>j.status==="kaiso_done"),ongoing=jobsArr().filter(j=>j.status!=="kaiso_done");
   const overJ=done.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   const cnt={};wlArr().forEach(l=>(l.causes||[]).forEach(c=>{cnt[c]=(cnt[c]||0)+1;}));
   const top3=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k}(${v}件)`).join("、");
@@ -1959,12 +1953,12 @@ async function advanceJobStatus(jid){
   // fbReady・非fbReady両方でローカルを即更新して画面反映
   jobs[jid]={...jobs[jid],status:next};
   onDataChange();
-  if(next==="done")showCompletionOverlay(j.name);
+  if(next==="kaiso_done")showCompletionOverlay(j.name);
   else showToast(`→ ${SL[next]} に更新しました`);
 }
 function showCompletionOverlay(name,opts){
   const o=opts||{};
-  const sub=o.sub||"出荷完了 — お客様のもとへ向かっています";
+  const sub=o.sub||"架装完了しました";
   showToast(`✅ ${name}：${sub}`);
   onDataChange();
 }
@@ -1976,21 +1970,12 @@ async function workerCompleteJob(jid){
   const mid=session.memberId;
   const tasks=(j.memberTasks&&j.memberTasks[mid])||[];
   if(!tasks.length||!tasks.every(t=>t.status==="done")){showToast("工程を全て完了にしてから押してください");return;}
-  if(status==="rework"){
-    confirmAction("手直し完了にしますか？","再検査のため管理者に戻します。",async()=>{
-      await dbSet(`jobs/${jid}/status`,"inspection");
-      jobs[jid]={...jobs[jid],status:"inspection"};
-      onDataChange();
-      showCompletionOverlay(j.name,{eyebrow:"REWORK COMPLETE",sub:"手直し完了 — 管理者が再検査します",icon:"check_circle"});
-    },"手直し完了にする",false);
-    return;
-  }
   if(!WORKER_EDITABLE_STATUSES.includes(status)){showToast("この案件はすでに架装完了しています");return;}
-  confirmAction("架装完了にしますか？","この後の検査・出荷準備は管理者が進めます。",async()=>{
+  confirmAction("架装完了にしますか？","この案件の作業はこれで完了になります。",async()=>{
     await dbSet(`jobs/${jid}/status`,"kaiso_done");
     jobs[jid]={...jobs[jid],status:"kaiso_done"};
     onDataChange();
-    showCompletionOverlay(j.name,{eyebrow:"KAISO COMPLETE",sub:"架装完了 — お疲れさまでした。この後は管理者が検査工程へ進めます",icon:"check_circle"});
+    showCompletionOverlay(j.name,{eyebrow:"KAISO COMPLETE",sub:"架装完了 — お疲れさまでした",icon:"check_circle"});
   },"架装完了にする",false);
 }
 async function jumpJobStatus(jid,targetStatus){
@@ -2000,7 +1985,7 @@ async function jumpJobStatus(jid,targetStatus){
   jobs[jid]={...jobs[jid],status:targetStatus};
   onDataChange();
   if(document.getElementById("jobDetailModal")?.classList.contains("open"))openJobDetail(jid);
-  if(targetStatus==="done")showCompletionOverlay(j.name);
+  if(targetStatus==="kaiso_done")showCompletionOverlay(j.name);
   else showToast(`→ ${SL[targetStatus]} に更新しました`);
 }
 async function revertJobStatus(jid){
