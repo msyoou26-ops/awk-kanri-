@@ -1478,6 +1478,12 @@ function buildInputUI(mid){
     </div>
     <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="saveOTOnly()"><span class="mi sm">schedule</span>残業を保存する</button>
   </div>
+
+  <!-- ロス時間入力（外部フォームへのリンク） -->
+  <div class="in-panel" style="border-color:rgba(255,184,0,.15)">
+    <div class="in-panel-hdr"><span class="mi sm" style="color:var(--amber)">report_problem</span><span style="font-size:13px;font-weight:700">ロス時間を記録</span><span style="font-size:10px;color:var(--dim);margin-left:4px">外部フォーム</span></div>
+    <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="window.open('https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=rqAXRpIagkSoM3utU1sykhC9qOAAJAlDhhCERR9MrlNUMlVaUjI0MkdTOERZVkxKTzE2NllaUE44RS4u&origin=QRCode','_blank')"><span class="mi sm">open_in_new</span>ロス時間入力フォームを開く</button>
+  </div>
   <div style="border-top:1px solid rgba(68,136,255,.1);padding-top:14px">
     <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="mi sm" style="color:var(--dim)">swap_horiz</span>間接作業（Zコード）</div>
     <div style="font-size:10px;color:var(--dim);margin-bottom:10px">複数選択して一括保存できます</div>
