@@ -582,7 +582,7 @@ function initFirebase(){
   if(typeof firebase==="undefined"){fallback();return;}
   try{
     firebase.initializeApp(FC);db=firebase.database();fbReady=true;
-    db.ref("jobs").on("value",s=>{jobs=s.val()||{};onDataChange();});
+    db.ref("jobs").on("value",s=>{jobs=s.val()||{};migrateLegacyJobStatus();onDataChange();});
     db.ref("members").on("value",s=>{members=s.val()||{};onDataChange();});
     db.ref("nippoLogs").on("value",s=>{nippoLogs=s.val()||{};onDataChange();});
     db.ref("workLogs").on("value",s=>{workLogs=s.val()||{};onDataChange();});
@@ -591,12 +591,26 @@ function initFirebase(){
     db.ref("settings/bossPassword").on("value",s=>{const v=s.val();if(v){cloudBossPass=v;bossPassword=v;}});
   }catch(e){fallback();}
 }
+// 旧ステータス体系（検査中・手直し・出荷完了）で保存された古い案件データを、
+// 新体系（予定・施工中・架装完了）に変換する。架装完了より先だった値は全て架装完了扱いにする。
+// 既に直った案件は対象外になるので、毎回呼んでも軽い（冪等）
+function migrateLegacyJobStatus(){
+  const validStatuses=["planned","ongoing","kaiso_done"];
+  Object.keys(jobs).forEach(jid=>{
+    const st=jobs[jid]?.status;
+    if(st&&!validStatuses.includes(st)){
+      jobs[jid]={...jobs[jid],status:"kaiso_done"};
+      dbSet(`jobs/${jid}/status`,"kaiso_done");
+    }
+  });
+}
 function fallback(){
   try{jobs=JSON.parse(localStorage.getItem("awk_jobs")||"{}");}catch(e){jobs={};}
   try{members=JSON.parse(localStorage.getItem("awk_members")||"{}");}catch(e){members={};}
   try{nippoLogs=JSON.parse(localStorage.getItem("awk_nippo")||"{}");}catch(e){nippoLogs={};}
   try{workLogs=JSON.parse(localStorage.getItem("awk_logs")||"{}");}catch(e){workLogs={};}
   try{qcLogs=JSON.parse(localStorage.getItem("awk_qc")||"{}");}catch(e){qcLogs={};}
+  migrateLegacyJobStatus();
 }
 function saveLocal(){if(fbReady)return;localStorage.setItem("awk_jobs",JSON.stringify(jobs));localStorage.setItem("awk_members",JSON.stringify(members));localStorage.setItem("awk_nippo",JSON.stringify(nippoLogs));localStorage.setItem("awk_logs",JSON.stringify(workLogs));localStorage.setItem("awk_qc",JSON.stringify(qcLogs));}
 async function dbSet(p,v){if(fbReady)await db.ref(p).set(v);else{setN(p,v);saveLocal();}}
