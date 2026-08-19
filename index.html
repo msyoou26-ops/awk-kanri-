@@ -1842,7 +1842,16 @@ function renderAnalysisOverview(){
   const overJ=done.filter(j=>totalH(j)>0&&actualH(j)>totalH(j));
   const overR=done.length?Math.round(overJ.length/done.length*100):0;
   const avgD=done.length?Math.round((done.reduce((a,j)=>a+actualH(j),0)-done.reduce((a,j)=>a+totalH(j),0))/done.length*10)/10:0;
-  el.innerHTML=`<div class="card" style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">全体サマリー</div><div class="stat-grid stat-grid-4">
+  const allJobs=jobsArr();
+  const totalEst=Math.round(allJobs.reduce((a,j)=>a+totalH(j),0)*100)/100;
+  const totalAct=Math.round(allJobs.reduce((a,j)=>a+actualH(j),0)*100)/100;
+  const totalDiff=Math.round((totalAct-totalEst)*100)/100;
+  el.innerHTML=`<div class="card" style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">工数トータル（全案件合計）</div><div class="stat-grid stat-grid-3">
+    <div class="stat-cell"><div class="stat-val" style="color:var(--text)">${totalEst}h</div><div class="stat-lbl">総見積工数</div></div>
+    <div class="stat-cell"><div class="stat-val" style="color:var(--orange)">${totalAct}h</div><div class="stat-lbl">総実績工数</div></div>
+    <div class="stat-cell" style="${totalDiff>0?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="color:${totalDiff>0?"var(--red)":"var(--green)"}">${totalDiff>0?"+":""}${totalDiff}h</div><div class="stat-lbl">${totalDiff>0?"超過":"余り"}</div></div>
+  </div></div>
+  <div class="card" style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:10px">全体サマリー</div><div class="stat-grid stat-grid-4">
     <div class="stat-cell"><div class="stat-val" style="color:var(--orange)">${done.length}</div><div class="stat-lbl">完成案件</div></div>
     <div class="stat-cell"><div class="stat-val" style="color:var(--blue)">${ongoing.length}</div><div class="stat-lbl">進行中</div></div>
     <div class="stat-cell" style="${overR>50?"background:rgba(255,59,59,.06)":""}"><div class="stat-val" style="color:${overR>50?"var(--red)":"var(--text)"}">${overR}%</div><div class="stat-lbl">工数超過率</div></div>
