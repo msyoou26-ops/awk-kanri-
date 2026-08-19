@@ -262,7 +262,6 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     <button class="bnav on"><span class="mi">home</span>ホーム</button>
     <button class="bnav" onclick="showBossScreen('bossInputScreen')"><span class="mi">edit_note</span>入力</button>
     <button class="bnav" onclick="showBossScreen('analysisScreen')"><span class="mi">bar_chart</span>分析</button>
-    <button class="bnav" onclick="showBossScreen('qcScreen')"><span class="mi">verified</span>QC</button>
     <button class="bnav" onclick="showBossScreen('settingsScreen')"><span class="mi">settings</span>設定</button>
   </div>
 </div>
@@ -296,7 +295,6 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     <button class="bnav" onclick="showBossScreen('homeScreen')"><span class="mi">home</span>ホーム</button>
     <button class="bnav on"><span class="mi">edit_note</span>入力</button>
     <button class="bnav" onclick="showBossScreen('analysisScreen')"><span class="mi">bar_chart</span>分析</button>
-    <button class="bnav" onclick="showBossScreen('qcScreen')"><span class="mi">verified</span>QC</button>
     <button class="bnav" onclick="showBossScreen('settingsScreen')"><span class="mi">settings</span>設定</button>
   </div>
 </div>
@@ -328,47 +326,11 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     <button class="bnav" onclick="showBossScreen('homeScreen')"><span class="mi">home</span>ホーム</button>
     <button class="bnav" onclick="showBossScreen('bossInputScreen')"><span class="mi">edit_note</span>入力</button>
     <button class="bnav on"><span class="mi">bar_chart</span>分析</button>
-    <button class="bnav" onclick="showBossScreen('qcScreen')"><span class="mi">verified</span>QC</button>
     <button class="bnav" onclick="showBossScreen('settingsScreen')"><span class="mi">settings</span>設定</button>
   </div>
 </div>
 
 <!-- ===== 管理者: QC ===== -->
-<div id="qcScreen" class="screen">
-  <div class="hdr">
-    <button class="back-btn" onclick="showBossScreen('homeScreen')"><span class="mi sm">arrow_back_ios</span>戻る</button>
-    <div class="hdr-title">QCログ</div>
-  </div>
-  <div class="tab-bar" style="top:54px">
-    <button class="tab on" id="qNavAuto" onclick="switchQcTab('auto',this)">自動生成</button>
-    <button class="tab" id="qNavManual" onclick="switchQcTab('manual',this)">手動入力</button>
-    <button class="tab" id="qNavStat" onclick="switchQcTab('stat',this)">統計</button>
-  </div>
-  <div class="app-body">
-    <div id="qcAutoTab"><div class="alert-card alert-amber" style="margin-bottom:10px"><span class="mi sm" style="color:var(--amber);flex-shrink:0">info</span><span style="font-size:11px;color:var(--amber)">作業入力のロス理由から自動生成されたQC候補です</span></div><div id="qcAutoList"></div></div>
-    <div id="qcManualTab" style="display:none">
-      <div class="card">
-        <div class="field"><label>問題</label><textarea id="qcProblem" class="f-input" placeholder="どんな問題が起きたか" style="min-height:60px;resize:none"></textarea></div>
-        <div class="field"><label>原因</label><textarea id="qcCause" class="f-input" placeholder="なぜ起きたか" style="min-height:60px;resize:none"></textarea></div>
-        <div class="field"><label>対策</label><textarea id="qcAction" class="f-input" placeholder="どう対処したか" style="min-height:60px;resize:none"></textarea></div>
-        <div class="field" style="margin-bottom:0"><label>結果</label><textarea id="qcResult" class="f-input" placeholder="対策の結果" style="min-height:60px;resize:none"></textarea></div>
-      </div>
-      <div class="field"><label>関連案件</label><select id="qcJobSelect" class="f-input"><option value="">選択なし</option></select></div>
-      <button class="btn-primary" onclick="saveQcLog()" style="margin-bottom:8px"><span class="mi sm">save</span>保存</button>
-      <button class="btn" style="width:100%;justify-content:center" onclick="runQcAI()"><span class="mi sm">psychology</span>AIに改善案を提案してもらう</button>
-      <div id="qcAiResult"></div>
-    </div>
-    <div id="qcStatTab" style="display:none"><div id="qcStatContent"></div></div>
-  </div>
-  <div class="bnav-wrap">
-    <button class="bnav" onclick="showBossScreen('homeScreen')"><span class="mi">home</span>ホーム</button>
-    <button class="bnav" onclick="showBossScreen('bossInputScreen')"><span class="mi">edit_note</span>入力</button>
-    <button class="bnav" onclick="showBossScreen('analysisScreen')"><span class="mi">bar_chart</span>分析</button>
-    <button class="bnav on"><span class="mi">verified</span>QC</button>
-    <button class="bnav" onclick="showBossScreen('settingsScreen')"><span class="mi">settings</span>設定</button>
-  </div>
-</div>
-
 <!-- ===== 管理者: 設定 ===== -->
 <div id="settingsScreen" class="screen">
   <div class="hdr">
@@ -385,7 +347,6 @@ input,select,textarea,button{font-family:'Noto Sans JP',sans-serif}
     <button class="bnav" onclick="showBossScreen('homeScreen')"><span class="mi">home</span>ホーム</button>
     <button class="bnav" onclick="showBossScreen('bossInputScreen')"><span class="mi">edit_note</span>入力</button>
     <button class="bnav" onclick="showBossScreen('analysisScreen')"><span class="mi">bar_chart</span>分析</button>
-    <button class="bnav" onclick="showBossScreen('qcScreen')"><span class="mi">verified</span>QC</button>
     <button class="bnav on"><span class="mi">settings</span>設定</button>
   </div>
 </div>
@@ -684,7 +645,6 @@ function onDataChange(){
   else if(id==="workerHistoryScreen")renderWorkerHistory();
   else if(id==="workerJobScreen")renderWorkerJobDetail();
   else if(id==="analysisScreen")renderAnalysis();
-  else if(id==="qcScreen")renderQcScreen();
 }
 
 // ===== ログイン・画面遷移 =====
@@ -715,12 +675,11 @@ function showBossScreen(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   // ボトムナビ更新
-  const navMap={homeScreen:0,bossInputScreen:1,analysisScreen:2,qcScreen:3,settingsScreen:4};
+  const navMap={homeScreen:0,bossInputScreen:1,analysisScreen:2,settingsScreen:3};
   document.querySelectorAll(`#${id} .bnav`).forEach((b,i)=>b.classList.toggle("on",i===navMap[id]));
   if(id==="homeScreen")renderBossHome();
   else if(id==="bossInputScreen"){inputWorkerId=null;renderBossInput();}
   else if(id==="analysisScreen")switchAnalysisTab("overview",document.getElementById("aNoverview"));
-  else if(id==="qcScreen")switchQcTab("auto",document.getElementById("qNavAuto"));
   else if(id==="settingsScreen")renderSettings();
 }
 function showWorkerScreen(id){
@@ -1947,43 +1906,6 @@ function runAnalysisAI(){
     現在のデータ：<br>・完成案件: ${done.length}件 / 進行中: ${ongoing.length}件<br>・工数超過: ${overJ.length}件（${done.length?Math.round(overJ.length/done.length*100):0}%）<br>・ロスTOP3: ${top3||"データなし"}<br><br>
     <span style="color:var(--dim);font-size:11px">※ AI分析機能はGAS連携後に有効になります</span>
   </div>`;
-}
-
-// ===== QC =====
-function switchQcTab(tab,el){
-  ["auto","manual","stat"].forEach(t=>{document.getElementById("qNav"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("on",t===tab);document.getElementById("qc"+t.charAt(0).toUpperCase()+t.slice(1)+"Tab").style.display=t===tab?"block":"none";});
-  if(tab==="auto")renderQcAuto();
-  else if(tab==="stat")renderQcStat();
-  else if(tab==="manual")populateQcJobSelect();
-}
-function renderQcScreen(){renderQcAuto();}
-function renderQcAuto(){
-  const el=document.getElementById("qcAutoList");if(!el)return;
-  const logs=wlArr().slice(0,20);
-  if(!logs.length){el.innerHTML="<div style='text-align:center;font-size:12px;color:var(--muted);padding:32px'>まだロスデータがありません<br><span style='font-size:11px'>作業入力時にロス理由を選ぶと自動生成されます</span></div>";return;}
-  el.innerHTML=logs.map(l=>{
-    const mainCause=l.causes&&l.causes[0];const suggest=QS[mainCause]||{cause:"詳細な原因調査が必要",action:"現場ヒアリングを実施"};
-    const causes=(l.causes||[]).map(k=>{const r=LR.find(r=>r.key===k)||{color:"#667085"};return`<span style="font-size:9px;padding:2px 6px;border-radius:5px;background:${r.color}18;color:${r.color};border:1px solid ${r.color}28">${esc(k)}</span>`;}).join("");
-    return`<div class="card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700">${esc(l.vehicleLabel||l.taskName||"—")}</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${causes}</div></div><div style="text-align:right;flex-shrink:0;margin-left:8px"><div style="font-size:9px;color:var(--dim)">${l.date}</div>${l.lossHours?`<div style="font-size:12px;font-weight:700;color:var(--red)">${l.lossHours}h</div>`:""}</div></div>
-    <div style="border-top:1px solid rgba(68,136,255,.08);padding-top:8px;display:grid;gap:5px">${[["問題","var(--red)",l.memo||"ロス発生: "+(l.causes||[]).join("・")],["推定原因","var(--amber)",suggest.cause],["対策案","var(--blue)",suggest.action],["確認結果","var(--green)","未確認"]].map(([lbl,color,val])=>`<div style="display:grid;grid-template-columns:46px 1fr;gap:5px;align-items:start"><div style="font-size:8px;font-weight:700;color:${color};padding:2px 5px;background:${color}12;border-radius:4px;text-align:center">${lbl}</div><div style="font-size:10px;color:${lbl==="確認結果"?"var(--muted)":"var(--text2)"}">${esc(val)}</div></div>`).join("")}</div></div>`;
-  }).join("");
-}
-function populateQcJobSelect(){const sel=document.getElementById("qcJobSelect");if(!sel)return;sel.innerHTML="<option value=''>選択なし</option>"+jobsArr().map(j=>`<option value="${j.id}">${esc(j.name)}${j.orderNo?" ("+esc(j.orderNo)+")":""}</option>`).join("");}
-async function saveQcLog(){
-  const problem=document.getElementById("qcProblem").value.trim();if(!problem){showToast("問題を入力してください");return;}
-  const mid=session.memberId;const m=getMember(mid);
-  await dbPush("qcLogs",{memberId:mid||"boss",memberName:m?.name||"管理者",date:todayJST(),problem,cause:document.getElementById("qcCause").value.trim(),action:document.getElementById("qcAction").value.trim(),result:document.getElementById("qcResult").value.trim(),jobId:document.getElementById("qcJobSelect").value,savedAt:Date.now()});
-  ["qcProblem","qcCause","qcAction","qcResult"].forEach(id=>{document.getElementById(id).value="";});showToast("✅ QCログを保存しました");
-}
-function runQcAI(){
-  const problem=document.getElementById("qcProblem").value.trim();const el=document.getElementById("qcAiResult");if(!problem){showToast("問題を入力してください");return;}
-  el.innerHTML=`<div style="background:rgba(68,136,255,.06);border:1px solid rgba(68,136,255,.15);border-radius:12px;padding:12px;margin-top:10px;font-size:12px;color:var(--text2)">【AI提案 — 準備中】<br>問題: ${esc(problem)}<br><span style="font-size:10px;color:var(--dim)">※ AI提案機能はGAS連携後に有効になります</span></div>`;
-}
-function renderQcStat(){
-  const el=document.getElementById("qcStatContent");if(!el)return;
-  const all=Object.values(qcLogs),wl=wlArr();const cnt={};wl.forEach(l=>(l.causes||[]).forEach(c=>{cnt[c]=(cnt[c]||0)+1;}));const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  el.innerHTML=`<div class="card" style="margin-bottom:10px"><div class="stat-grid stat-grid-2"><div class="stat-cell"><div class="stat-val" style="color:var(--blue)">${all.length}</div><div class="stat-lbl">QCログ件数</div></div><div class="stat-cell"><div class="stat-val" style="color:var(--red)">${wl.length}</div><div class="stat-lbl">ロス記録件数</div></div></div></div>
-  <div class="card"><div style="font-size:9px;font-weight:700;color:var(--dim);margin-bottom:10px;letter-spacing:1px">ロス原因 TOP5</div>${top.length?top.map(([k,v],i)=>{const info=LR.find(r=>r.key===k)||{color:"#667085"};return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(68,136,255,.06)"><div style="font-size:13px;font-weight:700;color:var(--dim);min-width:18px;font-family:'Inter',sans-serif">${i+1}</div><div style="flex:1;font-size:12px">${esc(k)}</div><span class="badge badge-red">${v}件</span></div>`;}).join(""):"<div style='font-size:12px;color:var(--muted);text-align:center;padding:12px'>データなし</div>"}</div>`;
 }
 
 // ===== 案件CRUD =====
